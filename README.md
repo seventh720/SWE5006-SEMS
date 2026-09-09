@@ -285,14 +285,6 @@ The current CI runs when a PR is opened or updated and after pushes to `main`. P
 
 ### Address feedback and merge
 
-Make review fixes on the same branch, rerun the relevant checks, then commit and push. The existing PR updates automatically:
-
-```bash
-git add path/to/changed-file
-git commit -m "fix: address review feedback"
-git push
-```
-
 If `main` has advanced, merge it into your task branch with a clean working tree:
 
 ```bash

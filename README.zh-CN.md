@@ -308,12 +308,16 @@ npm run build
 回到项目根目录，检查差异后，只暂存本任务需要的文件（替换下面的示例路径）：
 
 ```bash
-git status
-git diff
-git add path/to/changed-file path/to/another-file
-git diff --cached
+# 暂存并提交当前修改
+git add .
 git commit -m "feat: add event list"
-git push -u origin event-list-alice
+
+# 同步最新主分支
+git fetch origin
+git merge origin/main
+
+# 推送自己的分支
+git push -u origin xxx
 ```
 
 不要提交 `.env`、密码、密钥或本地生成文件。提交信息应说明本次修改，例如 `feat: add event list`、`fix: validate login input`、`docs: clarify local setup`。
