@@ -270,14 +270,101 @@ CI 的最后一个任务使用 `appleboy/telegram-action@v1.0.1`，发送后端�
 
 ## 9. 团队 Git 协作流程
 
-使用短期功能分支，例如：
+统一流程：**更新 `main` → 创建自己的任务分支 → 本地开发与测试 → push → 发起 PR → 邀请 1 人 review → 修改并通过检查 → merge → 同步本地 `main`**。所有变更通过 PR 合并，不直接向 `main` push。
 
-```text
-feature/us-01-registration
-feature/us-02-jwt-login
-feature/us-03-rbac
+### 9.1 每个任务创建自己的分支
+
+首次开发先完成第 3、4 节的环境配置。以下 Git 命令从项目根目录执行；切换分支前先提交或暂存当前未完成的修改（`git stash`），确保工作区干净。
+
+```bash
+git switch main
+git pull --ff-only origin main
+git switch -c event-list-alice
 ```
 
-团队应保护 `main` 分支，并要求 CI 通过、至少一名组员完成代码审查后再合并。PR（Pull Request）是提交代码供组员审查和合并的请求。
+分支名能看出大致任务和开发者名字即可，例如 `event-list-alice`、`login-bob`，不要求固定前缀或任务编号。将示例替换为自己的任务和名字。每人每个任务使用独立的短期分支，避免多人共用一个开发分支或长期复用已合并分支。
 
-涉及数据库变更的 PR 应同时包含 Flyway 迁移脚本、对应业务代码、自动化测试和数据库文档，确保代码与数据库结构一起更新。
+### 9.2 本地开发与提交前检查
+
+日常开发按第 4.3 节启动数据库、后端和前端。完成修改后，手动验证相关功能，并运行相关检查。下面每组命令分别从项目根目录执行：
+
+```bash
+cd backend
+mvn verify
+# 涉及数据库或持久化逻辑时，启动 Docker 后再运行：
+RUN_CONTAINER_TESTS=true mvn test
+```
+
+```bash
+cd frontend
+npm ci
+npm run typecheck
+npm test
+npm run build
+```
+
+涉及数据库变更的 PR 应同时包含新增 Flyway 迁移脚本、对应业务代码、自动化测试和数据库文档。不要修改已经执行过的迁移文件。
+
+回到项目根目录，检查差异后，只暂存本任务需要的文件（替换下面的示例路径）：
+
+```bash
+git status
+git diff
+git add path/to/changed-file path/to/another-file
+git diff --cached
+git commit -m "feat: add event list"
+git push -u origin event-list-alice
+```
+
+不要提交 `.env`、密码、密钥或本地生成文件。提交信息应说明本次修改，例如 `feat: add event list`、`fix: validate login input`、`docs: clarify local setup`。
+
+### 9.3 发起 Pull Request 并邀请审查
+
+1. 在 GitHub 创建 PR，选择 **base: `main`**、**compare: 自己的任务分支**。
+2. 按 PR 模板填写任务或 Issue、变更内容、测试命令与结果；界面变更附截图，数据库或配置变更说明组员需要执行的步骤。
+3. 在 **Reviewers** 中邀请 **1 名其他组员**，优先邀请相关模块负责人。尚未完成的工作可先开 Draft PR，准备好后再标记为 Ready for review。
+4. 获得 **1 名其他组员的 Approve** 后才可合并。仅留言或邀请 reviewer 不算批准。
+5. Reviewer 检查功能是否符合任务要求、代码是否清晰、异常和权限边界是否处理妥当，以及测试和文档是否充分。
+
+当前 CI 在创建或更新 PR 时运行，并在 push 到 `main` 后运行；仅 push 自己的分支但未创建 PR，不会触发当前 CI。
+
+### 9.4 处理意见、同步主分支并合并
+
+根据 review 意见在原分支修改，重新测试后提交并 push，PR 会自动更新，无需重新创建：
+
+```bash
+git add path/to/changed-file
+git commit -m "fix: address review feedback"
+git push
+```
+
+如果 `main` 已更新，在工作区干净时将最新主分支合入自己的任务分支：
+
+```bash
+git fetch origin
+git merge origin/main
+```
+
+如有冲突，逐个编辑冲突文件，确认保留的逻辑后 `git add` 对应文件并执行 `git commit` 完成合并；需要取消本次冲突合并时执行 `git merge --abort`。合并后重新运行相关检查并 `git push`。新增修改后请 reviewer 复查，确保批准覆盖最新代码。
+
+满足以下条件后，由 PR 作者或负责合并的组员执行 **Squash and merge**：
+
+- PR 已完成，目标分支为 `main`，不存在合并冲突。
+- `backend`、`backend-integration`、`frontend` 三项 CI 检查全部通过。
+- 已获得 1 名其他组员批准，所有审查意见已处理、讨论已解决。
+
+合并后删除 GitHub 上对应的任务分支，再在本地同步：
+
+```bash
+git switch main
+git pull --ff-only origin main
+git fetch --prune
+```
+
+下一个任务重新从最新 `main` 创建分支。Squash 合并后，`git branch -d` 可能因原提交未直接进入 `main` 而拒绝删除本地旧分支；可以先保留，确认 PR 已合并且无独有改动后再清理。
+
+### 9.5 仓库管理员配置
+
+上述内容是团队约定；文档本身不会启用 GitHub 的强制保护。管理员应为 `main` 配置分支保护或 ruleset：要求通过 PR 合并、至少 1 个 approval、最新修改后重新批准、解决全部讨论，并将 `backend`、`backend-integration`、`frontend` 设为必需状态检查，禁止 force push 和删除主分支。
+
+Telegram 通知不是合并所需的质量检查。

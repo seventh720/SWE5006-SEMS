@@ -225,12 +225,101 @@ Never add either Telegram value to `.env`, workflow YAML, source code or Git his
 
 ## Git workflow
 
-Use short-lived branches such as:
+Use this sequence for every task: **update `main` → create your own task branch → develop and test locally → push → open a PR → request 1 reviewer → address feedback and pass checks → merge → update local `main`**. All changes go through a PR; do not push directly to `main`.
 
-```text
-feature/us-01-registration
-feature/us-02-jwt-login
-feature/us-03-rbac
+### Create a branch for each task
+
+Complete the environment setup above first. Run Git commands from the repository root. Commit or stash unfinished changes (`git stash`) before switching branches so your working tree is clean.
+
+```bash
+git switch main
+git pull --ff-only origin main
+git switch -c event-list-alice
 ```
 
-Protect `main`, require a passing CI run and at least one review before merging. A database-changing pull request should contain the Flyway migration, corresponding application code, automated tests and database documentation together.
+A branch name only needs to indicate the general task and developer name, such as `event-list-alice` or `login-bob`; no fixed prefix or task number is required. Replace the example with your own task and name. Each member uses a separate short-lived branch for each task.
+
+### Develop, test and push
+
+Use Option B above for daily development. Manually verify the affected behavior and run the relevant checks. Start each command block from the repository root:
+
+```bash
+cd backend
+mvn verify
+# For database or persistence changes, start Docker and also run:
+RUN_CONTAINER_TESTS=true mvn test
+```
+
+```bash
+cd frontend
+npm ci
+npm run typecheck
+npm test
+npm run build
+```
+
+A database-changing PR should include a new Flyway migration, corresponding application code, automated tests and database documentation. Never edit an applied migration.
+
+Return to the repository root, inspect the changes and stage only files belonging to the task. Replace the example paths below:
+
+```bash
+git status
+git diff
+git add path/to/changed-file path/to/another-file
+git diff --cached
+git commit -m "feat: add event list"
+git push -u origin event-list-alice
+```
+
+Do not commit `.env`, passwords, secrets or local generated files. Use descriptive commit messages such as `feat: add event list`, `fix: validate login input` or `docs: clarify local setup`.
+
+### Open a PR and request review
+
+1. Create a GitHub PR with **base: `main`** and **compare: your task branch**.
+2. Complete the PR template with the task or issue, changes, test commands and results. Include screenshots for UI changes and teammate setup steps for database or configuration changes.
+3. Request **1 other team member** under **Reviewers**, preferably someone familiar with the affected module. Use a Draft PR for unfinished work, then mark it Ready for review.
+4. Merging requires **1 approval from another team member**. A comment or review request is not an approval.
+5. Reviewers check task requirements, code clarity, error handling, authorization boundaries, tests and documentation.
+
+The current CI runs when a PR is opened or updated and after pushes to `main`. Pushing a task branch without opening a PR does not trigger the current CI.
+
+### Address feedback and merge
+
+Make review fixes on the same branch, rerun the relevant checks, then commit and push. The existing PR updates automatically:
+
+```bash
+git add path/to/changed-file
+git commit -m "fix: address review feedback"
+git push
+```
+
+If `main` has advanced, merge it into your task branch with a clean working tree:
+
+```bash
+git fetch origin
+git merge origin/main
+```
+
+Resolve conflicting files, stage them with `git add`, then run `git commit` to finish the merge. To cancel a conflicted merge, use `git merge --abort`. Rerun the relevant checks and `git push` after merging. Ask reviewers to review new changes so approvals cover the latest code.
+
+The PR author or designated merger uses **Squash and merge** only when:
+
+- The PR is ready, targets `main` and has no merge conflicts.
+- The `backend`, `backend-integration` and `frontend` CI checks all pass.
+- 1 other team member has approved, feedback is addressed and all review conversations are resolved.
+
+Delete the merged task branch on GitHub and update your local checkout:
+
+```bash
+git switch main
+git pull --ff-only origin main
+git fetch --prune
+```
+
+Start the next task on a new branch from the updated `main`. After squash merging, `git branch -d` may refuse to delete the old local branch because its original commits are not ancestors of `main`. Keep it until you verify that the PR was merged and there are no unique changes to retain.
+
+### Repository administrator setup
+
+These are team conventions; documentation does not enable GitHub enforcement. Configure branch protection or a ruleset for `main` to require PRs, at least 1 approval, renewed approval after new changes, resolved conversations, and the `backend`, `backend-integration` and `frontend` status checks. Block force pushes and deletion of `main`.
+
+Telegram notification is not a required quality check for merging.

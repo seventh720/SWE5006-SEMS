@@ -110,7 +110,7 @@ jobs:
             Commit Message: ${{ github.event.head_commit.message || github.event.pull_request.title || 'N/A' }}
 
             Backend: ${{ needs.backend.result }}
-            Backend line coverage: ${{ needs.backend.outputs.coverage }}
+            Backend unit-test line coverage: ${{ needs.backend.outputs.coverage }}
             PostgreSQL integration: ${{ needs['backend-integration'].result }}
             Frontend: ${{ needs.frontend.result }}
 
