@@ -11,11 +11,31 @@ import java.time.Duration;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 class TokenServiceTest {
+
+    @Test
+    void springCanCreateTokenServiceAndIssueToken() {
+        String secret = "unit-test-secret-with-at-least-32-characters";
+        SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        new ApplicationContextRunner()
+                .withBean(JwtEncoder.class, () -> new NimbusJwtEncoder(new ImmutableSecret<>(key)))
+                .withBean(JwtProperties.class,
+                        () -> new JwtProperties(secret, "sems-test", Duration.ofMinutes(5)))
+                .withUserConfiguration(TokenService.class)
+                .run(context -> {
+                    assertThat(context).hasNotFailed().hasSingleBean(TokenService.class);
+                    var user = UserAccount.register("alice", "alice@example.com", "stored-hash");
+                    var issued = context.getBean(TokenService.class).issue(user);
+                    assertThat(issued.value()).isNotBlank();
+                    assertThat(issued.expiresInSeconds()).isEqualTo(300);
+                });
+    }
 
     @Test
     void issuedTokenContainsSubjectAndAttendeeRole() {

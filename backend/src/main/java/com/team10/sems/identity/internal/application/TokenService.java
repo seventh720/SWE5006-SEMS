@@ -6,6 +6,7 @@ import com.team10.sems.platform.config.JwtProperties;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -20,6 +21,7 @@ public class TokenService {
     private final JwtProperties properties;
     private final Clock clock;
 
+    @Autowired
     public TokenService(JwtEncoder jwtEncoder, JwtProperties properties) {
         this(jwtEncoder, properties, Clock.systemUTC());
     }
