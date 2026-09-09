@@ -257,14 +257,14 @@ GitHub Actions 会运行后端单元测试、PostgreSQL 集成测试和前端检
 
 ### 8.1 Telegram CI 通知
 
-CI 的最后一个任务会通过 Telegram Bot API 发送后端结果及代码行覆盖率、PostgreSQL 集成测试结果、前端结果，以及对应 GitHub Actions 运行链接。Telegram 通知失败不会改变构建结果。
+CI 的最后一个任务使用 `appleboy/telegram-action@v1.0.1`，发送后端结果及代码行覆盖率、PostgreSQL 集成测试结果、前端结果、提交信息，以及对应 GitHub Actions 运行链接。Telegram 通知失败不会改变构建结果。
 
 1. 在 Telegram 中通过 `@BotFather` 创建机器人，并妥善保存 token。
 2. 给机器人发送一条消息；如果发送到群组，则把机器人加入群组后在群内发送一条消息。
 3. 访问 `https://api.telegram.org/bot<TOKEN>/getUpdates`，从 `message.chat.id` 取得 chat ID。群组的 chat ID 通常是负数。
 4. 打开 GitHub 仓库的 **Settings > Secrets and variables > Actions**，添加两个 Repository secrets：
-   - `TELEGRAM_BOT_TOKEN`：BotFather 提供的 token。
-   - `TELEGRAM_CHAT_ID`：接收通知的个人聊天或群组 ID。
+   - `TELEGRAM_TOKEN`：BotFather 提供的 token。
+   - `TELEGRAM_TO`：接收通知的个人聊天或群组 ID。
 
 不要把这两个值写入 `.env`、工作流 YAML、源码或 Git 历史。没有配置这两个 Secrets 时，CI 会跳过通知并正常完成。
 

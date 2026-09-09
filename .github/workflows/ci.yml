@@ -38,7 +38,7 @@ jobs:
           fi
 
           percentage="$(awk -F, 'NR > 1 { missed += $8; covered += $9 } END { total = missed + covered; if (total == 0) print "0.0"; else printf "%.1f", covered * 100 / total }' "$report")"
-          echo "percentage=$percentage" >> "$GITHUB_OUTPUT"
+          echo "percentage=${percentage}%" >> "$GITHUB_OUTPUT"
           echo "### Backend coverage" >> "$GITHUB_STEP_SUMMARY"
           echo "Line coverage: **${percentage}%**" >> "$GITHUB_STEP_SUMMARY"
 
@@ -84,48 +84,38 @@ jobs:
     if: always()
     needs: [backend, backend-integration, frontend]
     runs-on: ubuntu-latest
+    env:
+      TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
     steps:
-      - name: Send CI result
+      - name: Telegram configuration check
+        if: "${{ env.TELEGRAM_TO == '' || env.TELEGRAM_TOKEN == '' }}"
+        run: echo "Telegram secrets are not configured; notification skipped."
+      - name: Send Telegram message
+        if: "${{ env.TELEGRAM_TO != '' && env.TELEGRAM_TOKEN != '' }}"
         continue-on-error: true
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          BACKEND_RESULT: ${{ needs.backend.result }}
-          BACKEND_INTEGRATION_RESULT: ${{ needs['backend-integration'].result }}
-          FRONTEND_RESULT: ${{ needs.frontend.result }}
-          BACKEND_COVERAGE: ${{ needs.backend.outputs.coverage }}
-        shell: bash
-        run: |
-          if [[ -z "$TELEGRAM_BOT_TOKEN" || -z "$TELEGRAM_CHAT_ID" ]]; then
-            echo "Telegram secrets are not configured; notification skipped."
-            exit 0
-          fi
+        uses: appleboy/telegram-action@v1.0.1
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          disable_web_page_preview: true
+          message: |
+            ${{ needs.backend.result == 'success' && needs['backend-integration'].result == 'success' && needs.frontend.result == 'success' && '✅ SEMS CI success' || '❌ SEMS CI failed' }}
 
-          overall="success"
-          icon="✅"
-          for result in "$BACKEND_RESULT" "$BACKEND_INTEGRATION_RESULT" "$FRONTEND_RESULT"; do
-            if [[ "$result" != "success" ]]; then
-              overall="failed"
-              icon="❌"
-              break
-            fi
-          done
+            User: ${{ github.actor }}
+            Repository: ${{ github.repository }}
+            Event: ${{ github.event_name }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Commit Message: ${{ github.event.head_commit.message || github.event.pull_request.title || 'N/A' }}
 
-          backend_coverage="${BACKEND_COVERAGE:-N/A}"
-          [[ "$backend_coverage" != "N/A" ]] && backend_coverage="${backend_coverage}%"
+            Backend: ${{ needs.backend.result }}
+            Backend line coverage: ${{ needs.backend.outputs.coverage }}
+            PostgreSQL integration: ${{ needs['backend-integration'].result }}
+            Frontend: ${{ needs.frontend.result }}
 
-          message="${icon} SEMS CI ${overall}
-          Repository: ${GITHUB_REPOSITORY}
-          Event: ${GITHUB_EVENT_NAME}
-          Branch: ${GITHUB_REF_NAME}
-          Commit: ${GITHUB_SHA:0:7}
-          Backend: ${BACKEND_RESULT} | line coverage: ${backend_coverage}
-          PostgreSQL integration: ${BACKEND_INTEGRATION_RESULT}
-          Frontend: ${FRONTEND_RESULT}
-          Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            View Changes:
+            https://github.com/${{ github.repository }}/commit/${{ github.sha }}
 
-          curl --silent --show-error --fail --retry 3 \
-            --request POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=${message}" \
-            --data-urlencode "disable_web_page_preview=true"
+            View CI Run:
+            https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}

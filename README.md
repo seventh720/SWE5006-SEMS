@@ -212,14 +212,14 @@ GitHub Actions runs backend unit tests, PostgreSQL integration tests and fronten
 
 ### Telegram CI notifications
 
-The final CI job sends the backend result and line coverage, PostgreSQL integration-test result, frontend result and a link to the GitHub Actions run through the Telegram Bot API. If Telegram is unavailable, the notification step does not change the build result.
+The final CI job uses `appleboy/telegram-action@v1.0.1` to send the backend result and line coverage, PostgreSQL integration-test result, frontend result, commit information and a link to the GitHub Actions run. If Telegram is unavailable, the notification step does not change the build result.
 
 1. Create a bot with `@BotFather` in Telegram and keep its token private.
 2. Send the bot a message, or add it to the target group and send a message there.
 3. Call `https://api.telegram.org/bot<TOKEN>/getUpdates` and read `message.chat.id` to obtain the chat ID. Group chat IDs are normally negative numbers.
 4. In GitHub, open **Settings > Secrets and variables > Actions** and add these repository secrets:
-   - `TELEGRAM_BOT_TOKEN`: token issued by BotFather.
-   - `TELEGRAM_CHAT_ID`: target private-chat or group-chat ID.
+   - `TELEGRAM_TOKEN`: token issued by BotFather.
+   - `TELEGRAM_TO`: target private-chat or group-chat ID.
 
 Never add either Telegram value to `.env`, workflow YAML, source code or Git history. When the two secrets are absent, CI prints a skip message and continues normally.
 
