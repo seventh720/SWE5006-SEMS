@@ -1,5 +1,7 @@
 # Smart Event Management and Ticketing System
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 SEMS is a modular event management and ticketing application. The current Sprint 1 implementation provides a complete authentication and authorization path: registration, password hashing, login, JWT validation, current-user lookup, role-based endpoint authorization and administrator role management.
 
 The repository contains a React frontend, a Spring Boot modular-monolith backend, PostgreSQL database migrations, Docker Compose configuration and an initial GitHub Actions pipeline.
@@ -204,7 +206,22 @@ npm test
 npm run build
 ```
 
-GitHub Actions runs backend unit tests, PostgreSQL integration tests, frontend checks and pull-request dependency review. Dependabot is configured for Maven, npm and GitHub Actions dependencies.
+`mvn verify` writes the backend JaCoCo report to `backend/target/site/jacoco/index.html`. Backend line coverage is reported for visibility and does not currently block a build.
+
+GitHub Actions runs backend unit tests, PostgreSQL integration tests and frontend checks. Automatic dependency-upgrade pull requests are disabled; dependency versions are updated manually when the team decides an upgrade is needed.
+
+### Telegram CI notifications
+
+The final CI job sends the backend result and line coverage, PostgreSQL integration-test result, frontend result and a link to the GitHub Actions run through the Telegram Bot API. If Telegram is unavailable, the notification step does not change the build result.
+
+1. Create a bot with `@BotFather` in Telegram and keep its token private.
+2. Send the bot a message, or add it to the target group and send a message there.
+3. Call `https://api.telegram.org/bot<TOKEN>/getUpdates` and read `message.chat.id` to obtain the chat ID. Group chat IDs are normally negative numbers.
+4. In GitHub, open **Settings > Secrets and variables > Actions** and add these repository secrets:
+   - `TELEGRAM_BOT_TOKEN`: token issued by BotFather.
+   - `TELEGRAM_CHAT_ID`: target private-chat or group-chat ID.
+
+Never add either Telegram value to `.env`, workflow YAML, source code or Git history. When the two secrets are absent, CI prints a skip message and continues normally.
 
 ## Git workflow
 
