@@ -1,0 +1,26 @@
+.DS_Store
+.idea/
+.vscode/
+
+# Local environment and credentials
+.env
+*.local
+
+# Java
+backend/target/
+*.class
+
+# Node
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Local database/export files
+postgres-data/
+pgdata/
+*.dump
+*.backup
+database-exports/
+
+# Logs
+*.log
