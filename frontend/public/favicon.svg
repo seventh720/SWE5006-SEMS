@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>SEMS event ticket</title>
+  <rect width="64" height="64" rx="14" fill="#17686d"/>
+  <path d="M12 18h40v9a5 5 0 0 0 0 10v9H12v-9a5 5 0 0 0 0-10z" fill="#fff"/>
+  <path d="M41 21v22" stroke="#17686d" stroke-width="3" stroke-dasharray="3 3"/>
+  <path d="m26 24 2.5 5 5.5.8-4 3.9.9 5.5-4.9-2.6-4.9 2.6.9-5.5-4-3.9 5.5-.8z" fill="#17686d"/>
+</svg>

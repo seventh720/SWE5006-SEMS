@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { ApiError } from "../../shared/api/client";
 import { useAuth } from "./AuthContext";
 
@@ -34,17 +34,18 @@ export function AuthPage() {
   return (
     <main className="auth-shell">
       <section className="brand-panel">
-        <p className="eyebrow">SWE5006 Team 10</p>
+        <p className="eyebrow">SEMS · Discover and connect</p>
         <h1>Smart Event Management and Ticketing System</h1>
-        <p>Iteration 1 authentication and role-based access control.</p>
+        <p>Discover events, explore new interests, and bring people together.</p>
         <ul>
-          <li>Secure password hashing</li>
-          <li>Short-lived JWT authentication</li>
-          <li>Four explicit system roles</li>
+          <li>Explore published events</li>
+          <li>Find event times, locations, and details</li>
+          <li>Sign in to your personal dashboard</li>
         </ul>
       </section>
 
       <section className="form-panel">
+        <Link className="text-link" to="/events">Browse events as a guest →</Link>
         <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
           <button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>
             Login

@@ -26,11 +26,16 @@ export function DashboardPage() {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <p className="eyebrow">SEMS Sprint 1</p>
-          <h1>Identity and access dashboard</h1>
+          <p className="eyebrow">SEMS · Your event hub</p>
+          <h1>My dashboard</h1>
         </div>
         <button className="secondary-button" onClick={logout}>Logout</button>
       </header>
+
+      <section className="card event-dashboard-entry">
+        <div><p className="section-label">Discover events</p><h2>Find your next experience</h2><p>Browse published events and explore the details.</p></div>
+        <Link className="text-link" to="/events">Explore events →</Link>
+      </section>
 
       <section className="profile-grid">
         <article className="card profile-card">
