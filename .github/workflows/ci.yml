@@ -10,12 +10,12 @@ permissions:
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       coverage: ${{ steps.coverage.outputs.percentage }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -43,12 +43,12 @@ jobs:
           echo "Line coverage: **${percentage}%**" >> "$GITHUB_STEP_SUMMARY"
 
   backend-integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       RUN_CONTAINER_TESTS: "true"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -58,10 +58,10 @@ jobs:
         run: mvn -B test
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -83,7 +83,7 @@ jobs:
     name: Telegram notification
     if: always()
     needs: [backend, backend-integration, frontend]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
       TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
