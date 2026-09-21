@@ -6,6 +6,10 @@ SEMS is a modular event management and ticketing application. The current Sprint
 
 The repository contains a React frontend, a Spring Boot modular-monolith backend, PostgreSQL database migrations, Docker Compose configuration and an initial GitHub Actions pipeline.
 
+## Sprint 2 event browsing
+
+Event pages at `/events` and `/events/:id` now use anonymous `GET /api/v1/events?page=0&size=10&keyword=...` and `GET /api/v1/events/{id}`. Only published events are exposed. Pagination is zero-based (size 1–50); title search is case-insensitive and treats wildcard characters literally. Restart the updated backend to apply the new Flyway migration. An empty database returns an empty list; no sample events are seeded. Organizers and administrators can now create and edit their own private drafts at `/organizer/events`, using authenticated GET/POST `/api/v1/organizer/events` and GET/PUT `/api/v1/organizer/events/{id}`. Updates require the current `version`; stale or non-draft edits return 409. Ownership comes from the JWT and applies to administrators too. Publish and cancel use POST `/api/v1/organizer/events/{id}/publish` and `/cancel`, with a JSON `version`. Publication requires a future start time and freezes editing. Cancellation is irreversible and hides the event from public lists and detail lookup. Newly saved drafts will not appear in public browsing. See the [database schema](docs/database/README.md).
+
 ## Current roles and accounts
 
 The system has **four roles**, not only user and administrator:

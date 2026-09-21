@@ -35,6 +35,8 @@ export function DashboardPage() {
       <section className="card event-dashboard-entry">
         <div><p className="section-label">Discover events</p><h2>Find your next experience</h2><p>Browse published events and explore the details.</p></div>
         <Link className="text-link" to="/events">Explore events →</Link>
+        {(hasRole(user.roles, "ORGANIZER") || hasRole(user.roles, "ADMIN")) &&
+          <Link className="text-link" to="/organizer/events">My events →</Link>}
       </section>
 
       <section className="profile-grid">

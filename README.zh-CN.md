@@ -185,7 +185,44 @@ SEMS_BOOTSTRAP_ADMIN_PASSWORD=replace-with-a-strong-password
 
 请将示例邮箱和密码替换为实际配置。后端启动时，如果该邮箱不存在，就创建账号；如果已经存在，则为该账号授予 `ADMIN` 角色。完成首次受控部署后，清空初始化管理员密码配置。
 
-## 7. Sprint 1 已实现的 API
+## 7. 已实现的 API
+
+Sprint 2 第一批已增加活动浏览页面和数据库查询接口。启动或重启新版后端时，Flyway 自动创建活动表；访问前端 `/events` 即可浏览。空库显示空列表，不会自动插入演示活动。组织者草稿创建、编辑、发布和取消现已实现。
+
+| 方法 | 接口路径 | 功能 | 访问权限 |
+|---|---|---|---|
+| `GET` | `/api/v1/events?page=0&size=10&keyword=...` | 已发布活动列表，标题搜索、分页 | 无需登录 |
+| `GET` | `/api/v1/events/{id}` | 已发布活动详情 | 无需登录 |
+
+`page` 从 0 开始，`size` 默认 10、范围 1–50。按开始时间、ID 升序返回；标题搜索忽略大小写和首尾空白，`%`、`_` 按普通字符匹配。列表响应为 `items`、`page`、`size`、`totalElements`、`totalPages`。详情字段为 `id`、`title`、`description`、`location`、`startsAt`、`endsAt`、`capacity`、`status`；时间使用含时区 ISO 8601。
+
+非法分页／UUID 返回 `400`；不存在、草稿和取消活动的详情统一返回 `404`，采用 Problem JSON。仅上述 GET 接口允许匿名访问。
+
+```bash
+curl -i 'http://localhost:8080/api/v1/events?page=0&size=10'
+```
+
+正常空库返回 `200` 和 `items: []`。若页面仍报加载失败，先确认运行的是新版后端；Docker 部署需重新构建后端镜像。数据库字段与关系见 [数据库说明](docs/database/README.md)。
+
+
+### 组织者草稿管理
+
+使用具有 `ORGANIZER` 或 `ADMIN` 角色的账号登录，从首页进入 **My events**（`/organizer/events`），点击 **Create event** 填写标题、描述、地点、起止时间及正整数容量，然后 **Save draft**。表单时间统一为新加坡时区。管理员分配组织者角色后，用户需重新登录获取新令牌。
+
+| 方法 | 接口路径 | 功能 |
+|---|---|---|
+| `GET` | `/api/v1/organizer/events?page=0&size=10` | 本人活动列表，创建时间及 ID 降序 |
+| `GET` | `/api/v1/organizer/events/{id}` | 本人活动管理详情 |
+| `POST` | `/api/v1/organizer/events` | 保存完整草稿，返回 `201` 与 Location |
+| `PUT` | `/api/v1/organizer/events/{id}` | 编辑本人草稿，必须携带当前 `version` |
+| `POST` | `/api/v1/organizer/events/{id}/publish` | 发布本人草稿，JSON 请求携带 `version` |
+| `POST` | `/api/v1/organizer/events/{id}/cancel` | 取消本人草稿或已发布活动，JSON 请求携带 `version` |
+
+所有管理请求均携带 JWT。创建者由 JWT 确定；即使是管理员，也不能查看或编辑他人的活动。角色不符返回 `403`，非本人或不存在返回 `404`，版本过期或非草稿编辑返回 `409`。
+
+草稿请求字段为 `title`（1–200 字符）、`description`（1–10000）、`location`（1–500）、`startsAt`、`endsAt`（含时区时间）、`capacity`（1–2147483647 整数）。时间必须先开始后结束。管理响应在公开字段之外增加 `version`、`createdAt`、`updatedAt`。冲突时复制需要保留的文字，再点击 **Reload latest version**。
+
+验收步骤：新建草稿 → 返回 My events → 刷新确认记录仍在 → 编辑保存 → 刷新确认修改 → 访问公开列表确认草稿未出现。第二个组织者使用该 ID 读取或编辑应返回 `404`。保存修改后点击 **Publish event → Confirm publication**，公开列表和详情即可读取该活动。发布时开始时间必须晚于当前时间；发布后不可编辑。点击 **Cancel event → Confirm cancellation** 后，公开列表移除该活动，公开详情返回 `404`，本人管理列表保留取消记录。取消不可恢复，重复发布或重复取消返回 `409`。未保存的表单修改必须先保存，再发布或取消。
 
 认证（Authentication）用于确认“你是谁”；授权（Authorization）用于判断“你能执行哪些操作”。
 
