@@ -141,3 +141,19 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .event-actions { margin-top: 1.5rem; }
 .danger-button { color: #aa2e25; border-color: #c86c66; }
 .action-confirmation { margin-top: 1.25rem; padding: 1rem; border-radius: 8px; background: #f5f7fa; line-height: 1.6; }
+
+.dashboard-views { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
+.dashboard-views button[aria-pressed="true"] { background: #17686d; color: white; border-color: #17686d; }
+.dashboard-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.dashboard-stats dt { color: #657681; font-weight: 650; }
+.dashboard-stats dd { margin: 0.5rem 0 0; font-size: 2.4rem; font-weight: 750; color: #17686d; }
+.dashboard-account { position: relative; min-width: 120px; }
+.dashboard-account summary { cursor: pointer; color: #17686d; font-weight: 750; padding: 0.7rem; }
+.dashboard-account > .card { position: absolute; right: 0; z-index: 2; width: min(320px, 85vw); overflow-wrap: anywhere; }
+.dashboard-header h1 { overflow-wrap: anywhere; }
+.staff-overview { margin-top: 2rem; padding: 2rem; }
+@media (max-width: 760px) {
+  .dashboard-stats { grid-template-columns: 1fr; }
+  .dashboard-header { align-items: start; gap: 1rem; flex-direction: column; }
+  .dashboard-account > .card { left: 0; right: auto; }
+}

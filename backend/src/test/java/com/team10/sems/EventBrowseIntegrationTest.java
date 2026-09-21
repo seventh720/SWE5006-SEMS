@@ -406,4 +406,25 @@ class EventBrowseIntegrationTest {
         assertEquals(action.equals("publish") ? "PUBLISHED" : "CANCELLED", jdbc.queryForObject("SELECT status FROM events WHERE id = ?", String.class, id));
     }
 
+    @Test
+    void dashboardSummaryCountsAllOwnedEventsAndOnlyUpcomingPublished() throws Exception {
+        for (int n = 0; n < 12; n++) event("Draft " + n, "DRAFT", "2030-01-01T10:00:00Z");
+        UUID upcoming = event("Upcoming", "PUBLISHED", "2030-01-01T10:00:00Z");
+        event("Past", "PUBLISHED", "2020-01-01T10:00:00Z");
+        event("Cancelled", "CANCELLED", "2030-01-01T10:00:00Z");
+        mvc.perform(get("/api/v1/organizer/events/summary").with(asUser(organizer, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.drafts").value(12))
+                .andExpect(jsonPath("$.published").value(2)).andExpect(jsonPath("$.cancelled").value(1))
+                .andExpect(jsonPath("$.upcoming.length()").value(1))
+                .andExpect(jsonPath("$.upcoming[0].id").value(upcoming.toString()));
+        mvc.perform(get("/api/v1/organizer/events/summary").with(asUser(UUID.randomUUID(), "ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.drafts").value(0))
+                .andExpect(jsonPath("$.upcoming").isEmpty());
+        mvc.perform(get("/api/v1/organizer/events/summary")).andExpect(status().isUnauthorized());
+        for (String role : new String[] {"ATTENDEE", "STAFF"}) {
+            mvc.perform(get("/api/v1/organizer/events/summary").with(asUser(organizer, role)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
 }
