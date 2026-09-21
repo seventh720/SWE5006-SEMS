@@ -71,6 +71,19 @@ public class EventManagementService {
         return event.toManagementView();
     }
 
+    @Transactional(readOnly = true)
+    public DashboardSummary summary(UUID owner) {
+        return new DashboardSummary(
+                events.countByOrganizerIdAndStatus(owner, "DRAFT"),
+                events.countByOrganizerIdAndStatus(owner, "PUBLISHED"),
+                events.countByOrganizerIdAndStatus(owner, "CANCELLED"),
+                events.findTop4ByOrganizerIdAndStatusAndStartsAtAfterOrderByStartsAtAscIdAsc(
+                        owner, "PUBLISHED", java.time.Instant.now()).stream().map(Event::toManagementView).toList());
+    }
+
+    public record DashboardSummary(long drafts, long published, long cancelled,
+            List<EventManagementView> upcoming) { }
+
     private Event owned(UUID owner, UUID id) {
         return events.findByIdAndOrganizerId(id, owner)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));

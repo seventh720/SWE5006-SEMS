@@ -18,6 +18,11 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
             """)
     Page<Event> findPublished(@Param("keyword") String keyword, Pageable pageable);
 
+    long countByOrganizerIdAndStatus(UUID organizerId, String status);
+
+    java.util.List<Event> findTop4ByOrganizerIdAndStatusAndStartsAtAfterOrderByStartsAtAscIdAsc(
+            UUID organizerId, String status, java.time.Instant now);
+
     Page<Event> findByOrganizerId(UUID organizerId, Pageable pageable);
 
     Optional<Event> findByIdAndOrganizerId(UUID id, UUID organizerId);

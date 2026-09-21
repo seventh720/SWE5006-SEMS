@@ -27,6 +27,11 @@ public class OrganizerEventController {
         return events.list(UUID.fromString(jwt.getSubject()), page, size);
     }
 
+    @GetMapping("/summary")
+    public EventManagementService.DashboardSummary summary(@AuthenticationPrincipal Jwt jwt) {
+        return events.summary(UUID.fromString(jwt.getSubject()));
+    }
+
     @GetMapping("/{id}")
     public EventManagementView detail(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") UUID id) {
         return events.detail(UUID.fromString(jwt.getSubject()), id);
