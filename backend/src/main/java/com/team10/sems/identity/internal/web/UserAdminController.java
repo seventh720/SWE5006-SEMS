@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,7 +31,7 @@ public class UserAdminController {
 
     @PutMapping("/{userId}/roles")
     public UserView replaceRoles(
-            @org.springframework.web.bind.annotation.PathVariable UUID userId,
+            @PathVariable("userId") UUID userId,
             @Valid @RequestBody RoleUpdateRequest request) {
         return administrationService.replaceRoles(userId, request.roles());
     }
