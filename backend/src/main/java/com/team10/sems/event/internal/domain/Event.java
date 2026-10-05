@@ -1,5 +1,6 @@
 package com.team10.sems.event.internal.domain;
 
+import com.team10.sems.event.EventAccessView;
 import com.team10.sems.event.EventView;
 import com.team10.sems.event.EventManagementView;
 import org.springframework.http.HttpStatus;
@@ -111,5 +112,14 @@ public class Event {
 
     public EventView toView() {
         return new EventView(id, title, description, location, startsAt, endsAt, capacity, status);
+    }
+    public EventAccessView toAccessView() {
+        return new EventAccessView(
+                id,
+                organizerId,
+                startsAt,
+                endsAt,
+                capacity,
+                status);
     }
 }
