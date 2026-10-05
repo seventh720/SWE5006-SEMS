@@ -46,8 +46,13 @@ function Stats({ items }: { items: { label: string; value: number }[] }) {
 }
 
 function PersonalDashboard() {
+  const { user } = useAuth();
+  const isAttendee = user?.roles.includes("ATTENDEE") ?? false;
   return <>
-    <section className="event-hero"><p className="eyebrow">Discover and connect</p><h2>Find your next experience</h2><p>Explore events, meet new people, and make time for something you enjoy.</p><div className="button-row"><Link className="primary-button compact button-link" to="/events">Explore all events →</Link></div></section>
+    <section className="event-hero"><p className="eyebrow">Discover and connect</p><h2>Find your next experience</h2><p>Explore events, meet new people, and make time for something you enjoy.</p><div className="button-row">
+      <Link className="primary-button compact button-link" to="/events">Explore all events →</Link>
+      {isAttendee && <Link className="secondary-button button-link" to="/bookings">My orders →</Link>}
+    </div></section>
     <div className="event-results-heading"><h2>Discover published events</h2><Link className="text-link" to="/events">View all</Link></div>
     <DataPanel<EventPage> path="/api/v1/events?page=0&size=4">{(data) => data.items.length ? <EventCards events={data.items} /> : <section className="card event-feedback"><h3>New experiences are on the way</h3><p>Check back soon for published events.</p></section>}</DataPanel>
   </>;

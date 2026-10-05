@@ -142,6 +142,37 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .danger-button { color: #aa2e25; border-color: #c86c66; }
 .action-confirmation { margin-top: 1.25rem; padding: 1rem; border-radius: 8px; background: #f5f7fa; line-height: 1.6; }
 
+.ticket-types, .ticket-types-entry { margin-top: 1.5rem; }
+.ticket-types-nav { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.ticket-type-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+.ticket-type-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid #dce3e8; flex-wrap: wrap; }
+.ticket-type-row:last-child { border-bottom: 0; }
+.ticket-type-info { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; min-width: 0; overflow-wrap: anywhere; }
+.ticket-type-name { font-weight: 750; font-size: 1.05rem; }
+.ticket-type-price { color: #344450; font-weight: 650; }
+.ticket-type-meta { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.ticket-type-sold-out { color: #aa2e25; font-weight: 750; }
+.ticket-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 800; }
+.badge-free { color: #216343; background: #e2f3e9; }
+.badge-paid { color: #715216; background: #fff3d6; }
+.badge-sold-out { color: #6c5260; background: #f1e9ed; }
+.badge-confirmed { color: #216343; background: #e2f3e9; }
+.badge-cancelled { color: #6c5260; background: #f1e9ed; }
+.ticket-type-form { margin-top: 1.5rem; }
+.ticket-type-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.ticket-type-form legend { font-size: 1.2rem; font-weight: 750; }
+.ticket-type-form [aria-invalid="true"] { border-color: #aa2e25; }
+
+.reserve-control { flex-basis: 100%; margin-top: 0.4rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.reserve-control label { margin: 0; }
+.reserve-control input { width: 7rem; }
+.reserve-control .field-error { flex-basis: 100%; }
+.reserve-control [role="alert"] { flex-basis: 100%; }
+.reserve-confirmation { flex-basis: 100%; margin-top: 0.4rem; }
+.reserve-confirmation p { margin: 0.3rem 0; }
+.reserve-confirmation .button-row { margin-top: 0.5rem; }
+.reserve-control [aria-invalid="true"] { border-color: #aa2e25; }
+
 .dashboard-views { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
 .dashboard-views button[aria-pressed="true"] { background: #17686d; color: white; border-color: #17686d; }
 .dashboard-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0; }
