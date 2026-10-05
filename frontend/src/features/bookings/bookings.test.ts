@@ -1,6 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../shared/api/client";
-import { classifyReservationError, newIdempotencyKey, validateBookingQuantity } from "./bookings";
+import {
+  bookingError,
+  bookingPath,
+  bookingsPath,
+  cancelBookingError,
+  cancelBookingPath,
+  classifyReservationError,
+  formatBookingAmount,
+  newIdempotencyKey,
+  readBookingPage,
+  validateBookingQuantity,
+} from "./bookings";
 
 describe("newIdempotencyKey", () => {
   it("returns a non-empty, fresh key for each call", () => {
@@ -106,5 +117,39 @@ describe("classifyReservationError", () => {
   it("treats server and network errors as retryable", () => {
     expect(classifyReservationError(new ApiError(500, {}))).toMatchObject({ kind: "uncertain", retryable: true });
     expect(classifyReservationError(new Error("network down"))).toMatchObject({ kind: "uncertain", retryable: true });
+  });
+});
+
+describe("booking order helpers", () => {
+  it("formats booking amounts as Free or SGD", () => {
+    expect(formatBookingAmount(0)).toBe("Free");
+    expect(formatBookingAmount(1250)).toBe("S$12.50");
+  });
+
+  it("parses zero-based booking pagination defensively", () => {
+    expect(readBookingPage(new URLSearchParams("page=2"))).toBe(2);
+    expect(readBookingPage(new URLSearchParams(""))).toBe(0);
+    expect(readBookingPage(new URLSearchParams("page=abc"))).toBe(0);
+    expect(readBookingPage(new URLSearchParams("page=-1"))).toBe(0);
+  });
+
+  it("builds booking API paths", () => {
+    expect(bookingsPath(0, 10)).toBe("/api/v1/bookings?page=0&size=10");
+    expect(bookingPath("b1")).toBe("/api/v1/bookings/b1");
+    expect(bookingPath("b/1")).toBe("/api/v1/bookings/b%2F1");
+    expect(cancelBookingPath("b1")).toBe("/api/v1/bookings/b1/cancel");
+  });
+
+  it("maps booking load errors without leaking ownership", () => {
+    expect(bookingError(new ApiError(404, { detail: "not found" }))).toBe("This booking is unavailable or does not belong to your account.");
+    expect(bookingError(new ApiError(401, {}))).toContain("session has expired");
+    expect(bookingError(new ApiError(403, {}))).toContain("attendee role");
+    expect(bookingError(new Error("offline"))).toContain("We couldn't load bookings");
+  });
+
+  it("maps cancellation errors distinctly from load errors", () => {
+    expect(cancelBookingError(new ApiError(409, { detail: "already started" }))).toBe("already started");
+    expect(cancelBookingError(new ApiError(500, {}))).toContain("couldn't confirm your cancellation");
+    expect(cancelBookingError(new Error("offline"))).toContain("couldn't confirm your cancellation");
   });
 });

@@ -54,3 +54,17 @@ it("offers reauthentication for expired management requests", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Sign in again" }));
   expect(auth.logout).toHaveBeenCalledOnce();
 });
+it("shows a My Orders entry to attendee users from the personal view", async () => {
+  fetchMock.mockResolvedValue(response({ items: [] }));
+  mount();
+  await screen.findByText("New experiences are on the way");
+  expect(screen.getByRole("link", { name: "My orders →" }).getAttribute("href")).toBe("/bookings");
+});
+it("hides the My Orders entry from a non-attendee personal view", async () => {
+  auth.user.roles = ["ORGANIZER"];
+  fetchMock.mockImplementation(async (url) => response(String(url).endsWith("summary") ? { drafts: 0, published: 0, cancelled: 0, upcoming: [] } : { items: [] }));
+  mount();
+  fireEvent.click(await screen.findByRole("button", { name: "Personal" }));
+  await screen.findByText("New experiences are on the way");
+  expect(screen.queryByRole("link", { name: "My orders →" })).toBeNull();
+});

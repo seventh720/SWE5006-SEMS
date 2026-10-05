@@ -100,6 +100,14 @@ describe("attendee free-ticket reservation", () => {
     expect(onBooked).toHaveBeenCalledOnce();
   });
 
+  it("links to My Orders after a successful reservation", async () => {
+    fetchMock.mockResolvedValue(response({ id: "booking-1" }, 201));
+    mount();
+    fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
+    await screen.findByText("Reservation confirmed.");
+    expect(screen.getByRole("link", { name: "View my orders" }).getAttribute("href")).toBe("/bookings");
+  });
+
   it("allows a new reservation attempt after a successful one", async () => {
     fetchMock.mockResolvedValueOnce(response({ id: "booking-1" }, 201)).mockResolvedValueOnce(response({ id: "booking-2" }, 201));
     mount();

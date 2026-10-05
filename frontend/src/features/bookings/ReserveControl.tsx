@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import {
   classifyReservationError,
@@ -84,7 +84,10 @@ export function ReserveControl({ eventId, ticketTypeId, remaining, onBooked }: {
         <p>Reservation number: <strong>{booking.id}</strong></p>
         <p className="muted">Electronic tickets are not issued yet — they will be available in a later release.</p>
       </div>
-      <button type="button" className="secondary-button" onClick={startNewReservation}>Reserve more</button>
+      <div className="button-row">
+        <Link className="primary-button compact button-link" to="/bookings">View my orders</Link>
+        <button type="button" className="secondary-button" onClick={startNewReservation}>Reserve more</button>
+      </div>
     </div>;
   }
 

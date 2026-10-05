@@ -156,6 +156,8 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .badge-free { color: #216343; background: #e2f3e9; }
 .badge-paid { color: #715216; background: #fff3d6; }
 .badge-sold-out { color: #6c5260; background: #f1e9ed; }
+.badge-confirmed { color: #216343; background: #e2f3e9; }
+.badge-cancelled { color: #6c5260; background: #f1e9ed; }
 .ticket-type-form { margin-top: 1.5rem; }
 .ticket-type-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .ticket-type-form legend { font-size: 1.2rem; font-weight: 750; }
@@ -168,7 +170,7 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .reserve-control [role="alert"] { flex-basis: 100%; }
 .reserve-confirmation { flex-basis: 100%; margin-top: 0.4rem; }
 .reserve-confirmation p { margin: 0.3rem 0; }
-.reserve-confirmation .secondary-button { margin-top: 0.5rem; }
+.reserve-confirmation .button-row { margin-top: 0.5rem; }
 .reserve-control [aria-invalid="true"] { border-color: #aa2e25; }
 
 .dashboard-views { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
