@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { TicketTypesSection } from "../ticketing/TicketTypesSection";
 import { eventListPath, formatEventTime, readEventQuery, type EventPage, type PublishedEvent } from "./events";
 import { useEventRequest } from "./useEventRequest";
 
@@ -98,6 +99,7 @@ export function EventDetailPage() {
           <dt>Capacity</dt><dd>{item.capacity} attendees</dd>
         </dl><p className="muted">Capacity is the event size, not ticket availability.</p></aside>
       </div>
+      <TicketTypesSection eventId={item.id} />
     </>}
   </main>;
 }

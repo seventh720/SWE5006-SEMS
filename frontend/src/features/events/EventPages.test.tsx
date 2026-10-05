@@ -13,6 +13,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("searches from page zero, paginates and preserves filters through detail navigation", async () => {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input), "http://test");
+    if (url.pathname.endsWith("/e1/ticket-types")) return response([]);
     if (url.pathname.endsWith("/e1")) return response(event);
     return response({ items: [event], page: Number(url.searchParams.get("page")), totalPages: 2, totalElements: 11, size: 10 });
   });

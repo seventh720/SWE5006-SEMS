@@ -180,5 +180,10 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
           <button className={action === "cancel" ? "secondary-button danger-button" : "primary-button compact"} disabled={saving} onClick={transition}>{saving ? "Updating…" : action === "publish" ? "Confirm publication" : "Confirm cancellation"}</button></div>
       </div>}
     </section>}
+    {event && event.status !== "CANCELLED" && <section className="card ticket-types-entry" aria-label="Ticket types">
+      <h2>Ticket types</h2>
+      <p>Configure ticket names, prices and quotas for this event. Only free tickets can be booked in this phase.</p>
+      <Link className="text-link" to={`/organizer/events/${event.id}/ticket-types`}>Manage ticket types →</Link>
+    </section>}
   </main>;
 }
