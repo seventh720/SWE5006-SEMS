@@ -161,6 +161,16 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .ticket-type-form legend { font-size: 1.2rem; font-weight: 750; }
 .ticket-type-form [aria-invalid="true"] { border-color: #aa2e25; }
 
+.reserve-control { flex-basis: 100%; margin-top: 0.4rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.reserve-control label { margin: 0; }
+.reserve-control input { width: 7rem; }
+.reserve-control .field-error { flex-basis: 100%; }
+.reserve-control [role="alert"] { flex-basis: 100%; }
+.reserve-confirmation { flex-basis: 100%; margin-top: 0.4rem; }
+.reserve-confirmation p { margin: 0.3rem 0; }
+.reserve-confirmation .secondary-button { margin-top: 0.5rem; }
+.reserve-control [aria-invalid="true"] { border-color: #aa2e25; }
+
 .dashboard-views { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
 .dashboard-views button[aria-pressed="true"] { background: #17686d; color: white; border-color: #17686d; }
 .dashboard-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0; }

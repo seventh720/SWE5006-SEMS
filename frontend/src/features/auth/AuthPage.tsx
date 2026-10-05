@@ -1,10 +1,11 @@
 import { type FormEvent, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { ApiError } from "../../shared/api/client";
 import { useAuth } from "./AuthContext";
 
 export function AuthPage() {
   const { user, login, register } = useAuth();
+  const location = useLocation();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -12,7 +13,11 @@ export function AuthPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+    const destination = from?.pathname ? `${from.pathname}${from.search ?? ""}` : "/";
+    return <Navigate to={destination} replace />;
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
