@@ -1,6 +1,7 @@
 package com.team10.sems.event.internal.domain;
 
 import com.team10.sems.event.EventAccessView;
+import com.team10.sems.event.BookingRequirements;
 import com.team10.sems.event.EventView;
 import com.team10.sems.event.EventManagementView;
 import org.springframework.http.HttpStatus;
@@ -38,7 +39,37 @@ public class Event {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "require_real_name", nullable = false)
+    private boolean requireRealName;
+    @Column(name = "require_email", nullable = false)
+    private boolean requireEmail;
+    @Column(name = "require_phone", nullable = false)
+    private boolean requirePhone;
+    @Column(name = "require_student_id", nullable = false)
+    private boolean requireStudentId;
+    @Column(name = "require_passport", nullable = false)
+    private boolean requirePassport;
+    @Column(name = "custom_field_label", length = 100)
+    private String customFieldLabel;
+
     protected Event() { }
+
+    public void configureBooking(BookingRequirements requirements) {
+        if (!"DRAFT".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Booking requirements can only be edited in a draft");
+        }
+        BookingRequirements fields = requirements == null ? BookingRequirements.NONE : requirements;
+        requireRealName = fields.realName();
+        requireEmail = fields.email();
+        requirePhone = fields.phone();
+        requireStudentId = fields.studentId();
+        requirePassport = fields.passport();
+        customFieldLabel = fields.customFieldLabel();
+    }
+
+    private BookingRequirements bookingRequirements() {
+        return new BookingRequirements(requireRealName, requireEmail, requirePhone, requireStudentId, requirePassport, customFieldLabel);
+    }
 
     public static Event draft(UUID owner, String title, String description, String location,
             Instant startsAt, Instant endsAt, int capacity) {
@@ -107,11 +138,11 @@ public class Event {
 
     public EventManagementView toManagementView() {
         return new EventManagementView(id, title, description, location, startsAt, endsAt,
-                capacity, status, version, createdAt, updatedAt);
+                capacity, status, version, createdAt, updatedAt, bookingRequirements());
     }
 
     public EventView toView() {
-        return new EventView(id, title, description, location, startsAt, endsAt, capacity, status);
+        return new EventView(id, title, description, location, startsAt, endsAt, capacity, status, bookingRequirements());
     }
     public EventAccessView toAccessView() {
         return new EventAccessView(
@@ -122,6 +153,6 @@ public class Event {
                 capacity,
                 status,
                 title,
-                location);
+                location, bookingRequirements());
     }
 }

@@ -1,6 +1,7 @@
 package com.team10.sems.booking.internal.domain;
 
 import com.team10.sems.booking.BookingView;
+import com.team10.sems.booking.AttendeeInfo;
 import com.team10.sems.booking.OrganizerBookingView;
 import com.team10.sems.event.EventAccessView;
 import com.team10.sems.ticketing.TicketTypeView;
@@ -53,11 +54,38 @@ public class Booking {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "attendee_real_name", length = 100)
+    private String attendeeRealName;
+    @Column(name = "attendee_email", length = 255)
+    private String attendeeEmail;
+    @Column(name = "attendee_phone", length = 30)
+    private String attendeePhone;
+    @Column(name = "attendee_student_id", length = 100)
+    private String attendeeStudentId;
+    @Column(name = "attendee_passport_number", length = 100)
+    private String attendeePassportNumber;
+    @Column(name = "custom_field_label", length = 100)
+    private String customFieldLabel;
+    @Column(name = "attendee_custom_answer", length = 500)
+    private String attendeeCustomAnswer;
+
     protected Booking() { }
 
+    private AttendeeInfo attendeeInfo() {
+        return new AttendeeInfo(attendeeRealName, attendeeEmail, attendeePhone,
+                attendeeStudentId, attendeePassportNumber, attendeeCustomAnswer);
+    }
+
     public static Booking confirmed(UUID user, String key, EventAccessView event,
-            TicketTypeView ticket, int quantity) {
+            TicketTypeView ticket, int quantity, AttendeeInfo info) {
         Booking booking = new Booking();
+        booking.attendeeRealName = info.realName();
+        booking.attendeeEmail = info.email();
+        booking.attendeePhone = info.phone();
+        booking.attendeeStudentId = info.studentId();
+        booking.attendeePassportNumber = info.passportNumber();
+        booking.attendeeCustomAnswer = info.customAnswer();
+        booking.customFieldLabel = event.bookingRequirements().customFieldLabel();
         booking.id = UUID.randomUUID();
         booking.userId = user;
         booking.eventId = event.id();
@@ -79,8 +107,9 @@ public class Booking {
         return booking;
     }
 
-    public boolean matches(UUID event, UUID ticket, int requestedQuantity) {
-        return eventId.equals(event) && ticketTypeId.equals(ticket) && quantity == requestedQuantity;
+    public boolean matches(UUID event, UUID ticket, int requestedQuantity, AttendeeInfo info) {
+        return eventId.equals(event) && ticketTypeId.equals(ticket) && quantity == requestedQuantity
+                && attendeeInfo().equals(info);
     }
 
     public boolean cancel(String reason) {
@@ -99,10 +128,10 @@ public class Booking {
     public BookingView toView() {
         return new BookingView(id, eventTitle, eventLocation, eventStartsAt, eventEndsAt,
                 ticketTypeName, quantity, unitPriceMinor, totalAmountMinor, currency,
-                status, paymentStatus, cancellationReason, createdAt);
+                status, paymentStatus, cancellationReason, createdAt, attendeeInfo(), customFieldLabel);
     }
 
     public OrganizerBookingView toOrganizerView() {
-        return new OrganizerBookingView(id, userId, ticketTypeName, quantity, status, cancellationReason, createdAt);
+        return new OrganizerBookingView(id, userId, ticketTypeName, quantity, status, cancellationReason, createdAt, attendeeInfo(), customFieldLabel);
     }
 }

@@ -1,6 +1,7 @@
 package com.team10.sems.identity.internal.domain;
 
 import com.team10.sems.identity.Role;
+import com.team10.sems.identity.BookingProfile;
 import com.team10.sems.identity.UserStatus;
 import com.team10.sems.identity.UserView;
 import jakarta.persistence.CollectionTable;
@@ -57,6 +58,29 @@ public class UserAccount {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "profile_real_name", length = 100)
+    private String profileRealName;
+    @Column(name = "profile_email", length = 255)
+    private String profileEmail;
+    @Column(name = "profile_phone", length = 30)
+    private String profilePhone;
+    @Column(name = "profile_student_id", length = 100)
+    private String profileStudentId;
+    @Column(name = "profile_passport_number", length = 100)
+    private String profilePassportNumber;
+
+    public BookingProfile bookingProfile() {
+        return new BookingProfile(profileRealName, profileEmail, profilePhone, profileStudentId, profilePassportNumber);
+    }
+
+    public void updateBookingProfile(BookingProfile profile) {
+        profileRealName = profile.realName();
+        profileEmail = profile.email();
+        profilePhone = profile.phone();
+        profileStudentId = profile.studentId();
+        profilePassportNumber = profile.passportNumber();
+    }
 
     protected UserAccount() {
     }

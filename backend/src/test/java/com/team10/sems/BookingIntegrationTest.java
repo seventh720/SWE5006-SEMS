@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team10.sems.event.internal.application.EventManagementService;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -99,11 +100,15 @@ class BookingIntegrationTest {
     }
 
     private int inventory() {
-        return jdbc.queryForObject("SELECT booked_quantity FROM ticket_types WHERE id=?", Integer.class, ticket);
+        return Objects.requireNonNull(
+                jdbc.queryForObject("SELECT booked_quantity FROM ticket_types WHERE id=?", Integer.class, ticket),
+                "Ticket inventory must not be null");
     }
 
     private int count(String status) {
-        return jdbc.queryForObject("SELECT count(*) FROM bookings WHERE status=?",Integer.class,status);
+        return Objects.requireNonNull(
+                jdbc.queryForObject("SELECT count(*) FROM bookings WHERE status=?", Integer.class, status),
+                "Booking count must not be null");
     }
 
     private List<Integer> race(Callable<Integer> first, Callable<Integer> second) throws Exception {
@@ -270,7 +275,9 @@ class BookingIntegrationTest {
         createType(1).andExpect(status().isCreated());
         String id=confirmed(1);
         cancel(id,attendee).andExpect(status().isOk());
-        long version=jdbc.queryForObject("SELECT version FROM ticket_types WHERE id=?",Long.class,ticket);
+        long version = Objects.requireNonNull(
+                jdbc.queryForObject("SELECT version FROM ticket_types WHERE id=?", Long.class, ticket),
+                "Ticket version must not be null");
         mvc.perform(put("/api/v1/organizer/events/"+event+"/ticket-types/"+ticket).with(as(owner,"ORGANIZER"))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Changed\",\"priceMinor\":0,\"currency\":\"SGD\",\"quota\":9,\"version\":"+version+"}"))
                 .andExpect(status().isConflict());
@@ -282,4 +289,197 @@ class BookingIntegrationTest {
         jdbc.update("UPDATE events SET starts_at='2020-01-01T10:00:00Z',ends_at='2020-01-01T12:00:00Z' WHERE id=?",event);
         cancel(id,attendee).andExpect(status().isConflict()); assertEquals(1,inventory());
     }
+
+    private ResultActions bookWithInfo(String key, java.util.Map<String, String> info) throws Exception {
+        return mvc.perform(post("/api/v1/bookings").with(as(attendee, "ATTENDEE"))
+                .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(java.util.Map.of(
+                        "eventId", event, "ticketTypeId", ticket, "quantity", 1, "attendeeInfo", info))));
+    }
+
+    @Test
+    void requiredInformationIsValidatedStoredAndIncludedInIdempotency() throws Exception {
+        jdbc.update("UPDATE events SET require_real_name=true,require_email=true,require_phone=true,require_student_id=true,require_passport=true,custom_field_label='Department' WHERE id=?", event);
+        var info = new java.util.HashMap<>(java.util.Map.of("realName", "Alice Tan", "email", "contact@example.test",
+                "phone", "+65 8123 4567", "studentId", "A1234567", "passportNumber", "P1234567", "customAnswer", "Computing"));
+        book(attendee, "missing", 1).andExpect(status().isBadRequest());
+        for (String field : List.copyOf(info.keySet())) {
+            var missing = new java.util.HashMap<>(info);
+            missing.put(field, "   ");
+            bookWithInfo("missing-" + field, missing).andExpect(status().isBadRequest());
+        }
+        assertEquals(0, inventory());
+        assertEquals(false, jdbc.queryForObject("SELECT sales_started FROM ticket_types WHERE id=?", Boolean.class, ticket));
+        String id = json(bookWithInfo("contact", info).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.attendeeInfo.realName").value("Alice Tan"))).get("id").asText();
+        bookWithInfo("contact", info).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id));
+        info.put("realName", "Another Person");
+        bookWithInfo("contact", info).andExpect(status().isConflict());
+        assertEquals(1, inventory());
+        mvc.perform(get("/api/v1/bookings/" + id).with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.attendeeInfo.email").value("contact@example.test"));
+        mvc.perform(get("/api/v1/organizer/events/" + event + "/bookings").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].attendeeInfo.studentId").value("A1234567"));
+        mvc.perform(get("/api/v1/bookings/" + id).with(as(other, "ATTENDEE"))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/organizer/events/" + event + "/bookings").with(as(other, "ORGANIZER")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/events/" + event)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookingRequirements.studentId").value(true))
+                .andExpect(jsonPath("$.attendeeInfo").doesNotExist());
+        cancel(id, attendee).andExpect(status().isOk())
+                .andExpect(jsonPath("$.attendeeInfo.realName").value("Alice Tan"));
+    }
+
+    @Test
+    void rejectsMalformedAndUnrequestedInformationWithoutReservingInventory() throws Exception {
+        bookWithInfo("unrequested", java.util.Map.of("realName", "Alice")).andExpect(status().isBadRequest());
+        jdbc.update("UPDATE events SET require_email=true,require_phone=true,require_student_id=true,require_passport=true,custom_field_label='Department' WHERE id=?", event);
+        var info = new java.util.HashMap<>(java.util.Map.of("email", "contact@example.test", "phone", "+65 8123 4567",
+                "studentId", "A1234567", "passportNumber", "P123456", "customAnswer", "Computing"));
+        for (var invalid : java.util.Map.of("email", "invalid", "phone", "letters", "studentId", "x".repeat(101),
+                "passportNumber", "x".repeat(101), "customAnswer", "x".repeat(501)).entrySet()) {
+            var values = new java.util.HashMap<>(info);
+            values.put(invalid.getKey(), invalid.getValue());
+            bookWithInfo("invalid-" + invalid.getKey(), values).andExpect(status().isBadRequest());
+        }
+        assertEquals(0, inventory());
+        assertEquals(0, count("CONFIRMED"));
+    }
+
+    @Test
+    void organizerConfiguresRequirementsInDraftAndPublicationFixesThem() throws Exception {
+        var input = new java.util.HashMap<String, Object>(java.util.Map.of(
+                "title", "Registration", "description", "Details", "location", "Singapore",
+                "startsAt", "2030-01-01T10:00:00Z", "endsAt", "2030-01-01T12:00:00Z", "capacity", 10,
+                "bookingRequirements", java.util.Map.of("realName", true, "email", true, "phone", false, "studentId", false, "passport", false)));
+        JsonNode draft = json(mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.bookingRequirements.realName").value(true)));
+        String path = "/api/v1/organizer/events/" + draft.get("id").asText();
+        input.put("version", draft.get("version").asLong());
+        input.put("bookingRequirements", java.util.Map.of("realName", false, "email", false, "phone", true, "studentId", true, "passport", true, "customFieldLabel", "Department"));
+        mvc.perform(put(path).with(as(other, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isNotFound());
+        JsonNode updated = json(mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isOk()));
+        mvc.perform(get(path).with(as(owner, "ORGANIZER"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookingRequirements.phone").value(true));
+        JsonNode published = json(mvc.perform(post(path + "/publish").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of("version", updated.get("version").asLong()))))
+                .andExpect(status().isOk()));
+        input.put("version", published.get("version").asLong());
+        mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isConflict());
+        mvc.perform(get("/api/v1/events/" + draft.get("id").asText())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookingRequirements.studentId").value(true));
+    }
+
+
+    @Test
+    void cancelledEventCanBeCopiedWithFreshTicketInventoryAndNoOrders() throws Exception {
+        jdbc.update("UPDATE events SET require_student_id=true,custom_field_label='Department' WHERE id=?", event);
+        bookWithInfo("source", java.util.Map.of("studentId", "A123", "customAnswer", "Computing"))
+                .andExpect(status().isCreated());
+        cancelEvent().andExpect(status().isOk());
+        JsonNode copied = json(mvc.perform(post("/api/v1/organizer/events/" + event + "/copy")
+                .with(as(owner, "ORGANIZER"))).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.title").value("Workshop"))
+                .andExpect(jsonPath("$.bookingRequirements.studentId").value(true))
+                .andExpect(jsonPath("$.bookingRequirements.customFieldLabel").value("Department")));
+        String id = copied.get("id").asText();
+        assertNotEquals(event.toString(), id);
+        mvc.perform(get("/api/v1/events/" + id)).andExpect(status().isNotFound());
+        JsonNode types = json(mvc.perform(get("/api/v1/organizer/events/" + id + "/ticket-types").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].name").value("General"))
+                .andExpect(jsonPath("$[0].quota").value(10)).andExpect(jsonPath("$[0].bookedQuantity").value(0))
+                .andExpect(jsonPath("$[0].salesStarted").value(false)));
+        assertNotEquals(ticket.toString(), types.get(0).get("id").asText());
+        mvc.perform(get("/api/v1/organizer/events/" + id + "/bookings").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        assertEquals("CANCELLED", jdbc.queryForObject("SELECT status FROM events WHERE id=?", String.class, event));
+        assertEquals(1, count("CANCELLED"));
+        mvc.perform(post("/api/v1/organizer/events/" + id + "/publish").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PUBLISHED"));
+    }
+
+    @Test
+    void eventCopyRequiresOwnerAndOrganizerRoleAndWorksForDrafts() throws Exception {
+        String path = "/api/v1/organizer/events/" + event + "/copy";
+        mvc.perform(post(path)).andExpect(status().isUnauthorized());
+        mvc.perform(post(path).with(as(owner, "ATTENDEE"))).andExpect(status().isForbidden());
+        mvc.perform(post(path).with(as(other, "ORGANIZER"))).andExpect(status().isNotFound());
+        mvc.perform(post(path).with(as(other, "ADMIN"))).andExpect(status().isNotFound());
+        mvc.perform(post(path).with(as(owner, "ORGANIZER"))).andExpect(status().isCreated());
+        jdbc.update("UPDATE events SET status='DRAFT' WHERE id=?", event);
+        mvc.perform(post(path).with(as(owner, "ORGANIZER"))).andExpect(status().isCreated());
+    }
+
+    @Test
+    void profileIsPrivateOptionalAndIndependentOfSubmittedOrders() throws Exception {
+        String profile = "{\"realName\":\"Saved Name\",\"email\":\"saved@example.test\",\"studentId\":\"S123\",\"passportNumber\":\"P456\"}";
+        mvc.perform(get("/api/v1/profile")).andExpect(status().isUnauthorized());
+        mvc.perform(put("/api/v1/profile").contentType(MediaType.APPLICATION_JSON).content(profile))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(put("/api/v1/profile").with(as(attendee, "ATTENDEE")).contentType(MediaType.APPLICATION_JSON).content(profile))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.studentId").value("S123"));
+        mvc.perform(get("/api/v1/profile").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.realName").value("Saved Name"));
+        mvc.perform(get("/api/v1/profile").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.studentId").isEmpty());
+        mvc.perform(get("/api/v1/profile/" + attendee).with(as(owner, "ADMIN"))).andExpect(status().isNotFound());
+        jdbc.update("UPDATE events SET require_real_name=true WHERE id=?", event);
+        String id = json(bookWithInfo("override", java.util.Map.of("realName", "Different Name"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.attendeeInfo.studentId").isEmpty()))
+                .get("id").asText();
+        mvc.perform(get("/api/v1/profile").with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.realName").value("Saved Name"));
+        mvc.perform(put("/api/v1/profile").with(as(attendee, "ATTENDEE")).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.realName").isEmpty());
+        mvc.perform(get("/api/v1/bookings/" + id).with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.attendeeInfo.realName").value("Different Name"));
+        mvc.perform(put("/api/v1/profile").with(as(attendee, "ATTENDEE")).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"invalid\"}")).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void studentIdAndPassportAreIndependentAndCustomAnswerKeepsItsLabel() throws Exception {
+        jdbc.update("UPDATE events SET require_student_id=true WHERE id=?", event);
+        bookWithInfo("passport-not-student", java.util.Map.of("passportNumber", "P123"))
+                .andExpect(status().isBadRequest());
+        bookWithInfo("student", java.util.Map.of("studentId", "S123")).andExpect(status().isCreated());
+        jdbc.update("UPDATE events SET require_student_id=false,require_passport=true,custom_field_label='Dietary requirements' WHERE id=?", event);
+        bookWithInfo("missing-custom", java.util.Map.of("passportNumber", "P123")).andExpect(status().isBadRequest());
+        String id = json(bookWithInfo("custom", java.util.Map.of("passportNumber", "P123", "customAnswer", "Vegetarian"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.customFieldLabel").value("Dietary requirements")))
+                .get("id").asText();
+        // Historical labels remain stable even if event data is changed outside supported APIs.
+        jdbc.update("UPDATE events SET custom_field_label='Changed label' WHERE id=?", event);
+        mvc.perform(get("/api/v1/bookings/" + id).with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.customFieldLabel").value("Dietary requirements"))
+                .andExpect(jsonPath("$.attendeeInfo.customAnswer").value("Vegetarian"));
+    }
+
+    @Test
+    void upgradePreservesEarlierDocumentRequirementsAndOrderInformation() throws Exception {
+        confirmed(1);
+        jdbc.update("UPDATE events SET require_document=true WHERE id=?", event);
+        jdbc.update("UPDATE bookings SET attendee_document_type='PASSPORT',attendee_document_number='P123' WHERE event_id=?", event);
+        var source = java.util.Objects.requireNonNull(jdbc.getDataSource());
+        org.flywaydb.core.Flyway.configure().dataSource(source).schemas("reuse_upgrade")
+                .target("202610061200").load().migrate();
+        for (String table : List.of("users", "events", "ticket_types", "bookings")) {
+            String columns = String.join(",", jdbc.queryForList(
+                    "SELECT column_name FROM information_schema.columns WHERE table_schema='reuse_upgrade' AND table_name=? ORDER BY ordinal_position",
+                    String.class, table));
+            jdbc.execute("INSERT INTO reuse_upgrade." + table + " (" + columns + ") SELECT " + columns + " FROM public." + table);
+        }
+        org.flywaydb.core.Flyway.configure().dataSource(source).schemas("reuse_upgrade").load().migrate();
+        assertEquals("Identity document number (student ID, passport or other)", jdbc.queryForObject(
+                "SELECT custom_field_label FROM reuse_upgrade.events WHERE id=?", String.class, event));
+        assertEquals("PASSPORT: P123", jdbc.queryForObject(
+                "SELECT attendee_custom_answer FROM reuse_upgrade.bookings WHERE event_id=?", String.class, event));
+    }
+
 }

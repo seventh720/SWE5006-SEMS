@@ -149,6 +149,41 @@ class AuthenticationFlowIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void usernamesAreUniqueIgnoringCase() throws Exception {
+        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"Alice\",\"email\":\"alice@example.com\",\"password\":\"Password123\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.username").value("alice"));
+        mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"ALICE\",\"email\":\"other@example.com\",\"password\":\"Password123\"}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value("Username is already registered"));
+    }
+
+    @Test
+    void concurrentRegistrationsCannotClaimTheSameUsername() throws Exception {
+        var ready = new java.util.concurrent.CountDownLatch(2);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var tasks = new java.util.ArrayList<java.util.concurrent.Future<Integer>>();
+            for (String email : java.util.List.of("first@example.test", "second@example.test")) {
+                tasks.add(pool.submit(() -> {
+                    ready.countDown();
+                    start.await();
+                    return mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(java.util.Map.of(
+                                    "username", "sameuser", "email", email, "password", "Password123"))))
+                            .andReturn().getResponse().getStatus();
+                }));
+            }
+            org.junit.jupiter.api.Assertions.assertTrue(ready.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            start.countDown();
+            var statuses = java.util.List.of(tasks.get(0).get(15, java.util.concurrent.TimeUnit.SECONDS),
+                    tasks.get(1).get(15, java.util.concurrent.TimeUnit.SECONDS));
+            org.junit.jupiter.api.Assertions.assertTrue(statuses.containsAll(java.util.List.of(201, 409)));
+            org.junit.jupiter.api.Assertions.assertEquals(1, users.count());
+        }
+    }
+
     private String signedToken(String subject, String issuer, java.time.Instant expiresAt) {
         var claims = org.springframework.security.oauth2.jwt.JwtClaimsSet.builder().issuer(issuer).subject(subject)
                 .issuedAt(expiresAt.minusSeconds(300)).expiresAt(expiresAt).claim("roles", java.util.List.of("ATTENDEE")).build();

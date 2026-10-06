@@ -44,6 +44,12 @@ public class OrganizerEventController {
         return ResponseEntity.created(URI.create("/api/v1/organizer/events/" + created.id())).body(created);
     }
 
+    @PostMapping("/{id}/copy")
+    public ResponseEntity<EventManagementView> copy(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") UUID id) {
+        var draft = events.copy(UUID.fromString(jwt.getSubject()), id);
+        return ResponseEntity.created(URI.create("/api/v1/organizer/events/" + draft.id())).body(draft);
+    }
+
     @PutMapping("/{id}")
     public EventManagementView update(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") UUID id,
             @Valid @RequestBody DraftInput input) {

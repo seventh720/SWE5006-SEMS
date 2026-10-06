@@ -15,11 +15,14 @@ SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 
 - 已发布且未开始的活动也能补配票种。总配额不超过容量；票种首次预订后冻结配置，取消订单不解除冻结。
 - 一单单票种、1–10张。下单请求必须携带 `Idempotency-Key`，网络重试复用同键。
 - 活动取消会在同一事务中取消全部有效订单并返还库存；订单历史保留快照，取消活动不重新开放预订。
+- 活动详情的“Copy to new draft”可复用本人草稿、已发布或已取消活动，含票种配置；复制后核对时间，再保存和发布。
+- 活动草稿可分别要求姓名、邮箱、电话、学生证号、护照号，并添加一个自定义问题。选中的内容在预订时必填。
+- Dashboard的“Saved booking details”可提前保存常用资料；预订时点击“Apply saved details”应用，仍可改填。资料页和预订页均有隐私说明。
 - 本轮免费订单无需支付，不发行二维码。付费票显示价格但不能下单。
 
 启动新版后端会自动执行新增Flyway迁移，无需手工改库。已有用户、角色、活动和票种保留。沿用下方启动和测试命令。
 
-[API、权限与事务约定](docs/sprint-3-api.zh-CN.md) · [数据库说明](docs/database/README.md) · [验收记录和截图](docs/acceptance/sprint3-2026-10-06/README.md)
+[活动复用与资料预填验收](docs/acceptance/reuse-and-profile-2026-10-07/README.md) · [API、权限与事务约定](docs/sprint-3-api.zh-CN.md) · [数据库说明](docs/database/README.md) · [验收记录和截图](docs/acceptance/sprint3-2026-10-06/README.md)
 
 ## 1. 用户角色与初始账号
 

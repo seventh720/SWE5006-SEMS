@@ -1,10 +1,15 @@
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ManagementError, useManagementRequest } from "../events/OrganizerPages";
 import { formatEventTime } from "../events/events";
+import { AttendeeInfoSummary } from "./AttendeeInfoSummary";
 import { BookingStatusBadge } from "./BookingStatusBadge";
 import { readBookingPage, type BookingStatus } from "./bookings";
 
+import type { AttendeeInfo } from "./attendeeInfo";
+
 interface OrganizerOrder {
+  attendeeInfo?: AttendeeInfo;
+  customFieldLabel?: string | null;
   id: string;
   attendeeId: string;
   ticketTypeName: string;
@@ -41,6 +46,7 @@ export function OrganizerOrdersPage() {
           <span>{formatEventTime(order.createdAt)} · SGT</span>
           {order.cancellationReason && <span>{order.cancellationReason === "EVENT_CANCELLED" ? "Event cancelled" : "Cancelled by attendee"}</span>}
         </div>
+        <AttendeeInfoSummary customFieldLabel={order.customFieldLabel} info={order.attendeeInfo} />
       </li>)}</ul>}
       {request.data.items.length > 0 && <nav className="event-pagination" aria-label="Event order pages">
         <button className="secondary-button" disabled={page === 0} onClick={() => setParams({ page: String(page - 1) })}>Previous</button>

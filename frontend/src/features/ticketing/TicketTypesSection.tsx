@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { BookingRequirements } from "../bookings/attendeeInfo";
 import { ReserveControl } from "../bookings/ReserveControl";
 import { readPublicTicketTypes } from "./ticketTypesApi";
 import {
@@ -37,7 +38,7 @@ export function usePublicTicketTypes(eventId: string) {
   };
 }
 
-export function TicketTypesSection({ eventId, startsAt }: { eventId: string; startsAt?: string }) {
+export function TicketTypesSection({ eventId, startsAt, bookingRequirements }: { eventId: string; startsAt?: string; bookingRequirements?: BookingRequirements }) {
   const closed = !!startsAt && Date.parse(startsAt) <= Date.now();
   const request = usePublicTicketTypes(eventId);
   return <section className="card ticket-types" aria-label="Ticket types" aria-busy={request.loading}>
@@ -66,7 +67,7 @@ export function TicketTypesSection({ eventId, startsAt }: { eventId: string; sta
               : <span>{remaining} of {ticketType.quota} available</span>}
             {!isFree(ticketType) && <span className="muted">Booking for paid tickets is not available yet.</span>}
           </div>
-          {isFree(ticketType) && <ReserveControl closed={closed} eventId={eventId} ticketTypeId={ticketType.id} remaining={remaining} onBooked={request.refresh} />}
+          {isFree(ticketType) && <ReserveControl bookingRequirements={bookingRequirements} closed={closed} eventId={eventId} ticketTypeId={ticketType.id} remaining={remaining} onBooked={request.refresh} />}
         </li>;
       })}
     </ul>}

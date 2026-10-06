@@ -51,6 +51,7 @@ function PersonalDashboard() {
   return <>
     <section className="event-hero"><p className="eyebrow">Discover and connect</p><h2>Find your next experience</h2><p>Explore events, meet new people, and make time for something you enjoy.</p><div className="button-row">
       <Link className="primary-button compact button-link" to="/events">Explore all events →</Link>
+      <Link className="secondary-button button-link" to="/profile">Saved booking details →</Link>
       {isAttendee && <Link className="secondary-button button-link" to="/bookings">My orders →</Link>}
     </div></section>
     <div className="event-results-heading"><h2>Discover published events</h2><Link className="text-link" to="/events">View all</Link></div>
@@ -97,7 +98,7 @@ export function DashboardPage() {
   const view = selected && views.includes(selected) ? selected : preferred;
   return <main className="app-shell">
     <header className="app-header dashboard-header"><div><p className="eyebrow">SEMS · {labels[view]}</p><h1>Welcome, {user.username}</h1></div>
-      <details className="dashboard-account"><summary>My account</summary><div className="card"><strong>{user.username}</strong><p>{user.email}</p><p className="muted">{user.status}</p><p>{user.roles.map(roleLabel).join(" · ")}</p><button className="secondary-button" onClick={logout}>Logout</button></div></details>
+      <details className="dashboard-account"><summary>My account</summary><div className="card"><strong>{user.username}</strong><p>{user.email}</p><p><Link className="text-link" to="/profile">Saved booking details →</Link></p><p className="muted">{user.status}</p><p>{user.roles.map(roleLabel).join(" · ")}</p><button className="secondary-button" onClick={logout}>Logout</button></div></details>
     </header>
     {views.length > 1 && <nav className="dashboard-views" aria-label="Dashboard view">{views.map((item) => <button className="secondary-button" key={item} aria-pressed={view === item} onClick={() => setSelected(item)}>{labels[item]}</button>)}</nav>}
     <section key={`${user.id}-${view}`} aria-label={`${labels[view]} overview`}>

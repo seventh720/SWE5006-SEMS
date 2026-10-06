@@ -125,3 +125,61 @@ erDiagram
         varchar cancellation_reason
     }
 ```
+
+## Booking information and saved profiles
+
+Migrations: `V202610061200__add_booking_information.sql`, followed by `V202610070900__reusable_profiles_and_booking_fields.sql`. Previously applied migrations remain unchanged.
+
+| Table / columns | Type | Meaning |
+|---|---|---|
+| events.require_real_name / require_email / require_phone / require_student_id / require_passport | BOOLEAN NOT NULL DEFAULT FALSE | Required fields per order; editable in draft only |
+| events.custom_field_label | VARCHAR(100), nullable | Organizer's question; a non-null label requires an answer |
+| bookings.attendee_real_name | VARCHAR(100), nullable | Order contact's real name |
+| bookings.attendee_email | VARCHAR(255), nullable | Order contact email, independent of login email |
+| bookings.attendee_phone | VARCHAR(30), nullable | Contact phone |
+| bookings.attendee_student_id / attendee_passport_number | VARCHAR(100), nullable | Independent document numbers |
+| bookings.custom_field_label | VARCHAR(100), nullable | Question snapshot |
+| bookings.attendee_custom_answer | VARCHAR(500), nullable | Answer snapshot |
+| users.profile_real_name / profile_student_id / profile_passport_number | VARCHAR(100), nullable | Optional saved booking defaults; excluded from UserView |
+| users.profile_email | VARCHAR(255), nullable | Optional saved contact email |
+| users.profile_phone | VARCHAR(30), nullable | Optional saved contact phone |
+
+Existing orders retain snapshots independently of profile changes. Only the current user's `/profile` API exposes saved defaults; order details are exposed through the attendee's own orders and the owning organizer's order list. Profiles do not populate booking requests automatically on the server.
+
+The earlier generic `require_document` and `attendee_document_type/number` columns are retained as legacy data. The new migration converts earlier requirements to a custom identity-document question and copies earlier type/number values into the historical custom answer, preserving their meaning. New application writes use the independent fields above.
+
+Event copying creates a new draft and new ticket types in one transaction, with zero booked quantity and no first-sale marker. No orders or user information are copied.
+
+```mermaid
+erDiagram
+    users ||--o{ bookings : owns
+    events ||--o{ bookings : requires_information_for
+    users {
+        uuid id PK
+        varchar profile_real_name
+        varchar profile_email
+        varchar profile_phone
+        varchar profile_student_id
+        varchar profile_passport_number
+    }
+    events {
+        uuid id PK
+        boolean require_real_name
+        boolean require_email
+        boolean require_phone
+        boolean require_student_id
+        boolean require_passport
+        varchar custom_field_label
+    }
+    bookings {
+        uuid id PK
+        uuid event_id FK
+        varchar attendee_real_name
+        varchar attendee_email
+        varchar attendee_phone
+        varchar attendee_student_id
+        varchar attendee_passport_number
+        varchar custom_field_label
+        varchar attendee_custom_answer
+    }
+```

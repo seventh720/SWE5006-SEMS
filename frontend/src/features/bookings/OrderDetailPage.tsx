@@ -4,6 +4,7 @@ import { ApiError } from "../../shared/api/client";
 import { useAuth } from "../auth/AuthContext";
 import { formatEventTime } from "../events/events";
 import { cancelBooking, readBooking } from "./bookingsApi";
+import { AttendeeInfoSummary } from "./AttendeeInfoSummary";
 import { BookingStatusBadge } from "./BookingStatusBadge";
 import { BookingError } from "./BookingError";
 import { cancelBookingError, formatBookingAmount, type BookingRecord } from "./bookings";
@@ -80,6 +81,7 @@ export function OrderDetailPage() {
           {booking.cancellationReason && <><dt>Cancellation reason</dt><dd>{booking.cancellationReason}</dd></>}
           {booking.createdAt && <><dt>Reserved</dt><dd><time dateTime={booking.createdAt}>{formatEventTime(booking.createdAt)}</time></dd></>}
         </dl>
+        <AttendeeInfoSummary customFieldLabel={booking.customFieldLabel} info={booking.attendeeInfo} />
       </section>
       {booking.status === "CONFIRMED" && Date.parse(booking.eventStartsAt) > Date.now() && <section className="card event-actions" aria-label="Cancellation">
         <h2>Cancel reservation</h2>

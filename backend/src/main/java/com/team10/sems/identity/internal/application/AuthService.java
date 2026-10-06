@@ -39,7 +39,22 @@ public class AuthService {
                 normalizedUsername,
                 normalizedEmail,
                 passwordEncoder.encode(rawPassword));
-        return users.save(user).toView();
+        try {
+            return users.saveAndFlush(user).toView();
+        } catch (org.springframework.dao.DataIntegrityViolationException exception) {
+            // A competing registration may pass the existence checks before either insert commits.
+            for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+                if (cause instanceof org.hibernate.exception.ConstraintViolationException constraint) {
+                    if ("uk_users_username".equals(constraint.getConstraintName())) {
+                        throw new DuplicateUserException("Username is already registered");
+                    }
+                    if ("uk_users_email".equals(constraint.getConstraintName())) {
+                        throw new DuplicateUserException("Email is already registered");
+                    }
+                }
+            }
+            throw exception;
+        }
     }
 
     @Transactional(readOnly = true)
