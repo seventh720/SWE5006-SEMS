@@ -6,6 +6,8 @@ SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 
 
 项目共5个Sprint。Sprint 4继续实现支付、电子票、签到、通知和报表；Sprint 5用于系统验收与交付。
 
+当前待办与建议分工见[项目剩余工作](docs/remaining-work.zh-CN.md)。后续开发使用 `victor` 分支。
+
 ## Sprint 3 票种与预订
 
 - 组织者：从“My events”进入活动，选择“Manage ticket types”设置票种；“View event orders”查看本人活动订单。
