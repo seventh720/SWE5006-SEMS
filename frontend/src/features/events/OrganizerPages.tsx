@@ -13,7 +13,7 @@ export function OrganizerRoute() {
     ? <Outlet /> : <Navigate to="/" replace />;
 }
 
-function useManagementRequest<T>(path: string) {
+export function useManagementRequest<T>(path: string) {
   const { token } = useAuth();
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{ path: string; token: string; data?: T; error?: unknown } | null>(null);
@@ -30,7 +30,7 @@ function useManagementRequest<T>(path: string) {
     reload: () => { setResult(null); setAttempt((value) => value + 1); } };
 }
 
-function ManagementError({ error }: { error: unknown }) {
+export function ManagementError({ error }: { error: unknown }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   return <div role="alert">
@@ -175,10 +175,14 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
         <button className="secondary-button danger-button" disabled={blocked || dirty} onClick={() => setAction("cancel")}>Cancel event</button>
       </div>
       {action && <div className="action-confirmation" role="group" aria-label="Confirm event action">
-        <p>{action === "publish" ? "Publish this saved draft? Everyone will be able to view it, and its details can no longer be edited." : "Cancel this event? It will be removed from public browsing. This cannot be undone."}</p>
+        <p>{action === "publish" ? "Publish this saved draft? Everyone will be able to view it, and its details can no longer be edited." : "Cancel this event and all its active reservations? It will be removed from public browsing. This cannot be undone."}</p>
         <div className="button-row"><button className="secondary-button" disabled={saving} onClick={() => setAction(null)}>Go back</button>
           <button className={action === "cancel" ? "secondary-button danger-button" : "primary-button compact"} disabled={saving} onClick={transition}>{saving ? "Updating…" : action === "publish" ? "Confirm publication" : "Confirm cancellation"}</button></div>
       </div>}
+    </section>}
+    {event && <section className="card" aria-label="Event orders">
+      <h2>Event orders</h2>
+      <Link className="text-link" to={`/organizer/events/${event.id}/bookings`}>View event orders →</Link>
     </section>}
     {event && event.status !== "CANCELLED" && <section className="card ticket-types-entry" aria-label="Ticket types">
       <h2>Ticket types</h2>

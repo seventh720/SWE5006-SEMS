@@ -10,5 +10,6 @@ public record TicketTypeView(
         String currency,
         int quota,
         int bookedQuantity,
-        Long version) {
+        Long version,
+        boolean salesStarted) {
 }

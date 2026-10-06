@@ -20,7 +20,10 @@ function mount(path: string) {
     </Route>
   </Routes></MemoryRouter>);
 }
-beforeEach(() => { auth.user.roles = ["ORGANIZER"]; auth.logout.mockClear(); fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
+beforeEach(() => { auth.user.roles = ["ORGANIZER"]; auth.logout.mockClear(); fetchMock.mockReset(); vi.stubGlobal("fetch", (url: string, options?: RequestInit) =>
+    /\/organizer\/events\/[^/]+$/.test(url)
+      ? Promise.resolve(response({ id: "event-1", capacity: 500, status: "DRAFT", startsAt: "2030-01-01T10:00:00Z" }))
+      : fetchMock(url, options)); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("organizer ticket type management", () => {
@@ -132,4 +135,28 @@ describe("organizer ticket type management", () => {
     expect(auth.logout).toHaveBeenCalledOnce();
     expect(screen.getByText("Sign-in page")).toBeTruthy();
   });
+});
+
+it("reloads the latest version after a conflict before editing again", async () => {
+  let version=0;
+  fetchMock.mockImplementation(async (_url,options) => {
+    if(options?.method === "PUT") {version=1; return response({detail:"Conflict"},409);}
+    return response([{...free,version}]);
+  });
+  mount("/organizer/events/event-1/ticket-types");
+  fireEvent.click(await screen.findByRole("button",{name:"Edit"}));
+  fireEvent.click(screen.getByRole("button",{name:"Save ticket type"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Reload latest details"}));
+  fireEvent.click(await screen.findByRole("button",{name:"Edit"}));
+  fireEvent.click(screen.getByRole("button",{name:"Save ticket type"}));
+  await screen.findByText(/has changed or can no longer be modified/);
+  const puts=fetchMock.mock.calls.filter(([,o])=>o?.method==="PUT");
+  expect(JSON.parse(puts[1][1]?.body as string).version).toBe(1);
+});
+
+it("prevents edits after the first booking even when inventory was returned", async () => {
+  fetchMock.mockResolvedValue(response([{...free,salesStarted:true,bookedQuantity:0}]));
+  mount("/organizer/events/event-1/ticket-types");
+  await screen.findByText("General admission");
+  expect(screen.queryByRole("button",{name:"Edit"})).toBeNull();
 });

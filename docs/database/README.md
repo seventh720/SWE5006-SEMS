@@ -31,7 +31,7 @@ Migration: `V202609211600__create_events.sql`. No sample events are inserted.
 | `description` | VARCHAR(10000) | Required, nonblank |
 | `location` | VARCHAR(500) | Required, nonblank |
 | `starts_at`, `ends_at` | TIMESTAMPTZ | Required; start strictly before end |
-| `capacity` | INTEGER | Required positive event size, not ticket inventory |
+| `capacity` | INTEGER | Required positive event size; Sprint 3 uses it as the ceiling for total ticket quota |
 | `status` | VARCHAR(20) | Required; DRAFT (default), PUBLISHED or CANCELLED |
 | `version` | BIGINT | Required optimistic-lock version, default 0 |
 | `created_at`, `updated_at` | TIMESTAMPTZ | Required; default current timestamp on insert |
@@ -60,3 +60,68 @@ erDiagram
 ```
 
 `EventBrowseIntegrationTest` runs against PostgreSQL 17 and verifies both empty-schema migration and upgrading Sprint 1 with existing user and role data. Run with `RUN_CONTAINER_TESTS=true mvn test` from `backend/`.
+
+## Sprint 3 ticket types and bookings
+
+Migrations: `V202610060400__create_ticket_types.sql` (existing ticket types) and `V202610060500__create_bookings.sql` (booking workflow and first-sale marker). Applied migrations are unchanged. The latter backfills `sales_started=true` where inventory is already booked; no orders are fabricated for historical inventory counters.
+
+### Ticket types
+
+| Column | Type | Meaning / constraint |
+|---|---|---|
+| id / event_id | UUID | Primary key / event FK |
+| name | VARCHAR(100) | Nonblank ticket name |
+| price_minor | BIGINT | Nonnegative SGD cents |
+| currency | VARCHAR(3) | SGD only |
+| quota | INTEGER | Positive quota; event-wide sum validated under the event lock |
+| booked_quantity | INTEGER | Between 0 and quota |
+| sales_started | BOOLEAN | Permanent first-booking marker; remains true after inventory release |
+| version | BIGINT | Optimistic ticket edit version |
+| created_at / updated_at | TIMESTAMPTZ | Audit times |
+
+### Bookings
+
+| Column | Type | Meaning / constraint |
+|---|---|---|
+| id | UUID | Primary key |
+| user_id / event_id / ticket_type_id | UUID | Required FKs; history cannot be deleted by deleting its parent |
+| request_key | VARCHAR(100) | Nonblank; unique together with user_id |
+| quantity | INTEGER | 1–10 tickets |
+| unit_price_minor / total_amount_minor | BIGINT | Free bookings only in Sprint 3; total equals unit price × quantity |
+| currency | VARCHAR(3) | SGD |
+| event_title / event_location | VARCHAR(200) / VARCHAR(500) | Historical event snapshot |
+| event_starts_at / event_ends_at | TIMESTAMPTZ | Historical event times |
+| ticket_type_name | VARCHAR(100) | Historical ticket name |
+| status | VARCHAR(20) | CONFIRMED or CANCELLED |
+| payment_status | VARCHAR(20) | NOT_REQUIRED |
+| cancellation_reason | VARCHAR(30), nullable | ATTENDEE_CANCELLED or EVENT_CANCELLED; required exactly when cancelled |
+| created_at / updated_at | TIMESTAMPTZ | Audit times |
+
+Indexes support `(user_id, created_at DESC, id DESC)` and `(event_id, created_at DESC, id DESC)`. The idempotency unique constraint is `(user_id, request_key)`. PostgreSQL transaction advisory locks serialize same-key requests before taking the event row lock. All supported inventory writers hold the event row lock; cancellation reads the booking after acquiring it. See the [transaction contract](../sprint-3-api.zh-CN.md).
+
+```mermaid
+erDiagram
+    users ||--o{ events : organizes
+    events ||--o{ ticket_types : offers
+    users ||--o{ bookings : reserves
+    events ||--o{ bookings : contains
+    ticket_types ||--o{ bookings : selected
+    ticket_types {
+        uuid id PK
+        uuid event_id FK
+        int quota
+        int booked_quantity
+        boolean sales_started
+        bigint version
+    }
+    bookings {
+        uuid id PK
+        uuid user_id FK
+        uuid event_id FK
+        uuid ticket_type_id FK
+        varchar request_key
+        int quantity
+        varchar status
+        varchar cancellation_reason
+    }
+```

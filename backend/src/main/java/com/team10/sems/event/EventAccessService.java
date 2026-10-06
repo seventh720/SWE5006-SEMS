@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -43,6 +44,23 @@ public class EventAccessService {
                     "Event not found");
         }
 
+        return event;
+    }
+
+    // The caller's transaction retains this lock until all related writes commit.
+    @Transactional(propagation = Propagation.MANDATORY)
+    public EventAccessView lockEvent(UUID eventId) {
+        return events.lockById(eventId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"))
+                .toAccessView();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public EventAccessView lockOwnedEvent(UUID eventId, UUID ownerId) {
+        EventAccessView event = lockEvent(eventId);
+        if (!event.organizerId().equals(ownerId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
+        }
         return event;
     }
 

@@ -37,10 +37,12 @@ export function usePublicTicketTypes(eventId: string) {
   };
 }
 
-export function TicketTypesSection({ eventId }: { eventId: string }) {
+export function TicketTypesSection({ eventId, startsAt }: { eventId: string; startsAt?: string }) {
+  const closed = !!startsAt && Date.parse(startsAt) <= Date.now();
   const request = usePublicTicketTypes(eventId);
   return <section className="card ticket-types" aria-label="Ticket types" aria-busy={request.loading}>
     <h2>Ticket types</h2>
+    {closed && <p className="muted">Booking is closed because this event has started.</p>}
     {request.loading && <p role="status">Loading ticket types…</p>}
     {request.error && <div role="alert">
       <p className="error-message">{request.error}</p>
@@ -50,7 +52,6 @@ export function TicketTypesSection({ eventId }: { eventId: string }) {
     {request.data && request.data.length > 0 && <ul className="ticket-type-list">
       {request.data.map((ticketType) => {
         const remaining = remainingFor(ticketType);
-        const reservable = isFree(ticketType) && !isSoldOut(ticketType);
         return <li key={ticketType.id} className="ticket-type-row">
           <div className="ticket-type-info">
             <span className="ticket-type-name">{ticketType.name}</span>
@@ -65,7 +66,7 @@ export function TicketTypesSection({ eventId }: { eventId: string }) {
               : <span>{remaining} of {ticketType.quota} available</span>}
             {!isFree(ticketType) && <span className="muted">Booking for paid tickets is not available yet.</span>}
           </div>
-          {reservable && <ReserveControl eventId={eventId} ticketTypeId={ticketType.id} remaining={remaining} onBooked={request.refresh} />}
+          {isFree(ticketType) && <ReserveControl closed={closed} eventId={eventId} ticketTypeId={ticketType.id} remaining={remaining} onBooked={request.refresh} />}
         </li>;
       })}
     </ul>}

@@ -9,5 +9,7 @@ public record EventAccessView(
         Instant startsAt,
         Instant endsAt,
         int capacity,
-        String status) {
+        String status,
+        String title,
+        String location) {
 }

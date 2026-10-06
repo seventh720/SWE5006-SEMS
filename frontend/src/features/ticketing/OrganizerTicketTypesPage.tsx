@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ApiError } from "../../shared/api/client";
+import { apiRequest, ApiError } from "../../shared/api/client";
+import { type ManagedEvent } from "../events/drafts";
 import { useAuth } from "../auth/AuthContext";
 import { createTicketType, readOrganizerTicketTypes, updateTicketType } from "./ticketTypesApi";
 import {
@@ -31,13 +32,16 @@ function useOrganizerTicketTypes(eventId: string) {
   const { token } = useAuth();
   const path = organizerTicketTypesPath(eventId);
   const [attempt, setAttempt] = useState(0);
-  const [result, setResult] = useState<{ path: string; token: string; data?: TicketType[]; error?: unknown } | null>(null);
+  const [result, setResult] = useState<{ path: string; token: string; data?: TicketType[]; event?: ManagedEvent; error?: unknown } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     setResult(null);
-    if (token) readOrganizerTicketTypes(eventId, token, controller.signal)
-      .then((data) => { if (!controller.signal.aborted) setResult({ path, token, data }); })
+    if (token) Promise.all([
+      readOrganizerTicketTypes(eventId, token, controller.signal),
+      apiRequest<ManagedEvent>(`/api/v1/organizer/events/${encodeURIComponent(eventId)}`, { signal: controller.signal }, token),
+    ])
+      .then(([data, event]) => { if (!controller.signal.aborted) setResult({ path, token, data, event }); })
       .catch((error: unknown) => { if (!controller.signal.aborted) setResult({ path, token, error }); });
     return () => controller.abort();
   }, [path, token, attempt]);
@@ -45,6 +49,7 @@ function useOrganizerTicketTypes(eventId: string) {
   const current = result?.path === path && result.token === token ? result : null;
   return {
     data: current?.data,
+    event: current?.event,
     error: current?.error,
     loading: !current,
     reload: () => { setResult(null); setAttempt((value) => value + 1); },
@@ -59,6 +64,10 @@ export function OrganizerTicketTypesPage() {
   const request = useOrganizerTicketTypes(eventId);
   const [editing, setEditing] = useState<ManagedTicketType | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const canConfigure = !!request.event && request.event.status !== "CANCELLED"
+    && Date.parse(request.event.startsAt) > Date.now();
+  const allocated = request.data?.reduce((total, ticket) => total + ticket.quota, 0) ?? 0;
+  function reloadDetails() { setEditing(null); request.reload(); }
 
   return <main className="app-shell draft-shell">
     <div className="ticket-types-nav">
@@ -81,6 +90,8 @@ export function OrganizerTicketTypesPage() {
       <button className="secondary-button" onClick={request.reload}>Try again</button>
     </section>}
     {request.data && <>
+      <p>Event capacity: {request.event?.capacity}. Allocated quota: {allocated}.</p>
+      {!canConfigure && <p className="muted">Ticket configuration is closed for cancelled or started events.</p>}
       <p className="muted" role="status">{request.data.length === 1 ? "1 ticket type" : `${request.data.length} ticket types`}</p>
       {request.data.length === 0 ? <section className="card event-feedback">
         <h2>No ticket types yet</h2><p>Add a free ticket type so attendees can book this event.</p>
@@ -91,24 +102,26 @@ export function OrganizerTicketTypesPage() {
             {isSoldOut(ticketType) && <span className="ticket-badge badge-sold-out">Sold out</span>}
             <span className="ticket-type-price">{formatSgdPrice(ticketType.priceMinor)} · {remainingFor(ticketType)} of {ticketType.quota} available</span>
           </div>
-          {isManagedTicketType(ticketType)
+          {canConfigure && !ticketType.salesStarted && ticketType.bookedQuantity === 0 && isManagedTicketType(ticketType)
             ? <button type="button" className="secondary-button compact" onClick={() => { setEditing(ticketType); setNotice(null); }}>Edit</button>
             : <span className="muted">Editing unavailable</span>}
         </li>)}
       </ul>}
-      <TicketTypeForm key={editing?.id ?? "new"} eventId={eventId} editing={editing} reload={request.reload}
+      {canConfigure && <TicketTypeForm key={editing?.id ?? "new"} eventId={eventId} editing={editing} reload={reloadDetails}
+        maxQuota={(request.event?.capacity ?? 0) - allocated + (editing?.quota ?? 0)}
         onSaved={(message) => { setEditing(null); setNotice(message); request.reload(); }}
-        onCancelEdit={() => setEditing(null)} />
+        onCancelEdit={() => setEditing(null)} />}
     </>}
   </main>;
 }
 
-function TicketTypeForm({ eventId, editing, reload, onSaved, onCancelEdit }: {
+function TicketTypeForm({ eventId, editing, reload, onSaved, onCancelEdit, maxQuota }: {
   eventId: string;
   editing: ManagedTicketType | null;
   reload: () => void;
   onSaved: (message: string) => void;
   onCancelEdit: () => void;
+  maxQuota: number;
 }) {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
@@ -138,6 +151,8 @@ function TicketTypeForm({ eventId, editing, reload, onSaved, onCancelEdit }: {
     if (!/^\d+$/.test(values.quota.trim()) || !Number.isSafeInteger(quota) || quota < 1 || quota > 2147483647) {
       errors.quota = "Enter a positive whole number up to 2147483647.";
     }
+    if (quota > maxQuota) errors.quota = `At most ${maxQuota} tickets can be allocated within the event capacity.`;
+    if (values.name.trim().length > 100) errors.name = "Use no more than 100 characters.";
     setFields(errors);
     if (Object.keys(errors).length) return;
     setSaving(true); setError(null);
@@ -171,12 +186,12 @@ function TicketTypeForm({ eventId, editing, reload, onSaved, onCancelEdit }: {
       <fieldset disabled={saving}>
         <legend>{editing ? "Update this ticket type" : "Create a new ticket type"}</legend>
         <label>Name
-          <input required maxLength={200} value={values.name} onChange={(event) => change("name", event.target.value)}
+          <input required maxLength={100} value={values.name} onChange={(event) => change("name", event.target.value)}
             aria-invalid={!!fields.name} aria-describedby={fields.name ? "name-error" : undefined} />{fieldError("name")}</label>
         <label>Price (SGD)
           <input type="text" inputMode="decimal" placeholder="0.00" value={values.price} onChange={(event) => change("price", event.target.value)}
             aria-invalid={!!fields.price} aria-describedby={fields.price ? "price-error price-help" : "price-help"} />{fieldError("price")}</label>
-        <p className="muted" id="price-help">Enter 0.00 for a free ticket. Amounts are stored in Singapore dollars.</p>
+        <p className="muted" id="price-help">Enter 0.00 for a free ticket. Prices are shown in Singapore dollars.</p>
         <label>Quota
           <input type="number" min="1" max="2147483647" step="1" value={values.quota} onChange={(event) => change("quota", event.target.value)}
             aria-invalid={!!fields.quota} aria-describedby={fields.quota ? "quota-error quota-help" : "quota-help"} />{fieldError("quota")}</label>
