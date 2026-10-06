@@ -12,6 +12,7 @@ export interface TicketType {
   quota: number;
   bookedQuantity: number;
   version?: number;
+  salesStarted?: boolean;
 }
 
 export interface TicketTypePayload {

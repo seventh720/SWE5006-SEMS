@@ -4,14 +4,9 @@ import { ApiError } from "../../shared/api/client";
 import { useAuth } from "../auth/AuthContext";
 import { formatEventTime } from "../events/events";
 import { cancelBooking, readBooking } from "./bookingsApi";
+import { BookingStatusBadge } from "./BookingStatusBadge";
 import { BookingError } from "./BookingError";
-import { cancelBookingError, formatBookingAmount, type BookingRecord, type BookingStatus } from "./bookings";
-
-function statusBadge(status: BookingStatus) {
-  return status === "CANCELLED"
-    ? <span className="ticket-badge badge-cancelled">Cancelled</span>
-    : <span className="ticket-badge badge-confirmed">Confirmed</span>;
-}
+import { cancelBookingError, formatBookingAmount, type BookingRecord } from "./bookings";
 
 export function OrderDetailPage() {
   const { id } = useParams();
@@ -73,7 +68,7 @@ export function OrderDetailPage() {
         <h2>Reservation details</h2>
         <dl className="event-facts">
           <dt>Order number</dt><dd>{booking.id}</dd>
-          <dt>Status</dt><dd>{statusBadge(booking.status)}</dd>
+          <dt>Status</dt><dd><BookingStatusBadge status={booking.status} /></dd>
           <dt>Event</dt><dd>{booking.eventTitle}</dd>
           <dt>Location</dt><dd>{booking.eventLocation}</dd>
           <dt>Starts</dt><dd><time dateTime={booking.eventStartsAt}>{formatEventTime(booking.eventStartsAt)}</time></dd>
@@ -86,7 +81,7 @@ export function OrderDetailPage() {
           {booking.createdAt && <><dt>Reserved</dt><dd><time dateTime={booking.createdAt}>{formatEventTime(booking.createdAt)}</time></dd></>}
         </dl>
       </section>
-      {booking.status === "CONFIRMED" && <section className="card event-actions" aria-label="Cancellation">
+      {booking.status === "CONFIRMED" && Date.parse(booking.eventStartsAt) > Date.now() && <section className="card event-actions" aria-label="Cancellation">
         <h2>Cancel reservation</h2>
         {!confirming
           ? <button className="secondary-button danger-button" onClick={() => setConfirming(true)}>Cancel reservation</button>

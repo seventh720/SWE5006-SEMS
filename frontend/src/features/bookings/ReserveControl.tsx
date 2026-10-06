@@ -10,11 +10,12 @@ import {
 } from "./bookings";
 import { createBooking } from "./bookingsApi";
 
-export function ReserveControl({ eventId, ticketTypeId, remaining, onBooked }: {
+export function ReserveControl({ eventId, ticketTypeId, remaining, onBooked, closed = false }: {
   eventId: string;
   ticketTypeId: string;
   remaining: number;
   onBooked: () => void;
+  closed?: boolean;
 }) {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ export function ReserveControl({ eventId, ticketTypeId, remaining, onBooked }: {
       setFailure({ kind: "forbidden", message: "You need an attendee role to book tickets.", retryable: false });
       return;
     }
-    if (!token || quantityError || submitting) return;
+    if (!token || quantityError || submitting || closed) return;
     setSubmitting(true);
     setFailure(null);
     try {
@@ -80,20 +81,22 @@ export function ReserveControl({ eventId, ticketTypeId, remaining, onBooked }: {
   if (booking) {
     return <div className="reserve-confirmation result-message">
       <div role="status">
-        <p>Reservation confirmed.</p>
+        <p>{booking.status === "CANCELLED" ? "This reservation was already cancelled." : "Reservation confirmed."}</p>
         <p>Reservation number: <strong>{booking.id}</strong></p>
         <p className="muted">Electronic tickets are not issued yet — they will be available in a later release.</p>
       </div>
       <div className="button-row">
         <Link className="primary-button compact button-link" to="/bookings">View my orders</Link>
-        <button type="button" className="secondary-button" onClick={startNewReservation}>Reserve more</button>
+        <button type="button" className="secondary-button" disabled={closed || remaining === 0} onClick={startNewReservation}>Reserve more</button>
       </div>
     </div>;
   }
 
+  if (closed || remaining === 0) return null;
+
   return <div className="reserve-control">
     <label className="reserve-quantity">Quantity
-      <input type="number" min="1" max={remaining} step="1" inputMode="numeric" value={quantity}
+      <input disabled={submitting || !!requestKey} type="number" min="1" max={Math.min(10, remaining)} step="1" inputMode="numeric" value={quantity}
         onChange={(event) => changeQuantity(event.target.value)}
         aria-invalid={!!quantityError}
         aria-describedby={quantityError ? `${ticketTypeId}-quantity-error` : undefined} />

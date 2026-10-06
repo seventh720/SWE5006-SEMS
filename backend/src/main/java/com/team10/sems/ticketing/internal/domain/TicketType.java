@@ -37,6 +37,9 @@ public class TicketType {
     @Column(name = "booked_quantity", nullable = false)
     private int bookedQuantity;
 
+    @Column(name = "sales_started", nullable = false)
+    private boolean salesStarted;
+
     @Version
     @Column(nullable = false)
     private long version;
@@ -94,6 +97,9 @@ public class TicketType {
             long expectedVersion) {
 
         requireVersion(expectedVersion);
+        if (salesStarted || bookedQuantity > 0) {
+            throw new IllegalStateException("Ticket types cannot be changed after the first booking");
+        }
 
         if (quota < bookedQuantity) {
             throw new IllegalArgumentException(
@@ -128,6 +134,14 @@ public class TicketType {
         }
 
         bookedQuantity += quantity;
+        salesStarted = true;
+    }
+
+    public void release(int quantity) {
+        if (quantity < 1 || quantity > bookedQuantity) {
+            throw new IllegalStateException("Invalid inventory release");
+        }
+        bookedQuantity -= quantity;
     }
 
     private void requireVersion(long expectedVersion) {
@@ -245,7 +259,7 @@ public class TicketType {
                 currency,
                 quota,
                 bookedQuantity,
-                version);
+                version, salesStarted);
     }
 
     public TicketTypeView toPublicView() {
@@ -257,6 +271,6 @@ public class TicketType {
                 currency,
                 quota,
                 bookedQuantity,
-                null);
+                null, salesStarted);
     }
 }

@@ -120,6 +120,8 @@ public class Event {
                 startsAt,
                 endsAt,
                 capacity,
-                status);
+                status,
+                title,
+                location);
     }
 }

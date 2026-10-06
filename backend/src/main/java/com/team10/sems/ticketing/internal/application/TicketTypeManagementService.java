@@ -45,11 +45,12 @@ public class TicketTypeManagementService {
             TicketTypeInput input) {
 
         EventAccessView event =
-                events.requireOwnedEvent(eventId, owner);
+                events.lockOwnedEvent(eventId, owner);
 
         requireEditableEvent(event);
 
         try {
+            requireCapacity(event, ticketTypes.totalQuota(eventId) + input.quota());
             TicketType ticketType = TicketType.create(
                     eventId,
                     input.name(),
@@ -76,7 +77,7 @@ public class TicketTypeManagementService {
             TicketTypeInput input) {
 
         EventAccessView event =
-                events.requireOwnedEvent(eventId, owner);
+                events.lockOwnedEvent(eventId, owner);
 
         requireEditableEvent(event);
 
@@ -93,6 +94,7 @@ public class TicketTypeManagementService {
                         "Ticket type not found"));
 
         try {
+            requireCapacity(event, ticketTypes.totalQuota(eventId) - ticketType.getQuota() + input.quota());
             ticketType.edit(
                     input.name(),
                     input.priceMinor(),
@@ -116,11 +118,17 @@ public class TicketTypeManagementService {
         return ticketType.toManagementView();
     }
 
+    private void requireCapacity(EventAccessView event, long total) {
+        if (total > event.capacity()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Total ticket quota exceeds event capacity");
+        }
+    }
+
     private void requireEditableEvent(EventAccessView event) {
-        if (!"DRAFT".equals(event.status())) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Ticket types can only be changed while the event is a draft");
+        if ((!"DRAFT".equals(event.status()) && !"PUBLISHED".equals(event.status()))
+                || !event.startsAt().isAfter(java.time.Instant.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ticket types can only be configured before an active event starts");
         }
     }
 }

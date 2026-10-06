@@ -3,18 +3,13 @@ import { Link, Navigate, Outlet, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { formatEventTime } from "../events/events";
 import { readBookings } from "./bookingsApi";
+import { BookingStatusBadge } from "./BookingStatusBadge";
 import { BookingError } from "./BookingError";
-import { formatBookingAmount, readBookingPage, type BookingPage, type BookingStatus } from "./bookings";
+import { formatBookingAmount, readBookingPage, type BookingPage } from "./bookings";
 
 export function AttendeeRoute() {
   const { user } = useAuth();
   return user?.roles.includes("ATTENDEE") ? <Outlet /> : <Navigate to="/" replace />;
-}
-
-function statusBadge(status: BookingStatus) {
-  return status === "CANCELLED"
-    ? <span className="ticket-badge badge-cancelled">Cancelled</span>
-    : <span className="ticket-badge badge-confirmed">Confirmed</span>;
 }
 
 function useBookings(page: number) {
@@ -70,7 +65,7 @@ export function MyOrdersPage() {
         : <ul className="ticket-type-list">{request.data.items.map((booking) => <li key={booking.id} className="ticket-type-row">
           <div className="ticket-type-info">
             <span className="ticket-type-name">Order {booking.id}</span>
-            {statusBadge(booking.status)}
+            <BookingStatusBadge status={booking.status} />
             <span className="ticket-type-price">{formatBookingAmount(booking.totalAmountMinor)}</span>
           </div>
           <div className="ticket-type-meta">

@@ -2,9 +2,15 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-SEMS is a modular event management and ticketing application. The current Sprint 1 implementation provides a complete authentication and authorization path: registration, password hashing, login, JWT validation, current-user lookup, role-based endpoint authorization and administrator role management.
+SEMS is a React, Spring Boot modular-monolith and PostgreSQL application. It now supports authentication, roles, event management, ticket types, free bookings, attendee and organizer orders, and transactional event cancellation with inventory release.
 
-The repository contains a React frontend, a Spring Boot modular-monolith backend, PostgreSQL database migrations, Docker Compose configuration and an initial GitHub Actions pipeline.
+## Sprint 3 booking workflow
+
+Organizers configure tickets from an event's **Manage ticket types** link and inspect **View event orders**. Attendees reserve free tickets on event details and manage them through **My orders**. Future published events can also receive ticket types. Total quota cannot exceed event capacity; ticket configuration freezes after its first booking, including after cancellation.
+
+Bookings contain one ticket type and 1–10 tickets. `POST /api/v1/bookings` requires an `Idempotency-Key`; retries reuse it. Event cancellation cancels active bookings and releases inventory in the same transaction. Historical orders retain event and ticket snapshots. Paid bookings and electronic ticket issuance remain Sprint 4 work; Sprint 5 is reserved for acceptance and delivery.
+
+The new Flyway migration runs on startup and preserves existing records. No new environment variables are required. See the [API and transaction contract](docs/sprint-3-api.zh-CN.md), [database schema](docs/database/README.md), and [acceptance evidence](docs/acceptance/sprint3-2026-10-06/README.md).
 
 ## Sprint 2 event browsing
 
@@ -35,7 +41,7 @@ docs/                     Architecture and database decisions
 .github/workflows/        Continuous integration
 ```
 
-The backend already reserves modules for `identity`, `event`, `ticketing`, `booking`, `attendance`, `notification` and `reporting`. Sprint 1 implements only `identity`; later modules should expose public application APIs instead of sharing repositories or JPA entities.
+The backend implements `identity`, `event`, ticket configuration/inventory in `ticketing`, and free orders in `booking`. Ticket issuance, `attendance`, `notification` and `reporting` remain Sprint 4 work. Modules collaborate through public application APIs or synchronous application events, without sharing repositories or JPA entities.
 
 ## Programming environment
 

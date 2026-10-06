@@ -97,3 +97,16 @@ it("redirects anonymous users to login and preserves the return destination", as
   expect(await screen.findByText("Return to /events/e1")).toBeTruthy();
   expect(fetchMock.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
 });
+
+it("keeps confirmation and order link after the last ticket is booked", async () => {
+  let booked=false;
+  fetchMock.mockImplementation(async (_url,options) => {
+    if(options?.method === "POST") {booked=true;return response({id:"last-ticket-order"},201);}
+    return response([{...free,quota:1,bookedQuantity:booked?1:0}]);
+  });
+  mount();
+  fireEvent.click(await screen.findByRole("button",{name:"Reserve"}));
+  await screen.findByText("Sold out");
+  expect(screen.getByText("last-ticket-order")).toBeTruthy();
+  expect(screen.getByRole("link",{name:"View my orders"})).toBeTruthy();
+});

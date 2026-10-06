@@ -2,9 +2,22 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-SEMS（Smart Event Management and Ticketing System）是一个按业务模块划分的活动管理与票务系统。目前第一轮迭代（Sprint 1）已实现完整的身份认证与权限控制流程，包括用户注册、密码哈希存储、登录、JWT 校验、当前用户信息查询、基于角色的接口授权，以及管理员分配用户角色。
+SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 模块化单体和 PostgreSQL。当前已实现身份与权限、活动生命周期、票种配置、免费预订、个人订单、组织者订单，以及取消活动时的订单和库存联动。
 
-项目包含 React 前端、Spring Boot 模块化单体后端、PostgreSQL 数据库迁移脚本、Docker Compose 配置，以及初步的 GitHub Actions 持续集成流程。活动、购票和签到等业务功能将在后续迭代中实现。
+项目共5个Sprint。Sprint 4继续实现支付、电子票、签到、通知和报表；Sprint 5用于系统验收与交付。
+
+## Sprint 3 票种与预订
+
+- 组织者：从“My events”进入活动，选择“Manage ticket types”设置票种；“View event orders”查看本人活动订单。
+- 参与者：从活动详情预订免费票，通过Dashboard的“My orders”查看和取消订单。
+- 已发布且未开始的活动也能补配票种。总配额不超过容量；票种首次预订后冻结配置，取消订单不解除冻结。
+- 一单单票种、1–10张。下单请求必须携带 `Idempotency-Key`，网络重试复用同键。
+- 活动取消会在同一事务中取消全部有效订单并返还库存；订单历史保留快照，取消活动不重新开放预订。
+- 本轮免费订单无需支付，不发行二维码。付费票显示价格但不能下单。
+
+启动新版后端会自动执行新增Flyway迁移，无需手工改库。已有用户、角色、活动和票种保留。沿用下方启动和测试命令。
+
+[API、权限与事务约定](docs/sprint-3-api.zh-CN.md) · [数据库说明](docs/database/README.md) · [验收记录和截图](docs/acceptance/sprint3-2026-10-06/README.md)
 
 ## 1. 用户角色与初始账号
 
@@ -36,9 +49,9 @@ docs/                     架构与数据库设计说明
 | 模块 | 职责 |
 |---|---|
 | `identity` | 身份认证、用户与角色管理（Sprint 1 已实现） |
-| `event` | 活动管理（预留） |
-| `ticketing` | 票务管理（预留） |
-| `booking` | 预订管理（预留） |
+| `event` | 活动管理（已实现） |
+| `ticketing` | 票种、价格和库存（已实现；出票待Sprint 4） |
+| `booking` | 免费预订、订单查询和取消（已实现） |
 | `attendance` | 验票与签到（预留） |
 | `notification` | 通知（预留） |
 | `reporting` | 报表（预留） |

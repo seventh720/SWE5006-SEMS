@@ -1,6 +1,9 @@
 package com.team10.sems.event.internal.application;
 
 import com.team10.sems.event.EventManagementView;
+import com.team10.sems.event.EventCapacityChanging;
+import com.team10.sems.event.EventCancelled;
+import org.springframework.context.ApplicationEventPublisher;
 import com.team10.sems.event.internal.domain.Event;
 import com.team10.sems.event.internal.persistence.EventRepository;
 import java.util.List;
@@ -18,9 +21,12 @@ import org.springframework.web.server.ResponseStatusException;
 @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
 public class EventManagementService {
     private final EventRepository events;
+    private final ApplicationEventPublisher publisher;
 
-    public EventManagementService(EventRepository events) {
+    public EventManagementService(EventRepository events,
+            ApplicationEventPublisher publisher) {
         this.events = events;
+        this.publisher = publisher;
     }
 
     @Transactional(readOnly = true)
@@ -46,11 +52,12 @@ public class EventManagementService {
     }
 
     public EventManagementView update(UUID owner, UUID id, DraftInput input) {
-        Event event = owned(owner, id);
+        Event event = lockedOwned(owner, id);
         validateTime(input);
         if (input.version() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The current event version is required");
         }
+        publisher.publishEvent(new EventCapacityChanging(id, input.capacity()));
         event.editDraft(input.title().strip(), input.description().strip(), input.location().strip(),
                 input.startsAt(), input.endsAt(), input.capacity(), input.version());
         events.flush(); // Trigger optimistic-lock conflicts before constructing the response.
@@ -58,15 +65,16 @@ public class EventManagementService {
     }
 
     public EventManagementView publish(UUID owner, UUID id, long version) {
-        Event event = owned(owner, id);
+        Event event = lockedOwned(owner, id);
         event.publish(version, java.time.Instant.now());
         events.flush();
         return event.toManagementView();
     }
 
     public EventManagementView cancel(UUID owner, UUID id, long version) {
-        Event event = owned(owner, id);
+        Event event = lockedOwned(owner, id);
         event.cancel(version);
+        publisher.publishEvent(new EventCancelled(id));
         events.flush();
         return event.toManagementView();
     }
@@ -83,6 +91,15 @@ public class EventManagementService {
 
     public record DashboardSummary(long drafts, long published, long cancelled,
             List<EventManagementView> upcoming) { }
+
+    private Event lockedOwned(UUID owner, UUID id) {
+        Event event = events.lockById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found"));
+        if (!event.toAccessView().organizerId().equals(owner)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
+        }
+        return event;
+    }
 
     private Event owned(UUID owner, UUID id) {
         return events.findByIdAndOrganizerId(id, owner)

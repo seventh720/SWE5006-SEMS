@@ -418,11 +418,11 @@ class TicketTypeIntegrationTest {
     }
 
     @Test
-    void ticketTypesCanOnlyBeChangedForDraftEvents()
+    void ticketTypesCannotBeChangedForCancelledEvents()
             throws Exception {
 
         for (String status :
-                new String[]{"PUBLISHED", "CANCELLED"}) {
+                new String[]{"CANCELLED"}) {
 
             UUID eventId = event(organizer, status);
 

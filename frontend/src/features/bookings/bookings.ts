@@ -17,6 +17,7 @@ export type BookingStatus = "CONFIRMED" | "CANCELLED";
 // snapshot lives in BookingRecord below.
 export interface Booking {
   id: string;
+  status?: BookingStatus;
 }
 
 // A booking snapshot returned by GET /bookings and GET /bookings/{id}. These
