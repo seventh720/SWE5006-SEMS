@@ -1,5 +1,6 @@
 package com.team10.sems.event.internal.application;
 
+import com.team10.sems.event.BookingRequirements;
 import jakarta.validation.constraints.*;
 import java.time.Instant;
 
@@ -10,5 +11,6 @@ public record DraftInput(
         @NotNull Instant startsAt,
         @NotNull Instant endsAt,
         @NotNull @Positive Integer capacity,
-        @PositiveOrZero Long version) {
+        @PositiveOrZero Long version,
+        @jakarta.validation.Valid BookingRequirements bookingRequirements) {
 }

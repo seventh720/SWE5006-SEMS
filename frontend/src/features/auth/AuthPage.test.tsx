@@ -50,3 +50,16 @@ it("returns to the intended event page after login", async () => {
   fireEvent.submit(screen.getByLabelText("Email").closest("form")!);
   expect(await screen.findByText("Event detail /events/e1?keyword=Open")).toBeTruthy();
 });
+
+it("shows a duplicate username error and lets the user choose another name", async () => {
+  fetchMock.mockResolvedValueOnce(response({ detail: "Username is already registered" }, 409))
+    .mockResolvedValueOnce(response({ ...user, username: "alice2" }, 201))
+    .mockResolvedValueOnce(response({ accessToken: "token", user: { ...user, username: "alice2" } }));
+  mount(); fireEvent.click(screen.getByRole("button", { name: "Register" })); credentials();
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "Alice" } });
+  fireEvent.click(screen.getByRole("button", { name: "Register and login" }));
+  expect((await screen.findByRole("alert")).textContent).toBe("Username is already registered");
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "alice2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Register and login" }));
+  await screen.findByText("Account: alice2");
+});

@@ -67,6 +67,8 @@ export function AuthPage() {
               Username
               <input
                 autoComplete="username"
+                pattern={"[A-Za-z0-9._\\-]+"}
+                aria-describedby="username-help"
                 minLength={3}
                 maxLength={50}
                 required
@@ -75,6 +77,7 @@ export function AuthPage() {
               />
             </label>
           )}
+          {mode === "register" && <p className="muted" id="username-help">Choose a unique username (3–50 letters, numbers, dots, underscores or hyphens). Usernames are saved in lowercase and shown on your dashboard.</p>}
           <label>
             Email
             <input
@@ -97,7 +100,7 @@ export function AuthPage() {
               onChange={(event) => setPassword(event.target.value)}
             />
           </label>
-          {error && <p className="error-message">{error}</p>}
+          {error && <p className="error-message" role="alert">{error}</p>}
           <button className="primary-button" disabled={submitting} type="submit">
             {submitting ? "Please wait..." : mode === "login" ? "Login" : "Register and login"}
           </button>

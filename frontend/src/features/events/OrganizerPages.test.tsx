@@ -134,3 +134,60 @@ describe("organizer draft flows", () => {
   });
 
 });
+
+it("saves booking requirements and prevents publication while they are unsaved", async () => {
+  let current = { ...draft, bookingRequirements: { realName: false, email: false, phone: false, studentId: false, passport: false, customFieldLabel: null } };
+  fetchMock.mockImplementation(async (_url, options) => {
+    if (options?.method === "PUT") current = { ...current, ...JSON.parse(options.body as string), version: 1 };
+    return response(current);
+  });
+  mount("/organizer/events/event-1");
+  fireEvent.click(await screen.findByLabelText("Real name"));
+  fireEvent.click(screen.getByLabelText("Student ID number"));
+  expect((screen.getByRole("button", { name: "Publish event" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  await screen.findByText("Draft saved successfully.");
+  const update = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
+  expect(JSON.parse(update[1]?.body as string).bookingRequirements).toEqual({ realName: true, email: false, phone: false, studentId: true, passport: false, customFieldLabel: null });
+  expect((screen.getByLabelText("Real name") as HTMLInputElement).checked).toBe(true);
+});
+
+it("copies a cancelled event into a separate editable draft", async () => {
+  const copy = { ...draft, id: "new-draft", bookingRequirements: { realName: true, email: false, phone: false, studentId: true, passport: false, customFieldLabel: "Department" } };
+  fetchMock.mockImplementation(async (url, options) => {
+    if (options?.method === "POST") return response(copy, 201);
+    return response(String(url).endsWith("/new-draft") ? copy : { ...draft, status: "CANCELLED" });
+  });
+  mount("/organizer/events/event-1");
+  fireEvent.click(await screen.findByRole("button", { name: "Copy to new draft" }));
+  await screen.findByText(/Event copied to a new draft/);
+  expect((screen.getByLabelText("Event title") as HTMLInputElement).value).toBe(draft.title);
+  expect(screen.getByRole("button", { name: "Save draft" })).toBeTruthy();
+  expect((screen.getByLabelText("Information to request") as HTMLInputElement).value).toBe("Department");
+  expect(fetchMock.mock.calls.find(([, options]) => options?.method === "POST")?.[0]).toBe("/api/v1/organizer/events/event-1/copy");
+});
+
+it("keeps event details and requirements after a publication failure", async () => {
+  fetchMock.mockImplementation(async (_url, options) => options?.method === "POST"
+    ? response({ detail: "Temporary failure" }, 500) : response(draft));
+  mount("/organizer/events/event-1");
+  fireEvent.click(await screen.findByRole("button", { name: "Publish event" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm publication" }));
+  await screen.findByText(/couldn't complete the request/);
+  expect((screen.getByLabelText("Event title") as HTMLInputElement).value).toBe(draft.title);
+  expect((screen.getByRole("button", { name: "Publish event" }) as HTMLButtonElement).disabled).toBe(false);
+});
+
+it("saves independent document requirements and an organizer-defined question", async () => {
+  fetchMock.mockImplementation(async (_url, options) => options?.method === "PUT"
+    ? response({ ...draft, ...JSON.parse(options.body as string), version: 1 }) : response(draft));
+  mount("/organizer/events/event-1");
+  fireEvent.click(await screen.findByLabelText("Student ID number"));
+  fireEvent.click(screen.getByLabelText("Passport number"));
+  fireEvent.click(screen.getByLabelText("Custom information"));
+  fireEvent.change(screen.getByLabelText("Information to request"), { target: { value: "Dietary requirements" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  await waitFor(() => expect(fetchMock.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(true));
+  const update = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
+  expect(JSON.parse(update[1]?.body as string).bookingRequirements).toMatchObject({ studentId: true, passport: true, customFieldLabel: "Dietary requirements" });
+});

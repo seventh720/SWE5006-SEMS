@@ -1,4 +1,7 @@
+import type { BookingRequirements } from "../bookings/attendeeInfo";
+
 export interface PublishedEvent {
+  bookingRequirements?: BookingRequirements;
   id: string;
   title: string;
   description: string;

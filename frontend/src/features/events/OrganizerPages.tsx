@@ -5,6 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import { formatEventTime, readEventQuery } from "./events";
 import { fromSingaporeInput, managementError, toSingaporeInput, type ManagedEvent, type ManagedPage } from "./drafts";
 
+import { noBookingRequirements } from "../bookings/attendeeInfo";
+
 const API = "/api/v1/organizer/events";
 
 export function OrganizerRoute() {
@@ -87,12 +89,17 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
   const location = useLocation();
   const [values, setValues] = useState({ title: event?.title ?? "", description: event?.description ?? "", location: event?.location ?? "",
     startsAt: event ? toSingaporeInput(event.startsAt) : "", endsAt: event ? toSingaporeInput(event.endsAt) : "", capacity: event ? String(event.capacity) : "" });
+  const [bookingRequirements, setBookingRequirements] = useState(event?.bookingRequirements ?? noBookingRequirements);
+  const [customEnabled, setCustomEnabled] = useState(Boolean(event?.bookingRequirements?.customFieldLabel));
+  const [copying, setCopying] = useState(false);
+  const [copyError, setCopyError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [action, setAction] = useState<"publish" | "cancel" | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(Boolean(location.state?.saved));
+  useEffect(() => { setSaved(Boolean(location.state?.saved)); }, [location.key, location.state?.saved]);
   const readOnly = !!event && event.status !== "DRAFT";
   function change(name: keyof typeof values, value: string) {
     setValues((current) => ({ ...current, [name]: value }));
@@ -108,11 +115,12 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
     for (const name of ["title", "description", "location"] as const) if (!values[name].trim()) errors[name] = "This field is required.";
     if (values.endsAt <= values.startsAt) errors.endsAt = "End time must be after start time.";
     if (!Number.isInteger(Number(values.capacity)) || Number(values.capacity) < 1 || Number(values.capacity) > 2147483647) errors.capacity = "Enter a positive whole number up to 2147483647.";
+    if (customEnabled && !bookingRequirements.customFieldLabel?.trim()) errors.customFieldLabel = "Enter the information attendees must provide.";
     setFields(errors);
     if (Object.keys(errors).length) return;
     setSaving(true); setError(null); setSaved(false);
     try {
-      const body = { ...values, title: values.title.trim(), description: values.description.trim(), location: values.location.trim(),
+      const body = { ...values, bookingRequirements: { ...bookingRequirements, customFieldLabel: customEnabled ? bookingRequirements.customFieldLabel?.trim() : null }, title: values.title.trim(), description: values.description.trim(), location: values.location.trim(),
         startsAt: fromSingaporeInput(values.startsAt), endsAt: fromSingaporeInput(values.endsAt), capacity: Number(values.capacity), ...(event ? { version: event.version } : {}) };
       const result = await apiRequest<ManagedEvent>(event ? `${API}/${event.id}` : API, { method: event ? "PUT" : "POST", body: JSON.stringify(body) }, token);
       navigate(`/organizer/events/${result.id}`, { replace: true, state: { saved: true } });
@@ -121,6 +129,15 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
       setError(caught);
       if (caught instanceof ApiError) setFields(caught.problem.fieldErrors ?? {});
     } finally { setSaving(false); }
+  }
+  async function copyEvent() {
+    if (!event || !token || copying || saving || dirty) return;
+    setCopying(true); setCopyError(null);
+    try {
+      const draft = await apiRequest<ManagedEvent>(`${API}/${event.id}/copy`, { method: "POST" }, token);
+      navigate(`/organizer/events/${draft.id}`, { state: { message: "Event copied to a new draft with its ticket types. Review the dates and details before publishing." } });
+    } catch (caught) { setCopyError(caught); }
+    finally { setCopying(false); }
   }
   async function transition() {
     if (!event || !token || !action || saving || dirty) return;
@@ -160,6 +177,27 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
         <label>Capacity<input type="number" min="1" max="2147483647" step="1" required value={values.capacity} onChange={(e) => change("capacity", e.target.value)} aria-invalid={!!fields.capacity} aria-describedby={fields.capacity ? "capacity-error capacity-help" : "capacity-help"} />{fieldError("capacity")}</label>
         <p className="muted" id="capacity-help">Event size only; this does not create ticket inventory.</p>
       </fieldset>
+      <fieldset disabled={saving || readOnly} className="booking-requirements">
+        <legend>Required booking information</legend>
+        <p className="muted">Choose the details needed once per order. Selected fields are required. These settings are fixed after publication.</p>
+        {([["realName", "Real name"], ["email", "Email"], ["phone", "Phone"], ["studentId", "Student ID number"], ["passport", "Passport number"]] as const).map(([name, label]) =>
+          <label className="checkbox-label" key={name}>
+            <input type="checkbox" checked={bookingRequirements[name]} onChange={(e) => {
+              setBookingRequirements((current) => ({ ...current, [name]: e.target.checked }));
+              setDirty(true); setSaved(false); setAction(null);
+            }} />{label}
+          </label>)}
+        <label className="checkbox-label"><input type="checkbox" checked={customEnabled} onChange={(e) => {
+          setCustomEnabled(e.target.checked); setDirty(true); setSaved(false); setAction(null);
+        }} />Custom information</label>
+        {customEnabled && <label>Information to request<input required maxLength={100}
+          placeholder="For example: Department or dietary requirements"
+          value={bookingRequirements.customFieldLabel ?? ""} onChange={(e) => {
+            setBookingRequirements((current) => ({ ...current, customFieldLabel: e.target.value }));
+            setDirty(true); setSaved(false); setAction(null);
+          }} />{fieldError("customFieldLabel")}</label>}
+        <p className="muted">Request only information needed for your event. Attendees will see a privacy notice before submitting.</p>
+      </fieldset>
       {error != null && <ManagementError error={error} />}
       {!readOnly && <div className="button-row">
         <button type="submit" className="primary-button compact" disabled={saving || (error instanceof ApiError && [401, 403, 404, 409].includes(error.status))}>{saving ? "Saving…" : "Save draft"}</button>
@@ -180,6 +218,14 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
           <button className={action === "cancel" ? "secondary-button danger-button" : "primary-button compact"} disabled={saving} onClick={transition}>{saving ? "Updating…" : action === "publish" ? "Confirm publication" : "Confirm cancellation"}</button></div>
       </div>}
     </section>}
+    {event && <section className="card" aria-label="Reuse event">
+      <h2>Reuse this event</h2>
+      <p>Create a new draft from the saved details, booking requirements and ticket types. Review the dates before publishing. Existing orders stay with the original event.</p>
+      {dirty && <p>Save your changes before copying this event.</p>}
+      <button className="secondary-button" disabled={copying || saving || dirty} onClick={copyEvent}>{copying ? "Copying…" : "Copy to new draft"}</button>
+      {copyError != null && <><ManagementError error={copyError} /><p>Check My events before trying again in case the new draft was already created.</p></>}
+    </section>}
+    {!event && <p><Link className="text-link" to="/organizer/events">Reuse a previous event →</Link> Open an event and choose Copy to new draft.</p>}
     {event && <section className="card" aria-label="Event orders">
       <h2>Event orders</h2>
       <Link className="text-link" to={`/organizer/events/${event.id}/bookings`}>View event orders →</Link>

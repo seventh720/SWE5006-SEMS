@@ -3,6 +3,7 @@ package com.team10.sems.event.internal.application;
 import com.team10.sems.event.EventManagementView;
 import com.team10.sems.event.EventCapacityChanging;
 import com.team10.sems.event.EventCancelled;
+import com.team10.sems.event.EventCopied;
 import org.springframework.context.ApplicationEventPublisher;
 import com.team10.sems.event.internal.domain.Event;
 import com.team10.sems.event.internal.persistence.EventRepository;
@@ -47,8 +48,10 @@ public class EventManagementService {
 
     public EventManagementView create(UUID owner, DraftInput input) {
         validateTime(input);
-        return events.saveAndFlush(Event.draft(owner, input.title().strip(), input.description().strip(),
-                input.location().strip(), input.startsAt(), input.endsAt(), input.capacity())).toManagementView();
+        Event event = Event.draft(owner, input.title().strip(), input.description().strip(),
+                input.location().strip(), input.startsAt(), input.endsAt(), input.capacity());
+        event.configureBooking(input.bookingRequirements());
+        return events.saveAndFlush(event).toManagementView();
     }
 
     public EventManagementView update(UUID owner, UUID id, DraftInput input) {
@@ -60,8 +63,19 @@ public class EventManagementService {
         publisher.publishEvent(new EventCapacityChanging(id, input.capacity()));
         event.editDraft(input.title().strip(), input.description().strip(), input.location().strip(),
                 input.startsAt(), input.endsAt(), input.capacity(), input.version());
+        event.configureBooking(input.bookingRequirements());
         events.flush(); // Trigger optimistic-lock conflicts before constructing the response.
         return event.toManagementView();
+    }
+
+    public EventManagementView copy(UUID owner, UUID id) {
+        var source = lockedOwned(owner, id).toManagementView();
+        Event draft = Event.draft(owner, source.title(), source.description(), source.location(),
+                source.startsAt(), source.endsAt(), source.capacity());
+        draft.configureBooking(source.bookingRequirements());
+        var saved = events.saveAndFlush(draft).toManagementView();
+        publisher.publishEvent(new EventCopied(id, saved.id()));
+        return saved;
     }
 
     public EventManagementView publish(UUID owner, UUID id, long version) {

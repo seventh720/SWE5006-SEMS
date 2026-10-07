@@ -1,6 +1,8 @@
 package com.team10.sems.booking.internal.application;
 
 import com.team10.sems.booking.BookingView;
+import com.team10.sems.booking.AttendeeInfo;
+import com.team10.sems.event.BookingRequirements;
 import com.team10.sems.booking.OrganizerBookingView;
 import com.team10.sems.booking.internal.domain.Booking;
 import com.team10.sems.booking.internal.persistence.BookingRepository;
@@ -44,14 +46,15 @@ public class BookingService {
         var previous = bookings.findByUserIdAndRequestKey(user, key);
         if (previous.isPresent()) {
             Booking booking = previous.get();
-            if (!booking.matches(input.eventId(), input.ticketTypeId(), input.quantity())) {
+            if (!booking.matches(input.eventId(), input.ticketTypeId(), input.quantity(), input.attendeeInfo())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Idempotency-Key was already used with different parameters");
             }
             return new Created(booking.toView(), false);
         }
         var event = events.lockEvent(input.eventId());
         var ticket = tickets.reserve(input.eventId(), input.ticketTypeId(), input.quantity());
-        Booking booking = Booking.confirmed(user, key, event, ticket, input.quantity());
+        validateInfo(event.bookingRequirements(), input.attendeeInfo());
+        Booking booking = Booking.confirmed(user, key, event, ticket, input.quantity(), input.attendeeInfo());
         return new Created(bookings.saveAndFlush(booking).toView(), true);
     }
 
@@ -87,6 +90,25 @@ public class BookingService {
     public BookingPage<OrganizerBookingView> organizerList(UUID owner, UUID eventId, int page, int size) {
         events.requireOwnedEvent(eventId, owner);
         return page(bookings.findByEventId(eventId, pageable(page, size)).map(Booking::toOrganizerView));
+    }
+
+    private void validateInfo(BookingRequirements requirements,
+            AttendeeInfo info) {
+        checkField(requirements.realName(), info.realName(), "Real name");
+        checkField(requirements.email(), info.email(), "Email");
+        checkField(requirements.phone(), info.phone(), "Phone");
+        checkField(requirements.studentId(), info.studentId(), "Student ID number");
+        checkField(requirements.passport(), info.passportNumber(), "Passport number");
+        checkField(requirements.customFieldLabel() != null, info.customAnswer(), "Custom information");
+    }
+
+    private void checkField(boolean required, String value, String label) {
+        if (required && value == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " is required for this event");
+        }
+        if (!required && value != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " is not requested for this event");
+        }
     }
 
     private Booking owned(UUID user, UUID id) {

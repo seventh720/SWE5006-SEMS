@@ -39,7 +39,7 @@ class AuthServiceTest {
     @Test
     void newRegistrationReceivesAttendeeRoleAndStoresAHash() {
         when(passwordEncoder.encode("Password123")).thenReturn("stored-hash");
-        when(users.save(any(UserAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(users.saveAndFlush(any(UserAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserView registered = authService.register("Alice", "Alice@Example.com", "Password123");
 

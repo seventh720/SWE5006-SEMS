@@ -99,7 +99,7 @@ export function EventDetailPage() {
           <dt>Capacity</dt><dd>{item.capacity} attendees</dd>
         </dl><p className="muted">Capacity is the event size, not ticket availability.</p></aside>
       </div>
-      <TicketTypesSection eventId={item.id} startsAt={item.startsAt} />
+      <TicketTypesSection bookingRequirements={item.bookingRequirements} eventId={item.id} startsAt={item.startsAt} />
     </>}
   </main>;
 }

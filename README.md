@@ -10,7 +10,11 @@ Organizers configure tickets from an event's **Manage ticket types** link and in
 
 Bookings contain one ticket type and 1–10 tickets. `POST /api/v1/bookings` requires an `Idempotency-Key`; retries reuse it. Event cancellation cancels active bookings and releases inventory in the same transaction. Historical orders retain event and ticket snapshots. Paid bookings and electronic ticket issuance remain Sprint 4 work; Sprint 5 is reserved for acceptance and delivery.
 
-The new Flyway migration runs on startup and preserves existing records. No new environment variables are required. See the [API and transaction contract](docs/sprint-3-api.zh-CN.md), [database schema](docs/database/README.md), and [acceptance evidence](docs/acceptance/sprint3-2026-10-06/README.md).
+Organizers can **Copy to new draft** from any of their events, including cancelled events. Saved event details, booking requirements and ticket configuration are copied; orders and sold inventory stay with the original event. Review dates before publishing the copy.
+
+Drafts can require a real name, email, phone, student ID number and passport number independently, plus one custom text question. Users can save optional defaults through **Saved booking details**, then **Apply saved details** during booking and edit them for that order. Privacy notices explain access: saved defaults are private to the account, and submitted order details are visible to the attendee and that event's organizer. See the [reuse and profile acceptance results](docs/acceptance/reuse-and-profile-2026-10-07/README.md).
+
+New Flyway migrations run on startup and preserves existing records. No new environment variables are required. See the [API and transaction contract](docs/sprint-3-api.zh-CN.md), [database schema](docs/database/README.md), and [acceptance evidence](docs/acceptance/sprint3-2026-10-06/README.md).
 
 ## Sprint 2 event browsing
 

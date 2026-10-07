@@ -1,13 +1,14 @@
+import type { AttendeeInfo } from "./attendeeInfo";
 import { ApiError } from "../../shared/api/client";
 import { formatSgdPrice } from "../ticketing/ticketTypes";
 
-// The client only supplies the minimum the backend needs to identify the
-// reservation target. User identity, price, totals and status are all derived
-// by the backend.
+// The client supplies the reservation and requested contact details.
+// Account identity, prices, totals, question labels and status come from the backend.
 export interface BookingRequest {
   eventId: string;
   ticketTypeId: string;
   quantity: number;
+  attendeeInfo?: AttendeeInfo;
 }
 
 export type BookingStatus = "CONFIRMED" | "CANCELLED";
@@ -34,6 +35,8 @@ export interface BookingRecord {
   eventEndsAt: string;
   ticketTypeName: string;
   quantity: number;
+  attendeeInfo?: AttendeeInfo;
+  customFieldLabel?: string | null;
   unitPriceMinor: number;
   totalAmountMinor: number;
   currency: string;
