@@ -1,12 +1,18 @@
 # 智能活动管理与票务系统（SEMS）
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [文档导航](docs/README.md) | [测试覆盖](docs/testing.zh-CN.md)
 
 SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 模块化单体和 PostgreSQL。当前已实现身份与权限、活动生命周期、票种配置、免费预订、个人订单、组织者订单，以及取消活动时的订单和库存联动。
 
 项目共5个Sprint。Sprint 4继续实现支付、电子票、签到、通知和报表；Sprint 5用于系统验收与交付。
 
 当前待办与建议分工见[项目剩余工作](docs/remaining-work.zh-CN.md)。后续开发使用 `victor` 分支。
+
+## 界面与头像
+
+活动草稿的 **Card illustration** 可选择通用、科技、音乐、运动、艺术或社交插图；活动列表、Dashboard 和详情共用该选择，复制活动时保留。图片是内置矢量资源，无需外部图片服务。卡片悬停和轻微淡入支持系统“减少动态效果”设置。
+
+点击 Dashboard 头像进入个人资料页，可上传 PNG/JPEG（最大5 MB），自动居中裁成256×256并保存；**Use default avatar** 恢复默认头像。头像仅通过本人登录接口读取，未上传或图片加载失败时显示默认图。
 
 ## Sprint 3 票种与预订
 
@@ -16,13 +22,15 @@ SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 
 - 一单单票种、1–10张。下单请求必须携带 `Idempotency-Key`，网络重试复用同键。
 - 活动取消会在同一事务中取消全部有效订单并返还库存；订单历史保留快照，取消活动不重新开放预订。
 - 活动详情的“Copy to new draft”可复用本人草稿、已发布或已取消活动，含票种配置；复制后核对时间，再保存和发布。
+- 活动可选设置开始报名时间；留空表示发布后即可报名。开售前用户可预约预填资料，在个人页查看预约状态和倒计时；开售后需手动确认，预约不占名额、不自动下单。
+- 活动可设置报名截止时间（默认开始时间），截止后停止新预订。时间输入固定为英文 `YYYY-MM-DD HH:mm` 格式，采用SGT、精确到分钟；英文日历以浮层显示，不挤动表单。
 - 活动草稿可分别要求姓名、邮箱、电话、学生证号、护照号，并添加一个自定义问题。选中的内容在预订时必填。
 - Dashboard的“Saved booking details”可提前保存常用资料；预订时点击“Apply saved details”应用，仍可改填。资料页和预订页均有隐私说明。
 - 本轮免费订单无需支付，不发行二维码。付费票显示价格但不能下单。
 
 启动新版后端会自动执行新增Flyway迁移，无需手工改库。已有用户、角色、活动和票种保留。沿用下方启动和测试命令。
 
-[活动复用与资料预填验收](docs/acceptance/reuse-and-profile-2026-10-07/README.md) · [API、权限与事务约定](docs/sprint-3-api.zh-CN.md) · [数据库说明](docs/database/README.md) · [验收记录和截图](docs/acceptance/sprint3-2026-10-06/README.md)
+[活动复用与资料预填验收](docs/acceptance/README.md) · [API、权限与事务约定](docs/sprint-3-api.zh-CN.md) · [数据库说明](docs/database/README.md) · [验收记录和截图](docs/acceptance/sprint3-2026-10-06/README.md)
 
 ## 1. 用户角色与初始账号
 
@@ -205,7 +213,7 @@ SEMS_BOOTSTRAP_ADMIN_PASSWORD=replace-with-a-strong-password
 
 ## 7. 已实现的 API
 
-Sprint 2 第一批已增加活动浏览页面和数据库查询接口。启动或重启新版后端时，Flyway 自动创建活动表；访问前端 `/events` 即可浏览。空库显示空列表，不会自动插入演示活动。组织者草稿创建、编辑、发布和取消现已实现。
+活动浏览页面和数据库查询接口已实现。启动或重启新版后端时，Flyway 自动创建活动表；访问前端 `/events` 即可浏览。空库显示空列表，不会自动插入演示活动。组织者草稿创建、编辑、发布和取消现已实现。
 
 | 方法 | 接口路径 | 功能 | 访问权限 |
 |---|---|---|---|
@@ -225,7 +233,7 @@ curl -i 'http://localhost:8080/api/v1/events?page=0&size=10'
 
 ### 按身份显示的首页
 
-Dashboard 已移除开发阶段的 RBAC 演示区。个人视图显示真实的已发布活动；组织者视图显示本人草稿／已发布／已取消总数，以及最多 4 个未来开始的已发布活动；管理员视图提供用户与角色管理入口和账号概况；工作人员视图明确说明任务分配、签到和验票尚未开放。
+个人视图显示真实的已发布活动；组织者视图显示本人草稿／已发布／已取消总数，以及最多 4 个未来开始的已发布活动；管理员视图提供用户与角色管理入口和账号概况；工作人员视图明确说明任务分配、签到和验票尚未开放。
 
 多角色账号可以切换视图，默认优先级为管理员、组织者、工作人员、个人。所有账号均可浏览个人视图，管理员也可进入组织者视图管理自己的活动。右上角 **My account** 查看账号资料并退出登录，尚未提供账号资料编辑。
 
@@ -244,11 +252,11 @@ Dashboard 已移除开发阶段的 RBAC 演示区。个人视图显示真实的�
 | `POST` | `/api/v1/organizer/events/{id}/publish` | 发布本人草稿，JSON 请求携带 `version` |
 | `POST` | `/api/v1/organizer/events/{id}/cancel` | 取消本人草稿或已发布活动，JSON 请求携带 `version` |
 
-所有管理请求均携带 JWT。创建者由 JWT 确定；即使是管理员，也不能查看或编辑他人的活动。角色不符返回 `403`，非本人或不存在返回 `404`，版本过期或非草稿编辑返回 `409`。
+所有管理请求均携带 JWT。创建者由 JWT 确定；即使是管理员，也不能查看或编辑他人的活动。角色不符返回 `403`，非本人或不存在返回 `404`，版本过期或编辑已取消活动返回 `409`。
 
 草稿请求字段为 `title`（1–200 字符）、`description`（1–10000）、`location`（1–500）、`startsAt`、`endsAt`（含时区时间）、`capacity`（1–2147483647 整数）。时间必须先开始后结束。管理响应在公开字段之外增加 `version`、`createdAt`、`updatedAt`。冲突时复制需要保留的文字，再点击 **Reload latest version**。
 
-验收步骤：新建草稿 → 返回 My events → 刷新确认记录仍在 → 编辑保存 → 刷新确认修改 → 访问公开列表确认草稿未出现。第二个组织者使用该 ID 读取或编辑应返回 `404`。保存修改后点击 **Publish event → Confirm publication**，公开列表和详情即可读取该活动。发布时开始时间必须晚于当前时间；发布后不可编辑。点击 **Cancel event → Confirm cancellation** 后，公开列表移除该活动，公开详情返回 `404`，本人管理列表保留取消记录。取消不可恢复，重复发布或重复取消返回 `409`。未保存的表单修改必须先保存，再发布或取消。
+验收步骤：新建草稿 → 返回 My events → 刷新确认记录仍在 → 编辑保存 → 刷新确认修改 → 访问公开列表确认草稿未出现。第二个组织者使用该 ID 读取或编辑应返回 `404`。保存修改后点击 **Publish event → Confirm publication**，公开列表和详情即可读取该活动。发布时开始时间必须晚于当前时间；发布后仍可修改名称、介绍、地点、时间、插图和容量（不能低于票种总配额），结束时间必须晚于当前时间；报名资料要求保持不变。订单展示最新活动安排，下单快照保留。点击 **Cancel event → Confirm cancellation** 后，公开列表移除该活动，公开详情返回 `404`，本人管理列表保留取消记录。取消不可恢复，重复发布或重复取消返回 `409`。未保存的表单修改必须先保存，再发布或取消。
 
 认证（Authentication）用于确认“你是谁”；授权（Authorization）用于判断“你能执行哪些操作”。
 
@@ -435,3 +443,5 @@ git fetch --prune
 上述内容是团队约定；文档本身不会启用 GitHub 的强制保护。管理员应为 `main` 配置分支保护或 ruleset：要求通过 PR 合并、至少 1 个 approval、最新修改后重新批准、解决全部讨论，并将 `backend`、`backend-integration`、`frontend` 设为必需状态检查，禁止 force push 和删除主分支。
 
 Telegram 通知不是合并所需的质量检查。
+
+发布前必须配置至少一个票种。草稿页的 **Create free ticket** 按已保存活动容量创建免费票，不自动发布；草稿不显示订单入口。

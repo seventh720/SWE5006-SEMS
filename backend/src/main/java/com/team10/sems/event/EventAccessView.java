@@ -11,5 +11,5 @@ public record EventAccessView(
         int capacity,
         String status,
         String title,
-        String location, BookingRequirements bookingRequirements) {
+        String location, BookingRequirements bookingRequirements, Instant registrationClosesAt, Instant registrationOpensAt) {
 }

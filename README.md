@@ -1,10 +1,16 @@
 # Smart Event Management and Ticketing System
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Tests and coverage](docs/testing.zh-CN.md)
 
 SEMS is a React, Spring Boot modular-monolith and PostgreSQL application. It now supports authentication, roles, event management, ticket types, free bookings, attendee and organizer orders, and transactional event cancellation with inventory release.
 
-## Sprint 3 booking workflow
+## Illustrations and avatars
+
+Choose **Card illustration** in an event draft to use a built-in gathering, technology, music, sports, arts or community illustration. Lists, dashboards and event details share the selection; copied events retain it. Subtle card and button motion respects reduced-motion preferences.
+
+Open your profile from the dashboard avatar to upload a PNG/JPEG (up to 5 MB). Images are center-cropped to 256×256 and saved to your account. **Use default avatar** removes the upload. Missing or failed images use the default illustration.
+
+## Booking workflow
 
 Organizers configure tickets from an event's **Manage ticket types** link and inspect **View event orders**. Attendees reserve free tickets on event details and manage them through **My orders**. Future published events can also receive ticket types. Total quota cannot exceed event capacity; ticket configuration freezes after its first booking, including after cancellation.
 
@@ -12,13 +18,15 @@ Bookings contain one ticket type and 1–10 tickets. `POST /api/v1/bookings` req
 
 Organizers can **Copy to new draft** from any of their events, including cancelled events. Saved event details, booking requirements and ticket configuration are copied; orders and sold inventory stay with the original event. Review dates before publishing the copy.
 
-Drafts can require a real name, email, phone, student ID number and passport number independently, plus one custom text question. Users can save optional defaults through **Saved booking details**, then **Apply saved details** during booking and edit them for that order. Privacy notices explain access: saved defaults are private to the account, and submitted order details are visible to the attendee and that event's organizer. See the [reuse and profile acceptance results](docs/acceptance/reuse-and-profile-2026-10-07/README.md).
+Events can set a registration deadline on or before their start time; omitted deadlines default to the start. Booking closes automatically at the deadline, with server enforcement. Date fields use the explicit English format `YYYY-MM-DD HH:mm` in SGT, with an English calendar overlay that does not shift the form.
 
-New Flyway migrations run on startup and preserves existing records. No new environment variables are required. See the [API and transaction contract](docs/sprint-3-api.zh-CN.md), [database schema](docs/database/README.md), and [acceptance evidence](docs/acceptance/sprint3-2026-10-06/README.md).
+Drafts can require a real name, email, phone, student ID number and passport number independently, plus one custom text question. Users can save optional defaults through **Saved booking details**, then **Apply saved details** during booking and edit them for that order. Privacy notices explain access: saved defaults are private to the account, and submitted order details are visible to the attendee and that event's organizer. See the [reuse and profile acceptance results](docs/acceptance/README.md).
 
-## Sprint 2 event browsing
+New Flyway migrations run on startup and preserve existing records. No new environment variables are required. See the [API and transaction contract](docs/sprint-3-api.zh-CN.md), [database schema](docs/database/README.md), and [acceptance evidence](docs/acceptance/sprint3-2026-10-06/README.md).
 
-Event pages at `/events` and `/events/:id` now use anonymous `GET /api/v1/events?page=0&size=10&keyword=...` and `GET /api/v1/events/{id}`. Only published events are exposed. Pagination is zero-based (size 1–50); title search is case-insensitive and treats wildcard characters literally. Restart the updated backend to apply the new Flyway migration. An empty database returns an empty list; no sample events are seeded. Organizers and administrators can now create and edit their own private drafts at `/organizer/events`, using authenticated GET/POST `/api/v1/organizer/events` and GET/PUT `/api/v1/organizer/events/{id}`. Updates require the current `version`; stale or non-draft edits return 409. Ownership comes from the JWT and applies to administrators too. Publish and cancel use POST `/api/v1/organizer/events/{id}/publish` and `/cancel`, with a JSON `version`. Publication requires a future start time and freezes editing. Cancellation is irreversible and hides the event from public lists and detail lookup. Newly saved drafts will not appear in public browsing. See the [database schema](docs/database/README.md).
+## Event browsing
+
+Event pages at `/events` and `/events/:id` now use anonymous `GET /api/v1/events?page=0&size=10&keyword=...` and `GET /api/v1/events/{id}`. Only published events are exposed. Pagination is zero-based (size 1–50); title search is case-insensitive and treats wildcard characters literally. Restart the updated backend to apply the new Flyway migration. An empty database returns an empty list; no sample events are seeded. Organizers and administrators can now create and edit their own private drafts at `/organizer/events`, using authenticated GET/POST `/api/v1/organizer/events` and GET/PUT `/api/v1/organizer/events/{id}`. Updates require the current `version`; stale edits or edits to cancelled events return 409. Ownership comes from the JWT and applies to administrators too. Publish and cancel use POST `/api/v1/organizer/events/{id}/publish` and `/cancel`, with a JSON `version`. Publication requires a future start time. Published event details remain editable; booking requirements stay fixed, and an updated end time must be in the future. Cancellation is irreversible and hides the event from public lists and detail lookup. Newly saved drafts will not appear in public browsing. See the [database schema](docs/database/README.md).
 
 ## Current roles and accounts
 
@@ -26,7 +34,7 @@ The system has **four roles**, not only user and administrator:
 
 | Code | Identity | Intended access |
 |---|---|---|
-| `ATTENDEE` | Attendee | Browse events, make bookings and view own tickets in later sprints |
+| `ATTENDEE` | Attendee | Browse events, pre-register, book free tickets and view own orders; electronic tickets are planned |
 | `ORGANIZER` | Event Organizer | Create and manage authorized events |
 | `STAFF` | Event Staff | Verify tickets and perform event check-in |
 | `ADMIN` | System Administrator | Manage users, roles and system-wide administration |
@@ -329,3 +337,9 @@ Start the next task on a new branch from the updated `main`. After squash mergin
 These are team conventions; documentation does not enable GitHub enforcement. Configure branch protection or a ruleset for `main` to require PRs, at least 1 approval, renewed approval after new changes, resolved conversations, and the `backend`, `backend-integration` and `frontend` status checks. Block force pushes and deletion of `main`.
 
 Telegram notification is not a required quality check for merging.
+
+### Scheduled registration and pre-registration
+
+Organizers may set a registration opening time; leaving it blank allows booking on publication. Before opening, attendees can save private booking details and see their pre-registrations and countdown on the dashboard. Pre-registration holds no inventory and never submits an order automatically. Once registration opens, review the saved details and confirm the booking. Removing the saved entry does not cancel an existing order.
+
+Before publication, configure at least one ticket type. **Create free ticket** uses the saved event capacity for a free admission ticket; it does not publish the draft. Drafts hide the order link.

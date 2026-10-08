@@ -28,6 +28,7 @@ export interface Booking {
 // optional. Field names are isolated here so backend integration stays
 // adjustable in one place.
 export interface BookingRecord {
+  currentEvent?: { title: string; location: string; startsAt: string; endsAt: string };
   id: string;
   eventTitle: string;
   eventLocation: string;
@@ -161,4 +162,10 @@ export function cancelBookingError(error: unknown): string {
     return error.problem.detail ?? error.message;
   }
   return "We couldn't confirm your cancellation. Please reload to check the latest status.";
+}
+
+export function withCurrentEvent(booking: BookingRecord): BookingRecord {
+  const current = booking.currentEvent;
+  return current ? { ...booking, eventTitle: current.title, eventLocation: current.location,
+    eventStartsAt: current.startsAt, eventEndsAt: current.endsAt } : booking;
 }

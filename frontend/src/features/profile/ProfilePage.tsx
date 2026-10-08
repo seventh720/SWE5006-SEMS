@@ -1,3 +1,4 @@
+import { Avatar } from "./Avatar";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError } from "../../shared/api/client";
@@ -41,7 +42,8 @@ export function ProfilePage() {
     : "We couldn't load or save your details. Please try again.";
   return <main className="app-shell draft-shell">
     <Link className="text-link" to="/">← Dashboard</Link>
-    <header className="organizer-header"><h1>Saved booking details</h1><p>Save frequently used details, then apply them when booking. All fields are optional.</p></header>
+    <header className="organizer-header"><h1>Your profile</h1><p>Choose a profile picture and save frequently used booking details. Personal information is optional.</p></header>
+    <Avatar editable />
     <PrivacyNotice saved />
     {loading ? <p role="status">Loading saved details…</p> : <form className="card draft-form" onSubmit={submit}>
       <fieldset disabled={saving || loadError || expired}>

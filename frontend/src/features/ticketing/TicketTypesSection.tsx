@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BookingRequirements } from "../bookings/attendeeInfo";
+import { useRegistrationClock, openingCountdown } from "../bookings/registrationTime";
+import { formatEventTime } from "../events/events";
 import { ReserveControl } from "../bookings/ReserveControl";
 import { readPublicTicketTypes } from "./ticketTypesApi";
 import {
@@ -38,12 +40,20 @@ export function usePublicTicketTypes(eventId: string) {
   };
 }
 
-export function TicketTypesSection({ eventId, startsAt, bookingRequirements }: { eventId: string; startsAt?: string; bookingRequirements?: BookingRequirements }) {
-  const closed = !!startsAt && Date.parse(startsAt) <= Date.now();
+export function TicketTypesSection({ eventId, startsAt, registrationClosesAt, registrationOpensAt, bookingRequirements }: { eventId: string; startsAt?: string; registrationClosesAt?: string; registrationOpensAt?: string; bookingRequirements?: BookingRequirements }) {
+  const deadline = Date.parse(registrationClosesAt ?? startsAt ?? "");
+  const now = useRegistrationClock();
+  const beforeOpening = !!registrationOpensAt && Date.parse(registrationOpensAt) > now;
+  const closed = Number.isFinite(deadline) && deadline <= now;
   const request = usePublicTicketTypes(eventId);
   return <section className="card ticket-types" aria-label="Ticket types" aria-busy={request.loading}>
     <h2>Ticket types</h2>
-    {closed && <p className="muted">Booking is closed because this event has started.</p>}
+    {beforeOpening && registrationOpensAt && <div className="registration-notice registration-summary">
+      <p>Registration opens {formatEventTime(registrationOpensAt)} · SGT</p>
+      <p className="registration-countdown">Opens in {openingCountdown(registrationOpensAt, now)}</p>
+      <p className="registration-help">Pre-fill your details now. Confirm after registration opens; pre-registration does not hold tickets.</p>
+    </div>}
+    {closed && <p className="muted">{startsAt && Date.parse(startsAt) <= now ? "Booking is closed because this event has started." : "Registration for this event has closed."}</p>}
     {request.loading && <p role="status">Loading ticket types…</p>}
     {request.error && <div role="alert">
       <p className="error-message">{request.error}</p>
@@ -67,7 +77,7 @@ export function TicketTypesSection({ eventId, startsAt, bookingRequirements }: {
               : <span>{remaining} of {ticketType.quota} available</span>}
             {!isFree(ticketType) && <span className="muted">Booking for paid tickets is not available yet.</span>}
           </div>
-          {isFree(ticketType) && <ReserveControl bookingRequirements={bookingRequirements} closed={closed} eventId={eventId} ticketTypeId={ticketType.id} remaining={remaining} onBooked={request.refresh} />}
+          {isFree(ticketType) && <ReserveControl beforeOpening={beforeOpening} bookingRequirements={bookingRequirements} closed={closed} eventId={eventId} ticketTypeId={ticketType.id} remaining={remaining} onBooked={request.refresh} />}
         </li>;
       })}
     </ul>}

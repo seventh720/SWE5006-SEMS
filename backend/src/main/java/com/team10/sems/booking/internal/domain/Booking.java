@@ -128,7 +128,7 @@ public class Booking {
     public BookingView toView() {
         return new BookingView(id, eventTitle, eventLocation, eventStartsAt, eventEndsAt,
                 ticketTypeName, quantity, unitPriceMinor, totalAmountMinor, currency,
-                status, paymentStatus, cancellationReason, createdAt, attendeeInfo(), customFieldLabel);
+                status, paymentStatus, cancellationReason, createdAt, attendeeInfo(), customFieldLabel, null);
     }
 
     public OrganizerBookingView toOrganizerView() {

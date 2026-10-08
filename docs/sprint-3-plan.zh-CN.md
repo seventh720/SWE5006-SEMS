@@ -1,6 +1,8 @@
 # Sprint 3 工作安排：票种、库存与预订闭环
 
 编制日期：2026-09-28  
+本文件保留原始规划，用于核对用户故事和职责；当前状态见[剩余工作](remaining-work.zh-CN.md)。
+
 参考基线：本地提交 `a15835c`、Sprint 1 README、Sprint 2 计划与收尾记录、当前源码和 CI 配置。
 
 **项目共 5 个 Sprint，Sprint 5 结束时完成交付。Sprint 3 完成预订核心，Sprint 4 完成其余核心业务，Sprint 5 集中验收、修复与交付。**
@@ -19,9 +21,7 @@
 | 票务及后续模块 | `ticketing`、`booking`、`attendance`、`notification`、`reporting` 目前仅有包说明 | 本轮实现前两个模块；其余列入 Sprint 4 |
 | Sprint 2 验收状态 | 收尾记录记载后端 42、前端 37 项测试通过及浏览器验收；本地历史已有 Dashboard、Nginx、参数绑定修复的合并提交 | 核实最终提交 CI、Review 和遗留缺陷，不能照搬旧“尚未提交”状态 |
 
-本次为规划和静态核对，未重新运行产品测试或查询远端 CI。收尾记录引用的 `docs/acceptance/sprint2-2026-09-24/README.md` 当前工作区不存在，D1 应补齐或改为可访问的证据位置。README 开头仍以 Sprint 1 为现状，Sprint 2 页面进度文档也有历史阶段描述；本轮同步更新入口说明。
-
-参考：[项目说明](../README.zh-CN.md)、[Sprint 2 收尾记录](sprint-2-readiness.zh-CN.md)、[数据库规范](database/README.md)、[架构决策](adr/0001-modular-monolith.md)。架构决策中的“四次迭代”是旧假设，本计划按用户确定的 **五次迭代**执行；50 人日总投入尚需核实，不能直接按每轮 12.5 人日继续承诺。
+参考：[项目说明](../README.zh-CN.md)、[数据库规范](database/README.md)、[架构决策](adr/0001-modular-monolith.md)。项目按五次迭代交付；原始50人日投入假设仍需团队核实。
 
 ## 2. 五个 Sprint 的整体交付安排
 

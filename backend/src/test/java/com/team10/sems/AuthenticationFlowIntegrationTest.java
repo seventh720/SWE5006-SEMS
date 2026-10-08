@@ -184,6 +184,34 @@ class AuthenticationFlowIntegrationTest {
         }
     }
 
+    @Test
+    void avatarsArePrivatePersistentAndCanBeRemoved() throws Exception {
+        users.saveAndFlush(UserAccount.register("avatar", "avatar@example.com", passwordEncoder.encode("Password123")));
+        users.saveAndFlush(UserAccount.register("otheravatar", "otheravatar@example.com", passwordEncoder.encode("Password123")));
+        String token = login("avatar@example.com", "Password123");
+        String other = login("otheravatar@example.com", "Password123");
+        var image = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var bytes = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(image, "png", bytes);
+        String data = "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(bytes.toByteArray());
+        mvc.perform(get("/api/v1/profile/avatar")).andExpect(status().isUnauthorized());
+        mvc.perform(put("/api/v1/profile/avatar").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(java.util.Map.of("dataUrl", data))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dataUrl").isNotEmpty());
+        mvc.perform(get("/api/v1/profile/avatar").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dataUrl").isNotEmpty());
+        mvc.perform(get("/api/v1/profile/avatar").header("Authorization", "Bearer " + other))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dataUrl").isEmpty());
+        for (String invalid : java.util.List.of("data:image/svg+xml;base64,PHN2Zz4=", "data:image/png;base64,bm90YW5pbWFnZQ==")) {
+            mvc.perform(put("/api/v1/profile/avatar").header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(java.util.Map.of("dataUrl", invalid))))
+                    .andExpect(status().isBadRequest());
+        }
+        mvc.perform(put("/api/v1/profile/avatar").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"dataUrl\":null}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.dataUrl").isEmpty());
+    }
+
     private String signedToken(String subject, String issuer, java.time.Instant expiresAt) {
         var claims = org.springframework.security.oauth2.jwt.JwtClaimsSet.builder().issuer(issuer).subject(subject)
                 .issuedAt(expiresAt.minusSeconds(300)).expiresAt(expiresAt).claim("roles", java.util.List.of("ATTENDEE")).build();

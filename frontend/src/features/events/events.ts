@@ -1,6 +1,7 @@
 import type { BookingRequirements } from "../bookings/attendeeInfo";
 
 export interface PublishedEvent {
+  illustration?: string;
   bookingRequirements?: BookingRequirements;
   id: string;
   title: string;
@@ -8,6 +9,8 @@ export interface PublishedEvent {
   location: string;
   startsAt: string;
   endsAt: string;
+  registrationClosesAt?: string;
+  registrationOpensAt?: string;
   capacity: number;
   status: "PUBLISHED";
 }

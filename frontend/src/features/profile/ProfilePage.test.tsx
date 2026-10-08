@@ -8,7 +8,7 @@ vi.mock("../auth/AuthContext", () => ({ useAuth: () => ({ token: "profile-token"
 const fetchMock = vi.fn<typeof fetch>();
 function response(body: unknown, status = 200) { return new Response(JSON.stringify(body), { status }); }
 function mount() { render(<MemoryRouter><ProfilePage /></MemoryRouter>); }
-beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
+beforeEach(() => { fetchMock.mockReset(); vi.stubGlobal("fetch", (url: RequestInfo | URL, options?: RequestInit) => String(url) === "/api/v1/profile/avatar" ? Promise.resolve(response({ dataUrl: null })) : fetchMock(url, options)); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it("loads private details, saves changes, and allows clearing saved fields", async () => {
