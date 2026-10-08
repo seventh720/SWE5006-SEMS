@@ -1,3 +1,4 @@
+import { EventArtwork, illustrationPath } from "./EventArtwork";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -62,6 +63,7 @@ export function EventListPage() {
           <p>{keyword ? "Try a different title or clear your search." : "Check back soon for published events."}</p>
           {page > 0 && <button className="secondary-button" onClick={() => navigate(0)}>Back to first page</button>}
         </div> : <div className="event-grid">{request.data.items.map((item) => <article className="card event-card" key={item.id}>
+          <EventArtwork illustration={item.illustration} />
           <p className="section-label">{formatEventTime(item.startsAt)} · SGT</p>
           <h2><Link to={`/events/${encodeURIComponent(item.id)}?${params}`} className="text-link">{item.title}</Link></h2>
           <p className="event-location">{item.location}</p>
@@ -88,18 +90,25 @@ export function EventDetailPage() {
     <Link className="text-link" to={`/events?${params}`}>← Back to events</Link>
     <RequestState {...request} />
     {item && <>
-      <header className="event-hero"><p className="eyebrow">Published event</p><h1>{item.title}</h1><p>{item.location}</p></header>
+      <header className="event-hero event-title-hero" style={{ backgroundImage: `url("${illustrationPath(item.illustration)}")` }}>
+        <div className="event-title-copy"><p className="eyebrow">Published event</p><h1>{item.title}</h1><p>{item.location}</p></div>
+      </header>
       <div className="event-detail-grid">
-        <section className="card"><h2>About this event</h2><p className="event-description">{item.description}</p></section>
-        <aside className="card"><h2>Event information</h2><dl className="event-facts">
+        <div className="event-detail-main">
+          <section className="card event-about"><h2>About this event</h2><p className="event-description">{item.description}</p></section>
+        <TicketTypesSection registrationOpensAt={item.registrationOpensAt} registrationClosesAt={item.registrationClosesAt} bookingRequirements={item.bookingRequirements} eventId={item.id} startsAt={item.startsAt} />
+        </div>
+        <aside className="card event-detail-facts"><h2>Event information</h2><dl className="event-facts">
           <dt>Starts</dt><dd><time dateTime={item.startsAt}>{formatEventTime(item.startsAt)}</time></dd>
           <dt>Ends</dt><dd><time dateTime={item.endsAt}>{formatEventTime(item.endsAt)}</time></dd>
+          <dt>Registration opens</dt><dd>{item.registrationOpensAt ? <time dateTime={item.registrationOpensAt}>{formatEventTime(item.registrationOpensAt)}</time> : "On publication"}</dd>
+          <dt>Registration deadline</dt><dd><time dateTime={item.registrationClosesAt ?? item.startsAt}>{formatEventTime(item.registrationClosesAt ?? item.startsAt)}</time></dd>
           <dt>Time zone</dt><dd>Singapore (SGT, UTC+08:00)</dd>
           <dt>Location</dt><dd>{item.location}</dd>
           <dt>Capacity</dt><dd>{item.capacity} attendees</dd>
         </dl><p className="muted">Capacity is the event size, not ticket availability.</p></aside>
       </div>
-      <TicketTypesSection bookingRequirements={item.bookingRequirements} eventId={item.id} startsAt={item.startsAt} />
+
     </>}
   </main>;
 }

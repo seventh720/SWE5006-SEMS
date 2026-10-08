@@ -1,9 +1,12 @@
+import { Select } from "../../shared/components/Select";
+import { EventArtwork, illustrations } from "./EventArtwork";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest, ApiError } from "../../shared/api/client";
 import { useAuth } from "../auth/AuthContext";
 import { formatEventTime, readEventQuery } from "./events";
-import { fromSingaporeInput, managementError, toSingaporeInput, type ManagedEvent, type ManagedPage } from "./drafts";
+import { DateTimeField } from "./DateTimeField";
+import { validSingaporeInput, fromSingaporeInput, managementError, toSingaporeInput, type ManagedEvent, type ManagedPage } from "./drafts";
 
 import { noBookingRequirements } from "../bookings/attendeeInfo";
 
@@ -87,10 +90,15 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
   const { token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [values, setValues] = useState({ title: event?.title ?? "", description: event?.description ?? "", location: event?.location ?? "",
-    startsAt: event ? toSingaporeInput(event.startsAt) : "", endsAt: event ? toSingaporeInput(event.endsAt) : "", capacity: event ? String(event.capacity) : "" });
+  const [values, setValues] = useState({ illustration: event?.illustration ?? "GENERAL", title: event?.title ?? "", description: event?.description ?? "", location: event?.location ?? "",
+    startsAt: event ? toSingaporeInput(event.startsAt) : "", endsAt: event ? toSingaporeInput(event.endsAt) : "",
+    registrationOpensAt: event?.registrationOpensAt ? toSingaporeInput(event.registrationOpensAt) : "",
+    registrationClosesAt: event ? toSingaporeInput(event.registrationClosesAt ?? event.startsAt) : "", capacity: event ? String(event.capacity) : "" });
   const [bookingRequirements, setBookingRequirements] = useState(event?.bookingRequirements ?? noBookingRequirements);
   const [customEnabled, setCustomEnabled] = useState(Boolean(event?.bookingRequirements?.customFieldLabel));
+  const [creatingFree, setCreatingFree] = useState(false);
+  const [freeMessage, setFreeMessage] = useState("");
+  const [freeError, setFreeError] = useState<unknown>(null);
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
@@ -100,9 +108,11 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
   const [fields, setFields] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(Boolean(location.state?.saved));
   useEffect(() => { setSaved(Boolean(location.state?.saved)); }, [location.key, location.state?.saved]);
-  const readOnly = !!event && event.status !== "DRAFT";
+  const readOnly = event?.status === "CANCELLED";
+  const published = event?.status === "PUBLISHED";
   function change(name: keyof typeof values, value: string) {
-    setValues((current) => ({ ...current, [name]: value }));
+    setValues((current) => ({ ...current, [name]: value,
+      ...(name === "startsAt" && validSingaporeInput(value) && current.endsAt && current.endsAt <= value ? { endsAt: "" } : {}) }));
     setFields((current) => ({ ...current, [name]: "" }));
     setSaved(false);
     setDirty(true);
@@ -113,6 +123,13 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
     if (saving || readOnly || !token) return;
     const errors: Record<string, string> = {};
     for (const name of ["title", "description", "location"] as const) if (!values[name].trim()) errors[name] = "This field is required.";
+    for (const name of ["startsAt", "endsAt", "registrationClosesAt", "registrationOpensAt"] as const) {
+      if ((!["registrationClosesAt", "registrationOpensAt"].includes(name) || values[name]) && !validSingaporeInput(values[name])) {
+        errors[name] = "Enter a valid date and time: YYYY-MM-DD HH:mm.";
+      }
+    }
+    if (values.registrationOpensAt && values.registrationOpensAt >= (values.registrationClosesAt || values.startsAt)) errors.registrationOpensAt = "Registration opening must be before the registration deadline.";
+    if (values.registrationClosesAt && values.registrationClosesAt > values.startsAt) errors.registrationClosesAt = "Registration deadline must be on or before start time.";
     if (values.endsAt <= values.startsAt) errors.endsAt = "End time must be after start time.";
     if (!Number.isInteger(Number(values.capacity)) || Number(values.capacity) < 1 || Number(values.capacity) > 2147483647) errors.capacity = "Enter a positive whole number up to 2147483647.";
     if (customEnabled && !bookingRequirements.customFieldLabel?.trim()) errors.customFieldLabel = "Enter the information attendees must provide.";
@@ -121,7 +138,9 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
     setSaving(true); setError(null); setSaved(false);
     try {
       const body = { ...values, bookingRequirements: { ...bookingRequirements, customFieldLabel: customEnabled ? bookingRequirements.customFieldLabel?.trim() : null }, title: values.title.trim(), description: values.description.trim(), location: values.location.trim(),
-        startsAt: fromSingaporeInput(values.startsAt), endsAt: fromSingaporeInput(values.endsAt), capacity: Number(values.capacity), ...(event ? { version: event.version } : {}) };
+        startsAt: fromSingaporeInput(values.startsAt), endsAt: fromSingaporeInput(values.endsAt),
+        registrationOpensAt: values.registrationOpensAt ? fromSingaporeInput(values.registrationOpensAt) : null,
+        registrationClosesAt: fromSingaporeInput(values.registrationClosesAt || values.startsAt), capacity: Number(values.capacity), ...(event ? { version: event.version } : {}) };
       const result = await apiRequest<ManagedEvent>(event ? `${API}/${event.id}` : API, { method: event ? "PUT" : "POST", body: JSON.stringify(body) }, token);
       navigate(`/organizer/events/${result.id}`, { replace: true, state: { saved: true } });
       if (reload) reload();
@@ -129,6 +148,16 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
       setError(caught);
       if (caught instanceof ApiError) setFields(caught.problem.fieldErrors ?? {});
     } finally { setSaving(false); }
+  }
+  async function createFreeTicket() {
+    if (!event || !token || dirty || saving || creatingFree) return;
+    setCreatingFree(true); setFreeMessage(""); setFreeError(null);
+    try {
+      await apiRequest(`${API}/${event.id}/ticket-types/default-free`, { method: "POST" }, token);
+      setFreeMessage(`Free admission is ready: SGD 0, ${event.capacity} places. You can now publish the event.`);
+      setError(null);
+    } catch (caught) { setFreeError(caught); }
+    finally { setCreatingFree(false); }
   }
   async function copyEvent() {
     if (!event || !token || copying || saving || dirty) return;
@@ -159,25 +188,31 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
   }
   return <main className="app-shell draft-shell">
     <Link className="text-link" to="/organizer/events">← My events</Link>
-    <header className="organizer-header"><p className="eyebrow">{event?.status ?? "New draft"}</p><h1>{readOnly ? "Event details" : event ? "Edit event draft" : "Create an event"}</h1>
-      <p>{readOnly ? "Only draft events can be edited." : "Save your plans privately. This does not publish the event."}</p></header>
-    {saved && <p className="result-message" role="status">Draft saved successfully.</p>}
+    <header className="organizer-header"><p className="eyebrow">{event?.status ?? "New draft"}</p><h1>{readOnly ? "Event details" : event ? (published ? "Edit event" : "Edit event draft") : "Create an event"}</h1>
+      <p>{readOnly ? "Cancelled events cannot be edited." : published ? "Changes are visible to attendees after saving." : "Save your plans privately. This does not publish the event."}</p></header>
+    {saved && <p className="result-message" role="status">{published ? "Event updated successfully." : "Draft saved successfully."}</p>}
     {location.state?.message && <p className="result-message" role="status">{location.state.message}</p>}
     {event?.status === "PUBLISHED" && <p><Link className="text-link" to={`/events/${event.id}`}>View public event →</Link></p>}
     {event?.status === "CANCELLED" && <p className="result-message">This event is cancelled and cannot be restored.</p>}
     <form className="card draft-form" onSubmit={submit}>
       <fieldset disabled={saving || readOnly}>
         <legend>Event information</legend>
+        <div className="artwork-picker"><Select label="Card illustration" value={values.illustration} disabled={saving || readOnly}
+          options={illustrations.map(([value, label]) => ({ value, label }))} onChange={(value) => change("illustration", value)} /><EventArtwork illustration={values.illustration} /></div>
         {([ ["title", "Event title", 200], ["location", "Location", 500] ] as const).map(([name, label, max]) => <label key={name}>{label}
           <input required maxLength={max} value={values[name]} onChange={(e) => change(name, e.target.value)} aria-invalid={!!fields[name]} aria-describedby={fields[name] ? `${name}-error` : undefined} />{fieldError(name)}</label>)}
         <label>Description<textarea required maxLength={10000} rows={7} value={values.description} onChange={(e) => change("description", e.target.value)} aria-invalid={!!fields.description} aria-describedby={fields.description ? "description-error" : undefined} />{fieldError("description")}</label>
-        <p className="muted" id="event-time-zone">All times use Singapore time (SGT, UTC+08:00).</p>
-        <div className="profile-grid">{([ ["startsAt", "Start time"], ["endsAt", "End time"] ] as const).map(([name, label]) => <label key={name}>{label}
-          <input type="datetime-local" step="1" required value={values[name]} onChange={(e) => change(name, e.target.value)} aria-invalid={!!fields[name]} aria-describedby={`event-time-zone${fields[name] ? ` ${name}-error` : ""}`} />{fieldError(name)}</label>)}</div>
+        <p className="muted" id="event-time-zone">All times use Singapore time (SGT, UTC+08:00). Format: YYYY-MM-DD HH:mm (24-hour, no seconds).</p>
+        <div className="profile-grid">{([ ["startsAt", "Start time"], ["endsAt", "End time"], ["registrationOpensAt", "Registration opens"], ["registrationClosesAt", "Registration deadline"] ] as const).map(([name, label]) =>
+          <DateTimeField key={name} name={name} label={label} after={name === "endsAt" ? values.startsAt : name === "registrationClosesAt" ? values.registrationOpensAt : undefined}
+            before={name === "registrationOpensAt" ? (values.registrationClosesAt || values.startsAt) : undefined}
+            atOrBefore={name === "registrationClosesAt" ? values.startsAt : undefined} value={values[name]} onChange={(value) => change(name, value)} error={fields[name]} required={name === "startsAt" || name === "endsAt"} />)}</div>
+        <p className="muted">Leave Registration opens blank to accept bookings as soon as the event is published. A future opening allows attendees to pre-register without holding tickets.</p>
+        <p className="muted">Registration closes at this time. Leave blank to use the event start time.</p>
         <label>Capacity<input type="number" min="1" max="2147483647" step="1" required value={values.capacity} onChange={(e) => change("capacity", e.target.value)} aria-invalid={!!fields.capacity} aria-describedby={fields.capacity ? "capacity-error capacity-help" : "capacity-help"} />{fieldError("capacity")}</label>
         <p className="muted" id="capacity-help">Event size only; this does not create ticket inventory.</p>
       </fieldset>
-      <fieldset disabled={saving || readOnly} className="booking-requirements">
+      <fieldset disabled={saving || readOnly || published} className="booking-requirements">
         <legend>Required booking information</legend>
         <p className="muted">Choose the details needed once per order. Selected fields are required. These settings are fixed after publication.</p>
         {([["realName", "Real name"], ["email", "Email"], ["phone", "Phone"], ["studentId", "Student ID number"], ["passport", "Passport number"]] as const).map(([name, label]) =>
@@ -199,41 +234,41 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
         <p className="muted">Request only information needed for your event. Attendees will see a privacy notice before submitting.</p>
       </fieldset>
       {error != null && <ManagementError error={error} />}
-      {!readOnly && <div className="button-row">
-        <button type="submit" className="primary-button compact" disabled={saving || (error instanceof ApiError && [401, 403, 404, 409].includes(error.status))}>{saving ? "Saving…" : "Save draft"}</button>
-
-      </div>}
-      {reload && error instanceof ApiError && error.status === 409 && <button type="button" className="secondary-button" onClick={reload}>Reload latest version</button>}
-    </form>
-    {event && event.status !== "CANCELLED" && <section className="card event-actions" aria-label="Event actions">
-      <h2>Event actions</h2>
-      {dirty && <p role="status">Save your changes before publishing or cancelling.</p>}
       <div className="button-row">
-        {event.status === "DRAFT" && <button className="primary-button compact" disabled={blocked || dirty} onClick={() => setAction("publish")}>Publish event</button>}
-        <button className="secondary-button danger-button" disabled={blocked || dirty} onClick={() => setAction("cancel")}>Cancel event</button>
+        {!readOnly && <button type="submit" className="primary-button compact" disabled={saving || (error instanceof ApiError && [401, 403, 404, 409].includes(error.status))}>{saving ? "Saving…" : published ? "Save changes" : "Save draft"}</button>}
+        {reload && error instanceof ApiError && error.status === 409 && <button type="button" className="secondary-button" onClick={reload}>Reload latest version</button>}
       </div>
+    </form>
+    {event && event.status !== "CANCELLED" && <section className="card ticket-types-entry" aria-label="Ticket types">
+      <h2>Ticket types</h2>
+      <div className="button-row">
+        {event.status === "DRAFT" && <button className="secondary-button" disabled={dirty || saving || creatingFree} onClick={createFreeTicket}>{creatingFree ? "Creating…" : "Create free ticket"}</button>}
+        <Link className="secondary-button button-link" to={`/organizer/events/${event.id}/ticket-types`}>Manage ticket types</Link>
+      </div>
+      {dirty && <p role="status">Save your changes before creating tickets.</p>}
+      {freeMessage && <p role="status" className="result-message">{freeMessage}</p>}
+      {freeError != null && <ManagementError error={freeError} />}
+    </section>}
+    {event && <section className="card event-actions" aria-label="Event actions">
+      <h2>Event actions</h2>
+      {dirty && <p role="status">Save your changes before using event actions.</p>}
+      <div className="button-row">
+        {event.status === "DRAFT" && <button className="primary-button compact" disabled={blocked || dirty || creatingFree} onClick={() => setAction("publish")}>Publish event</button>}
+        <button className="secondary-button" disabled={copying || saving || dirty || creatingFree} onClick={copyEvent}>{copying ? "Copying…" : "Copy to new draft"}</button>
+        {event.status !== "CANCELLED" && <button className="secondary-button danger-button" disabled={blocked || dirty || creatingFree} onClick={() => setAction("cancel")}>Cancel event</button>}
+      </div>
+      {copyError != null && <><ManagementError error={copyError} /><p>Check My events before trying again in case the new draft was already created.</p></>}
       {action && <div className="action-confirmation" role="group" aria-label="Confirm event action">
-        <p>{action === "publish" ? "Publish this saved draft? Everyone will be able to view it, and its details can no longer be edited." : "Cancel this event and all its active reservations? It will be removed from public browsing. This cannot be undone."}</p>
+        <p>{action === "publish" ? "Publish this saved draft? Everyone will be able to view it." : "Cancel this event and all its active reservations? It will be removed from public browsing. This cannot be undone."}</p>
         <div className="button-row"><button className="secondary-button" disabled={saving} onClick={() => setAction(null)}>Go back</button>
           <button className={action === "cancel" ? "secondary-button danger-button" : "primary-button compact"} disabled={saving} onClick={transition}>{saving ? "Updating…" : action === "publish" ? "Confirm publication" : "Confirm cancellation"}</button></div>
       </div>}
     </section>}
-    {event && <section className="card" aria-label="Reuse event">
-      <h2>Reuse this event</h2>
-      <p>Create a new draft from the saved details, booking requirements and ticket types. Review the dates before publishing. Existing orders stay with the original event.</p>
-      {dirty && <p>Save your changes before copying this event.</p>}
-      <button className="secondary-button" disabled={copying || saving || dirty} onClick={copyEvent}>{copying ? "Copying…" : "Copy to new draft"}</button>
-      {copyError != null && <><ManagementError error={copyError} /><p>Check My events before trying again in case the new draft was already created.</p></>}
-    </section>}
     {!event && <p><Link className="text-link" to="/organizer/events">Reuse a previous event →</Link> Open an event and choose Copy to new draft.</p>}
-    {event && <section className="card" aria-label="Event orders">
+    {event && event.status !== "DRAFT" && <section className="card event-orders-entry" aria-label="Event orders">
       <h2>Event orders</h2>
       <Link className="text-link" to={`/organizer/events/${event.id}/bookings`}>View event orders →</Link>
     </section>}
-    {event && event.status !== "CANCELLED" && <section className="card ticket-types-entry" aria-label="Ticket types">
-      <h2>Ticket types</h2>
-      <p>Configure ticket names, prices and quotas for this event. Only free tickets can be booked in this phase.</p>
-      <Link className="text-link" to={`/organizer/events/${event.id}/ticket-types`}>Manage ticket types →</Link>
-    </section>}
+
   </main>;
 }

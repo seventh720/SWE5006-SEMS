@@ -27,6 +27,12 @@ public class Event {
     private Instant startsAt;
     @Column(name = "ends_at", nullable = false)
     private Instant endsAt;
+    @Column(name = "registration_opens_at")
+    private Instant registrationOpensAt;
+    @Column(name = "illustration", nullable = false, length = 20)
+    private String illustration = "GENERAL";
+    @Column(name = "registration_closes_at")
+    private Instant registrationClosesAt;
     @Column(nullable = false)
     private int capacity;
     @Column(nullable = false, length = 20)
@@ -55,16 +61,42 @@ public class Event {
     protected Event() { }
 
     public void configureBooking(BookingRequirements requirements) {
-        if (!"DRAFT".equals(status)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Booking requirements can only be edited in a draft");
-        }
         BookingRequirements fields = requirements == null ? BookingRequirements.NONE : requirements;
+        if (!"DRAFT".equals(status)) {
+            if ("PUBLISHED".equals(status) && fields.equals(bookingRequirements())) return;
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Booking requirements cannot change after publication");
+        }
         requireRealName = fields.realName();
         requireEmail = fields.email();
         requirePhone = fields.phone();
         requireStudentId = fields.studentId();
         requirePassport = fields.passport();
         customFieldLabel = fields.customFieldLabel();
+    }
+
+    public void configureRegistrationDeadline(Instant deadline) {
+        if ("CANCELLED".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancelled events cannot be edited");
+        }
+        Instant effectiveDeadline = deadline == null ? startsAt : deadline;
+        if (effectiveDeadline.isAfter(startsAt)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registration deadline must be on or before start time");
+        }
+        registrationClosesAt = effectiveDeadline;
+    }
+
+    public void configureRegistrationOpening(Instant opening) {
+        if ("CANCELLED".equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancelled events cannot be edited");
+        }
+        if (opening != null && !opening.isBefore(registrationDeadline())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registration opening must be before the registration deadline");
+        }
+        registrationOpensAt = opening;
+    }
+
+    private Instant registrationDeadline() {
+        return registrationClosesAt == null ? startsAt : registrationClosesAt;
     }
 
     private BookingRequirements bookingRequirements() {
@@ -81,11 +113,11 @@ public class Event {
         return event;
     }
 
-    public void editDraft(String title, String description, String location,
+    public void editDetails(String title, String description, String location,
             Instant startsAt, Instant endsAt, int capacity, long expectedVersion) {
-        if (!"DRAFT".equals(status) || version != expectedVersion) {
+        if ("CANCELLED".equals(status) || version != expectedVersion) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "This event has changed or is no longer a draft. Reload before editing.");
+                    "This event has changed or is cancelled. Reload before editing.");
         }
         assign(title, description, location, startsAt, endsAt, capacity);
     }
@@ -97,6 +129,9 @@ public class Event {
         }
         if (!startsAt.isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time must be in the future before publishing");
+        }
+        if (!registrationDeadline().isAfter(now)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registration deadline must be in the future before publishing");
         }
         status = "PUBLISHED";
     }
@@ -136,13 +171,21 @@ public class Event {
         updatedAt = Instant.now();
     }
 
+    public void configureIllustration(String selection) {
+        if ("CANCELLED".equals(status)) throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancelled events cannot be edited");
+        illustration = selection == null ? "GENERAL" : selection;
+        if (!java.util.Set.of("GENERAL", "TECH", "MUSIC", "SPORT", "ART", "SOCIAL").contains(illustration)) {
+            throw new IllegalArgumentException("Unknown event illustration");
+        }
+    }
+
     public EventManagementView toManagementView() {
         return new EventManagementView(id, title, description, location, startsAt, endsAt,
-                capacity, status, version, createdAt, updatedAt, bookingRequirements());
+                capacity, status, version, createdAt, updatedAt, bookingRequirements(), registrationDeadline(), registrationOpensAt, illustration);
     }
 
     public EventView toView() {
-        return new EventView(id, title, description, location, startsAt, endsAt, capacity, status, bookingRequirements());
+        return new EventView(id, title, description, location, startsAt, endsAt, capacity, status, bookingRequirements(), registrationDeadline(), registrationOpensAt, illustration);
     }
     public EventAccessView toAccessView() {
         return new EventAccessView(
@@ -153,6 +196,6 @@ public class Event {
                 capacity,
                 status,
                 title,
-                location, bookingRequirements());
+                location, bookingRequirements(), registrationDeadline(), registrationOpensAt);
     }
 }

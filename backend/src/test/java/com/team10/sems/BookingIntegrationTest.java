@@ -52,6 +52,7 @@ class BookingIntegrationTest {
 
     @BeforeEach
     void prepare() {
+        jdbc.update("DELETE FROM pre_registrations");
         jdbc.update("DELETE FROM bookings");
         jdbc.update("DELETE FROM ticket_types");
         jdbc.update("DELETE FROM events");
@@ -364,10 +365,12 @@ class BookingIntegrationTest {
                 .content(mapper.writeValueAsString(input))).andExpect(status().isOk()));
         mvc.perform(get(path).with(as(owner, "ORGANIZER"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.bookingRequirements.phone").value(true));
+        mvc.perform(post(path + "/ticket-types/default-free").with(as(owner, "ORGANIZER"))).andExpect(status().isOk());
         JsonNode published = json(mvc.perform(post(path + "/publish").with(as(owner, "ORGANIZER"))
                 .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of("version", updated.get("version").asLong()))))
                 .andExpect(status().isOk()));
         input.put("version", published.get("version").asLong());
+        input.put("bookingRequirements", java.util.Map.of("realName", true));
         mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(input))).andExpect(status().isConflict());
         mvc.perform(get("/api/v1/events/" + draft.get("id").asText())).andExpect(status().isOk())
@@ -480,6 +483,219 @@ class BookingIntegrationTest {
                 "SELECT custom_field_label FROM reuse_upgrade.events WHERE id=?", String.class, event));
         assertEquals("PASSPORT: P123", jdbc.queryForObject(
                 "SELECT attendee_custom_answer FROM reuse_upgrade.bookings WHERE event_id=?", String.class, event));
+    }
+
+
+    @Test
+    void registrationDeadlineStopsNewBookingsButAllowsReplayAndCancellation() throws Exception {
+        String id = json(book(attendee, "before-deadline", 1).andExpect(status().isCreated())).get("id").asText();
+        jdbc.update("UPDATE events SET registration_closes_at='2020-01-01T00:00:00Z' WHERE id=?", event);
+        book(attendee, "after-deadline", 1).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Registration for this event has closed"));
+        assertEquals(1, inventory());
+        assertEquals(1, count("CONFIRMED"));
+        book(attendee, "before-deadline", 1).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id));
+        mvc.perform(get("/api/v1/events/" + event)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.registrationClosesAt").value("2020-01-01T00:00:00Z"));
+        cancel(id, attendee).andExpect(status().isOk());
+        assertEquals(0, inventory());
+    }
+
+    @Test
+    void deadlineIsValidatedPersistedAndCopied() throws Exception {
+        var input = new java.util.HashMap<String, Object>(java.util.Map.of(
+                "title", "Deadline test", "description", "Details", "location", "Singapore",
+                "startsAt", "2030-01-01T10:00:00Z", "endsAt", "2030-01-01T12:00:00Z", "capacity", 10,
+                "registrationClosesAt", "2030-01-01T11:00:00Z"));
+        mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input))).andExpect(status().isBadRequest());
+        input.put("registrationClosesAt", "2030-01-01T09:00:00Z");
+        JsonNode created = json(mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.registrationClosesAt").value("2030-01-01T09:00:00Z")));
+        String path = "/api/v1/organizer/events/" + created.get("id").asText();
+        mvc.perform(post(path + "/copy").with(as(owner, "ORGANIZER"))).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.registrationClosesAt").value("2030-01-01T09:00:00Z"));
+        input.put("version", 0);
+        input.put("registrationClosesAt", "2020-01-01T09:00:00Z");
+        mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isOk());
+        mvc.perform(post(path + "/publish").with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":1}")).andExpect(status().isBadRequest());
+        input.remove("registrationClosesAt");
+        input.remove("version");
+        mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.registrationClosesAt").value("2030-01-01T10:00:00Z"));
+    }
+
+
+    @Test
+    void eventIllustrationIsValidatedPersistedAndCopied() throws Exception {
+        var input = new java.util.HashMap<String, Object>();
+        input.put("title", "Illustrated event"); input.put("description", "Details"); input.put("location", "NUS");
+        input.put("startsAt", "2030-01-01T10:00:00Z"); input.put("endsAt", "2030-01-01T12:00:00Z");
+        input.put("capacity", 10); input.put("illustration", "MUSIC");
+        String id = json(mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.illustration").value("MUSIC"))).get("id").asText();
+        mvc.perform(post("/api/v1/organizer/events/" + id + "/copy").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.illustration").value("MUSIC"));
+        mvc.perform(post("/api/v1/organizer/events/" + id + "/ticket-types/default-free").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.quota").value(10));
+        mvc.perform(post("/api/v1/organizer/events/" + id + "/publish").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/events/" + id)).andExpect(status().isOk()).andExpect(jsonPath("$.illustration").value("MUSIC"));
+        input.put("illustration", "UNKNOWN");
+        mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input))).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void publishedChangesPreserveOrdersAndExposeCurrentArrangements() throws Exception {
+        String orderId = json(book(attendee, "before-edit", 1).andExpect(status().isCreated())).get("id").asText();
+        String path = "/api/v1/organizer/events/" + event;
+        JsonNode current = json(mvc.perform(get(path).with(as(owner, "ORGANIZER"))).andExpect(status().isOk()));
+        var input = new java.util.HashMap<String, Object>();
+        input.put("title", "Updated event"); input.put("description", "Updated description"); input.put("location", "New venue");
+        input.put("startsAt", "2030-02-01T10:00:00Z"); input.put("endsAt", "2030-02-01T12:00:00Z");
+        input.put("capacity", current.get("capacity").asInt()); input.put("version", current.get("version").asLong());
+        input.put("registrationOpensAt", "2030-01-31T10:00:00Z"); input.put("registrationClosesAt", "2030-02-01T09:00:00Z");
+        mvc.perform(put(path).with(as(other, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isNotFound());
+        mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PUBLISHED"));
+        mvc.perform(get("/api/v1/events/" + event)).andExpect(status().isOk()).andExpect(jsonPath("$.location").value("New venue"));
+        mvc.perform(get("/api/v1/bookings/" + orderId).with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.currentEvent.location").value("New venue"))
+                .andExpect(jsonPath("$.currentEvent.startsAt").value("2030-02-01T10:00:00Z"));
+        assertNotEquals("New venue", jdbc.queryForObject("SELECT event_location FROM bookings WHERE id=?", String.class, UUID.fromString(orderId)));
+        assertEquals(1, jdbc.queryForObject("SELECT booked_quantity FROM ticket_types WHERE id=?", Integer.class, ticket));
+        mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isConflict());
+        input.put("version", current.get("version").asLong() + 1); input.put("capacity", 1);
+        mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isBadRequest());
+    }
+
+    private ResultActions preRegister(UUID user, int quantity, java.util.Map<String, String> info) throws Exception {
+        return mvc.perform(put("/api/v1/pre-registrations/" + event).with(as(user, "ATTENDEE"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of(
+                        "eventId", event, "ticketTypeId", ticket, "quantity", quantity, "attendeeInfo", info))));
+    }
+
+    private void scheduleRegistration() {
+        jdbc.update("UPDATE events SET registration_opens_at='2030-01-01T09:00:00Z' WHERE id=?", event);
+    }
+
+    @Test
+    void preRegistrationIsPrivateAndIdempotentAndDoesNotHoldInventory() throws Exception {
+        scheduleRegistration();
+        jdbc.update("UPDATE events SET require_real_name=true WHERE id=?", event);
+        book(attendee, "early", 1).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Registration for this event has not opened yet"));
+        preRegister(attendee, 2, java.util.Map.of()).andExpect(status().isBadRequest());
+        String id = json(preRegister(attendee, 2, java.util.Map.of("realName", "Private Name"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("WAITING"))).get("id").asText();
+        preRegister(attendee, 3, java.util.Map.of("realName", "Updated Name"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id));
+        mvc.perform(get("/api/v1/pre-registrations").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.items[0].quantity").value(3))
+                .andExpect(jsonPath("$.items[0].attendeeInfo.realName").value("Updated Name"));
+        mvc.perform(get("/api/v1/pre-registrations/" + event).with(as(other, "ATTENDEE")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/pre-registrations/" + event).with(as(owner, "ORGANIZER")))
+                .andExpect(status().isForbidden());
+        assertEquals(0, inventory());
+        assertEquals(0, count("CONFIRMED"));
+        assertEquals(false, jdbc.queryForObject("SELECT sales_started FROM ticket_types WHERE id=?", Boolean.class, ticket));
+        mvc.perform(delete("/api/v1/pre-registrations/" + event).with(as(other, "ATTENDEE")))
+                .andExpect(status().isNotFound());
+        mvc.perform(delete("/api/v1/pre-registrations/" + event).with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/pre-registrations").with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void preRegistrationCanBecomeAnOrderOnlyAfterOpening() throws Exception {
+        scheduleRegistration();
+        preRegister(attendee, 1, java.util.Map.of()).andExpect(status().isOk());
+        jdbc.update("UPDATE events SET registration_opens_at='2020-01-01T09:00:00Z' WHERE id=?", event);
+        mvc.perform(get("/api/v1/pre-registrations/" + event).with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.status").value("OPEN"));
+        preRegister(attendee, 1, java.util.Map.of()).andExpect(status().isConflict());
+        String booking = json(book(attendee, "opened", 1).andExpect(status().isCreated())).get("id").asText();
+        mvc.perform(get("/api/v1/pre-registrations/" + event).with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.status").value("BOOKED")).andExpect(jsonPath("$.bookingId").value(booking));
+        book(attendee, "opened", 1).andExpect(status().isOk());
+        assertEquals(1, inventory());
+        mvc.perform(delete("/api/v1/pre-registrations/" + event).with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isNoContent());
+        assertEquals(1, inventory());
+        assertEquals(1, count("CONFIRMED"));
+    }
+
+    @Test
+    void competingPreRegistrationsDoNotPromiseTheLastSeat() throws Exception {
+        scheduleRegistration();
+        jdbc.update("UPDATE ticket_types SET quota=1 WHERE id=?", ticket);
+        var sameUser = race(() -> preRegister(attendee, 1, java.util.Map.of()).andReturn().getResponse().getStatus(),
+                () -> preRegister(attendee, 1, java.util.Map.of()).andReturn().getResponse().getStatus());
+        assertEquals(List.of(200, 200), sameUser);
+        preRegister(other, 1, java.util.Map.of()).andExpect(status().isOk());
+        assertEquals(0, inventory());
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM pre_registrations", Integer.class));
+        jdbc.update("UPDATE events SET registration_opens_at='2020-01-01T09:00:00Z' WHERE id=?", event);
+        var bookings = race(() -> book(attendee, "one", 1).andReturn().getResponse().getStatus(),
+                () -> book(other, "two", 1).andReturn().getResponse().getStatus());
+        assertTrue(bookings.containsAll(List.of(201, 409)));
+        assertEquals(1, inventory());
+        assertEquals(1, count("CONFIRMED"));
+    }
+
+    @Test
+    void preRegistrationTracksClosedAndCancelledEvents() throws Exception {
+        scheduleRegistration();
+        preRegister(attendee, 1, java.util.Map.of()).andExpect(status().isOk());
+        jdbc.update("UPDATE events SET registration_opens_at='2019-01-01T00:00:00Z',registration_closes_at='2020-01-01T00:00:00Z' WHERE id=?", event);
+        mvc.perform(get("/api/v1/pre-registrations/" + event).with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+        cancelEvent().andExpect(status().isOk());
+        mvc.perform(get("/api/v1/pre-registrations/" + event).with(as(attendee, "ATTENDEE")))
+                .andExpect(jsonPath("$.status").value("EVENT_CANCELLED"));
+        preRegister(attendee, 1, java.util.Map.of()).andExpect(status().isNotFound());
+        assertEquals(0, inventory());
+    }
+
+    @Test
+    void registrationOpeningIsValidatedAndRetainedInCopies() throws Exception {
+        var input = new java.util.HashMap<String, Object>(java.util.Map.of("title", "Scheduled", "description", "Details",
+                "location", "Singapore", "startsAt", "2030-01-01T10:00:00Z", "endsAt", "2030-01-01T12:00:00Z",
+                "registrationClosesAt", "2030-01-01T09:30:00Z", "registrationOpensAt", "2030-01-01T09:30:00Z", "capacity", 10));
+        mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isBadRequest());
+        input.put("registrationOpensAt", "2030-01-01T09:00:00Z");
+        JsonNode created = json(mvc.perform(post("/api/v1/organizer/events").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.registrationOpensAt").value("2030-01-01T09:00:00Z")));
+        mvc.perform(post("/api/v1/organizer/events/" + created.get("id").asText() + "/copy").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.registrationOpensAt").value("2030-01-01T09:00:00Z"));
+    }
+
+    @Test
+    void preRegistrationRejectsInvalidRequestsAndRequiresAuthentication() throws Exception {
+        scheduleRegistration();
+        mvc.perform(get("/api/v1/pre-registrations")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/pre-registrations?size=51").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isBadRequest());
+        preRegister(attendee, 0, java.util.Map.of()).andExpect(status().isBadRequest());
+        preRegister(attendee, 11, java.util.Map.of()).andExpect(status().isBadRequest());
+        preRegister(attendee, 1, java.util.Map.of("email", "not-requested@example.test")).andExpect(status().isBadRequest());
+        jdbc.update("UPDATE ticket_types SET price_minor=500 WHERE id=?", ticket);
+        preRegister(attendee, 1, java.util.Map.of()).andExpect(status().isConflict());
     }
 
 }

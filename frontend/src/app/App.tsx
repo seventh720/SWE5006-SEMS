@@ -1,3 +1,4 @@
+import { PreRegistrationsPage } from "../features/bookings/PreRegistrationsPage";
 import { OrganizerOrdersPage } from "../features/bookings/OrganizerOrdersPage";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AdminUsersPage } from "../features/admin/AdminUsersPage";
@@ -30,6 +31,7 @@ export function App() {
           <Route path="/organizer/events/:id/ticket-types" element={<OrganizerTicketTypesPage />} />
         </Route>
         <Route element={<AttendeeRoute />}>
+          <Route path="/pre-registrations" element={<PreRegistrationsPage />} />
           <Route path="/bookings" element={<MyOrdersPage />} />
           <Route path="/bookings/:id" element={<OrderDetailPage />} />
         </Route>

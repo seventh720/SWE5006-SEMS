@@ -1,12 +1,11 @@
 package com.team10.sems.booking.internal.application;
 
 import com.team10.sems.booking.BookingView;
-import com.team10.sems.booking.AttendeeInfo;
-import com.team10.sems.event.BookingRequirements;
 import com.team10.sems.booking.OrganizerBookingView;
 import com.team10.sems.booking.internal.domain.Booking;
 import com.team10.sems.booking.internal.persistence.BookingRepository;
 import com.team10.sems.booking.internal.persistence.BookingRequestLock;
+import com.team10.sems.booking.internal.persistence.PreRegistrationRepository;
 import com.team10.sems.event.EventAccessService;
 import com.team10.sems.ticketing.TicketReservationService;
 import java.time.Instant;
@@ -26,11 +25,14 @@ import org.springframework.web.server.ResponseStatusException;
 public class BookingService {
     private final BookingRepository bookings;
     private final BookingRequestLock requestLocks;
+    private final PreRegistrationRepository preRegistrations;
     private final EventAccessService events;
     private final TicketReservationService tickets;
 
     public BookingService(BookingRepository bookings, BookingRequestLock requestLocks,
-            EventAccessService events, TicketReservationService tickets) {
+            EventAccessService events, TicketReservationService tickets,
+            PreRegistrationRepository preRegistrations) {
+        this.preRegistrations = preRegistrations;
         this.bookings = bookings;
         this.requestLocks = requestLocks;
         this.events = events;
@@ -49,24 +51,27 @@ public class BookingService {
             if (!booking.matches(input.eventId(), input.ticketTypeId(), input.quantity(), input.attendeeInfo())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Idempotency-Key was already used with different parameters");
             }
-            return new Created(booking.toView(), false);
+            return new Created(view(booking), false);
         }
         var event = events.lockEvent(input.eventId());
         var ticket = tickets.reserve(input.eventId(), input.ticketTypeId(), input.quantity());
-        validateInfo(event.bookingRequirements(), input.attendeeInfo());
+        BookingInfoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
         Booking booking = Booking.confirmed(user, key, event, ticket, input.quantity(), input.attendeeInfo());
-        return new Created(bookings.saveAndFlush(booking).toView(), true);
+        var result = view(bookings.saveAndFlush(booking));
+        preRegistrations.findByUserIdAndEventId(user, input.eventId())
+                .ifPresent(preRegistration -> preRegistration.markBooked(result.id()));
+        return new Created(result, true);
     }
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ATTENDEE')")
     public BookingPage<BookingView> list(UUID user, int page, int size) {
-        return page(bookings.findByUserId(user, pageable(page, size)).map(Booking::toView));
+        return page(bookings.findByUserId(user, pageable(page, size)).map(this::view));
     }
 
     @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ATTENDEE')")
-    public BookingView detail(UUID user, UUID id) { return owned(user, id).toView(); }
+    public BookingView detail(UUID user, UUID id) { return view(owned(user, id)); }
 
     @PreAuthorize("hasRole('ATTENDEE')")
     public BookingView cancel(UUID user, UUID id) {
@@ -74,7 +79,7 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
         var event = events.lockEvent(eventId);
         Booking booking = owned(user, id);
-        if (booking.isCancelled()) return booking.toView();
+        if (booking.isCancelled()) return view(booking);
         if (!event.startsAt().isAfter(Instant.now())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This event has already started");
         }
@@ -82,7 +87,7 @@ public class BookingService {
             tickets.release(eventId, booking.ticketTypeId(), booking.quantity());
         }
         bookings.flush();
-        return booking.toView();
+        return view(booking);
     }
 
     @Transactional(readOnly = true)
@@ -92,23 +97,8 @@ public class BookingService {
         return page(bookings.findByEventId(eventId, pageable(page, size)).map(Booking::toOrganizerView));
     }
 
-    private void validateInfo(BookingRequirements requirements,
-            AttendeeInfo info) {
-        checkField(requirements.realName(), info.realName(), "Real name");
-        checkField(requirements.email(), info.email(), "Email");
-        checkField(requirements.phone(), info.phone(), "Phone");
-        checkField(requirements.studentId(), info.studentId(), "Student ID number");
-        checkField(requirements.passport(), info.passportNumber(), "Passport number");
-        checkField(requirements.customFieldLabel() != null, info.customAnswer(), "Custom information");
-    }
-
-    private void checkField(boolean required, String value, String label) {
-        if (required && value == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " is required for this event");
-        }
-        if (!required && value != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " is not requested for this event");
-        }
+    private BookingView view(Booking booking) {
+        return booking.toView().withCurrentEvent(events.requireEvent(booking.eventId()));
     }
 
     private Booking owned(UUID user, UUID id) {

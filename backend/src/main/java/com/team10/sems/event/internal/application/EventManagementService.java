@@ -51,6 +51,9 @@ public class EventManagementService {
         Event event = Event.draft(owner, input.title().strip(), input.description().strip(),
                 input.location().strip(), input.startsAt(), input.endsAt(), input.capacity());
         event.configureBooking(input.bookingRequirements());
+        event.configureIllustration(input.illustration());
+        event.configureRegistrationDeadline(input.registrationClosesAt());
+        event.configureRegistrationOpening(input.registrationOpensAt());
         return events.saveAndFlush(event).toManagementView();
     }
 
@@ -60,10 +63,16 @@ public class EventManagementService {
         if (input.version() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The current event version is required");
         }
+        if ("PUBLISHED".equals(event.toAccessView().status()) && !input.endsAt().isAfter(java.time.Instant.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A published event must end in the future");
+        }
         publisher.publishEvent(new EventCapacityChanging(id, input.capacity()));
-        event.editDraft(input.title().strip(), input.description().strip(), input.location().strip(),
+        event.editDetails(input.title().strip(), input.description().strip(), input.location().strip(),
                 input.startsAt(), input.endsAt(), input.capacity(), input.version());
         event.configureBooking(input.bookingRequirements());
+        event.configureIllustration(input.illustration());
+        event.configureRegistrationDeadline(input.registrationClosesAt());
+        event.configureRegistrationOpening(input.registrationOpensAt());
         events.flush(); // Trigger optimistic-lock conflicts before constructing the response.
         return event.toManagementView();
     }
@@ -73,6 +82,9 @@ public class EventManagementService {
         Event draft = Event.draft(owner, source.title(), source.description(), source.location(),
                 source.startsAt(), source.endsAt(), source.capacity());
         draft.configureBooking(source.bookingRequirements());
+        draft.configureIllustration(source.illustration());
+        draft.configureRegistrationDeadline(source.registrationClosesAt());
+        draft.configureRegistrationOpening(source.registrationOpensAt());
         var saved = events.saveAndFlush(draft).toManagementView();
         publisher.publishEvent(new EventCopied(id, saved.id()));
         return saved;
@@ -81,6 +93,7 @@ public class EventManagementService {
     public EventManagementView publish(UUID owner, UUID id, long version) {
         Event event = lockedOwned(owner, id);
         event.publish(version, java.time.Instant.now());
+        publisher.publishEvent(new com.team10.sems.event.EventPublishing(id));
         events.flush();
         return event.toManagementView();
     }

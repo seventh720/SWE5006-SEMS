@@ -34,12 +34,16 @@ describe("organizer draft flows", () => {
     fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "2030-01-01T10:00" } });
     fireEvent.change(screen.getByLabelText("End time"), { target: { value: "2030-01-01T12:00" } });
     fireEvent.change(screen.getByLabelText("Capacity"), { target: { value: "100" } });
+    fireEvent.click(screen.getByRole("combobox", { name: "Card illustration" }));
+    fireEvent.click(screen.getByRole("option", { name: "Technology" }));
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await screen.findByText("Draft saved successfully.");
     const [, options] = fetchMock.mock.calls.find(([, options]) => options?.method === "POST")!;
     const body = JSON.parse(options?.body as string);
     expect(body.startsAt).toBe("2030-01-01T02:00:00.000Z");
     expect(body.capacity).toBe(100);
+    expect(body.illustration).toBe("TECH");
+    expect(body.registrationOpensAt).toBeNull();
     expect(body).not.toHaveProperty("organizerId");
     expect(options?.headers).toMatchObject({ Authorization: "Bearer test-token" });
     expect((screen.getByLabelText("Event title") as HTMLInputElement).value).toBe("My draft");
@@ -55,7 +59,7 @@ describe("organizer draft flows", () => {
     await screen.findByLabelText("Event title");
     fireEvent.change(screen.getByLabelText("Event title"), { target: { value: "Unsaved text" } });
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
-    await screen.findByText(/Copy any unsaved text/);
+    await screen.findByText("Conflict");
     expect((screen.getByLabelText("Event title") as HTMLInputElement).value).toBe("Unsaved text");
     expect((screen.getByRole("button", { name: "Save draft" }) as HTMLButtonElement).disabled).toBe(true);
     const put = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
@@ -82,12 +86,18 @@ describe("organizer draft flows", () => {
     expect(screen.getByText("Sign-in page")).toBeTruthy();
   });
 
-  it("keeps published events read-only", async () => {
+  it("allows published details to change while keeping booking requirements fixed", async () => {
     fetchMock.mockResolvedValue(response({ ...draft, status: "PUBLISHED" }));
     mount("/organizer/events/event-1");
-    await screen.findByText("Only draft events can be edited.");
+    await screen.findByRole("button", { name: "Save changes" });
     expect(screen.queryByRole("button", { name: "Save draft" })).toBeNull();
-    expect(screen.getByLabelText("Event title").closest("fieldset")?.disabled).toBe(true);
+    expect(screen.getByLabelText("Event title").closest("fieldset")?.disabled).toBe(false);
+    expect(screen.getByLabelText("Real name").closest("fieldset")?.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Location"), { target: { value: "New venue" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(true));
+    const update = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
+    expect(JSON.parse(update[1]?.body as string).location).toBe("New venue");
   });
 
   it("prevents attendees from entering the organizer routes", () => {
@@ -130,7 +140,7 @@ describe("organizer draft flows", () => {
     await screen.findByLabelText("Event title");
     fireEvent.change(screen.getByLabelText("Event title"), { target: { value: "Unsaved title" } });
     expect((screen.getByRole("button", { name: "Publish event" }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText("Save your changes before publishing or cancelling.")).toBeTruthy();
+    expect(screen.getByText("Save your changes before using event actions.")).toBeTruthy();
   });
 
 });
@@ -190,4 +200,39 @@ it("saves independent document requirements and an organizer-defined question", 
   await waitFor(() => expect(fetchMock.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(true));
   const update = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
   expect(JSON.parse(update[1]?.body as string).bookingRequirements).toMatchObject({ studentId: true, passport: true, customFieldLabel: "Dietary requirements" });
+});
+
+it("uses English minute-only fields and saves the Singapore registration deadline", async () => {
+  fetchMock.mockResolvedValue(response(draft));
+  mount("/organizer/events/event-1");
+  const start = await screen.findByLabelText("Start time") as HTMLInputElement;
+  expect(start.type).toBe("text");
+  expect(start.placeholder).toBe("YYYY-MM-DD HH:mm");
+  expect(start.value).toBe("2030-01-01 10:00");
+  fireEvent.change(screen.getByLabelText("Registration opens"), { target: { value: "2030-01-01 08:00" } });
+  fireEvent.change(screen.getByLabelText("Registration deadline"), { target: { value: "2030-01-01 09:30" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  await waitFor(() => expect(fetchMock.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(true));
+  const update = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
+  expect(JSON.parse(update[1]?.body as string).registrationClosesAt).toBe("2030-01-01T01:30:00.000Z");
+  expect(JSON.parse(update[1]?.body as string).registrationOpensAt).toBe("2030-01-01T00:00:00.000Z");
+});
+
+it("rejects a registration deadline after the start without saving", async () => {
+  fetchMock.mockResolvedValue(response(draft));
+  mount("/organizer/events/event-1");
+  fireEvent.change(await screen.findByLabelText("Registration deadline"), { target: { value: "2030-01-01 11:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+  expect(await screen.findByText("Registration deadline must be on or before start time.")).toBeTruthy();
+  expect(fetchMock.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(false);
+});
+
+it("hides draft orders and creates a free ticket explicitly", async () => {
+  fetchMock.mockImplementation(async (_url, options) => response(options?.method === "POST" ? { name: "Free admission", quota: 100, priceMinor: 0 } : draft));
+  mount("/organizer/events/event-1");
+  await screen.findByRole("button", { name: "Create free ticket" });
+  expect(screen.queryByRole("link", { name: "View event orders →" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Create free ticket" }));
+  await screen.findByText("Free admission is ready: SGD 0, 100 places. You can now publish the event.");
+  expect(fetchMock.mock.calls.some(([url, options]) => url === "/api/v1/organizer/events/event-1/ticket-types/default-free" && options?.method === "POST")).toBe(true);
 });

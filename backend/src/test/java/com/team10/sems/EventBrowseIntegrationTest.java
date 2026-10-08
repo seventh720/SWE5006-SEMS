@@ -43,6 +43,7 @@ class EventBrowseIntegrationTest {
 
     @BeforeEach
     void prepare() {
+        jdbc.update("DELETE FROM ticket_types");
         jdbc.update("DELETE FROM events");
         jdbc.update("DELETE FROM user_roles");
         jdbc.update("DELETE FROM users");
@@ -259,7 +260,7 @@ class EventBrowseIntegrationTest {
     }
 
     @Test
-    void staleEditsAndNonDraftEditsAreRejected() throws Exception {
+    void staleEditsAndCancelledEditsAreRejected() throws Exception {
         String id = createDraft().get("id").asText();
         mvc.perform(put("/api/v1/organizer/events/" + id).with(asUser(organizer, "ORGANIZER"))
                         .contentType(MediaType.APPLICATION_JSON).content(draftBody("New version", 0L)))
@@ -267,7 +268,7 @@ class EventBrowseIntegrationTest {
         mvc.perform(put("/api/v1/organizer/events/" + id).with(asUser(organizer, "ORGANIZER"))
                         .contentType(MediaType.APPLICATION_JSON).content(draftBody("Stale overwrite", 0L)))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.status").value(409));
-        for (String state : new String[] {"PUBLISHED", "CANCELLED"}) {
+        for (String state : new String[] {"CANCELLED"}) {
             UUID other = event("Read only", state, "2030-01-01T10:00:00Z");
             mvc.perform(put("/api/v1/organizer/events/" + other).with(asUser(organizer, "ORGANIZER"))
                             .contentType(MediaType.APPLICATION_JSON).content(draftBody("Changed", 0L)))
@@ -319,8 +320,8 @@ class EventBrowseIntegrationTest {
             var one = first.find(com.team10.sems.event.internal.domain.Event.class, id);
             var two = second.find(com.team10.sems.event.internal.domain.Event.class, id);
             var start = java.time.Instant.parse("2030-01-01T10:00:00Z");
-            one.editDraft("Winner", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
-            two.editDraft("Loser", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
+            one.editDetails("Winner", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
+            two.editDetails("Loser", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
             first.getTransaction().commit();
             assertThrows(jakarta.persistence.RollbackException.class, () -> second.getTransaction().commit());
         }
@@ -337,6 +338,13 @@ class EventBrowseIntegrationTest {
     @Test
     void publishAndCancelCompletePublicVisibilityLifecycle() throws Exception {
         String id = createDraft().get("id").asText();
+        transition(id, "publish", 0, organizer, "ORGANIZER").andExpect(status().isBadRequest());
+        assertEquals("DRAFT", jdbc.queryForObject("SELECT status FROM events WHERE id=?", String.class, UUID.fromString(id)));
+        mvc.perform(post("/api/v1/organizer/events/" + id + "/ticket-types/default-free").with(asUser(organizer, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.priceMinor").value(0));
+        mvc.perform(post("/api/v1/organizer/events/" + id + "/ticket-types/default-free").with(asUser(organizer, "ORGANIZER")))
+                .andExpect(status().isOk());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM ticket_types WHERE event_id=?", Integer.class, UUID.fromString(id)));
         transition(id, "publish", 0, organizer, "ORGANIZER")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.version").value(1));
@@ -397,7 +405,7 @@ class EventBrowseIntegrationTest {
             var draft = editing.find(com.team10.sems.event.internal.domain.Event.class, id);
             var transition = changing.find(com.team10.sems.event.internal.domain.Event.class, id);
             var start = java.time.Instant.parse("2030-01-01T10:00:00Z");
-            draft.editDraft("Stale edit", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
+            draft.editDetails("Stale edit", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
             if (action.equals("publish")) transition.publish(0, java.time.Instant.now()); else transition.cancel(0);
             changing.getTransaction().commit();
             assertThrows(jakarta.persistence.RollbackException.class, () -> editing.getTransaction().commit());

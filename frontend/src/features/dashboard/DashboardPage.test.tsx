@@ -5,10 +5,11 @@ import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "./DashboardPage";
 const auth = vi.hoisted(() => ({ token: "token", user: { id: "u1", username: "Alice", email: "alice@example.test", status: "ACTIVE", roles: ["ATTENDEE"] }, logout: vi.fn() }));
 vi.mock("../auth/AuthContext", () => ({ useAuth: () => auth }));
+let preRegistrationData: unknown = { items: [], totalElements: 0, totalPages: 0 };
 const fetchMock = vi.fn<typeof fetch>();
 function response(data: unknown, status = 200) { return new Response(JSON.stringify(data), { status }); }
 function mount() { render(<MemoryRouter><DashboardPage /></MemoryRouter>); }
-beforeEach(() => { auth.user.roles = ["ATTENDEE"]; fetchMock.mockReset(); auth.logout.mockClear(); vi.stubGlobal("fetch", fetchMock); });
+beforeEach(() => { auth.user.roles = ["ATTENDEE"]; fetchMock.mockReset(); auth.logout.mockClear(); preRegistrationData = { items: [], totalElements: 0, totalPages: 0 }; vi.stubGlobal("fetch", (url: RequestInfo | URL, options?: RequestInit) => String(url) === "/api/v1/profile/avatar" ? Promise.resolve(response({ dataUrl: null })) : String(url).startsWith("/api/v1/pre-registrations") ? Promise.resolve(response(preRegistrationData)) : fetchMock(url, options)); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("shows real public events without RBAC demos or management entry points", async () => {
   fetchMock.mockResolvedValue(response({ items: [{ id: "e1", title: "Community day", startsAt: "2030-01-01T00:00:00Z", location: "Singapore" }] }));
@@ -67,4 +68,13 @@ it("hides the My Orders entry from a non-attendee personal view", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Personal" }));
   await screen.findByText("New experiences are on the way");
   expect(screen.queryByRole("link", { name: "My orders →" })).toBeNull();
+});
+
+it("shows upcoming pre-registrations and their opening countdown on the personal dashboard", async () => {
+  preRegistrationData = { items: [{ id: "pre1", eventId: "e2", eventTitle: "Scheduled workshop", ticketTypeId: "t1", ticketTypeName: "Free", quantity: 1, registrationOpensAt: "2099-01-01T00:00:00Z", registrationClosesAt: "2099-01-02T00:00:00Z", status: "WAITING" }], totalElements: 1, totalPages: 1 };
+  fetchMock.mockResolvedValue(response({ items: [] }));
+  mount();
+  await screen.findByText("Scheduled workshop");
+  expect(screen.getByLabelText("Countdown to registration").textContent).toContain("Opens in");
+  expect(screen.getByRole("link", { name: "Edit pre-registration" }).getAttribute("href")).toBe("/events/e2?preRegistration=t1");
 });

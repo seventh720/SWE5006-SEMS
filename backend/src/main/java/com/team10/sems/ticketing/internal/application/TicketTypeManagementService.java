@@ -39,6 +39,19 @@ public class TicketTypeManagementService {
                 .toList();
     }
 
+    public TicketTypeView createDefaultFree(UUID owner, UUID eventId) {
+        var event = events.lockOwnedEvent(eventId, owner);
+        requireEditableEvent(event);
+        var existing = ticketTypes.findByEventIdOrderByCreatedAtAscIdAsc(eventId);
+        if (!existing.isEmpty()) {
+            var ticket = existing.get(0);
+            if (existing.size() == 1 && ticket.getName().equals("Free admission")
+                    && ticket.getPriceMinor() == 0 && ticket.getQuota() == event.capacity()) return ticket.toManagementView();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket types already exist. Use Manage ticket types to review or change them.");
+        }
+        return ticketTypes.saveAndFlush(TicketType.create(eventId, "Free admission", 0, "SGD", event.capacity())).toManagementView();
+    }
+
     public TicketTypeView create(
             UUID owner,
             UUID eventId,

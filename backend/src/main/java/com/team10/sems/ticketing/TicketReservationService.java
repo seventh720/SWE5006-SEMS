@@ -29,6 +29,12 @@ public class TicketReservationService {
         if (!event.startsAt().isAfter(Instant.now())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This event has already started");
         }
+        if (!event.registrationClosesAt().isAfter(Instant.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration for this event has closed");
+        }
+        if (event.registrationOpensAt() != null && Instant.now().isBefore(event.registrationOpensAt())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration for this event has not opened yet");
+        }
         TicketType ticket = find(eventId, ticketTypeId);
         try {
             ticket.reserve(quantity);
@@ -39,6 +45,11 @@ public class TicketReservationService {
         }
         ticketTypes.flush();
         return ticket.toManagementView();
+    }
+
+    @Transactional(readOnly = true)
+    public TicketTypeView inspect(UUID eventId, UUID ticketTypeId) {
+        return find(eventId, ticketTypeId).toPublicView();
     }
 
     public void release(UUID eventId, UUID ticketTypeId, int quantity) {

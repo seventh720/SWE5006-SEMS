@@ -307,3 +307,33 @@ it("shows student ID and passport independently and displays the privacy notice"
   expect(screen.getByLabelText("Department")).toBeTruthy();
   expect(screen.getByText(/We protect your privacy/)).toBeTruthy();
 });
+
+it("saves a pre-registration before opening without creating an order", async () => {
+  fetchMock.mockResolvedValue(response({ id: "pre1", status: "WAITING" }));
+  render(<MemoryRouter><ReserveControl eventId="e1" ticketTypeId="t1" remaining={7} beforeOpening onBooked={vi.fn()} /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Save pre-registration" }));
+  await screen.findByText("Pre-registration saved. Tickets are not yet booked.");
+  expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/pre-registrations/e1");
+  expect(fetchMock.mock.calls[0][1]?.method).toBe("PUT");
+  expect(screen.queryByText("Reservation confirmed.")).toBeNull();
+  expect(screen.getByRole("link", { name: "My pre-registrations →" })).toBeTruthy();
+});
+
+it("loads saved pre-registration details and waits for explicit booking confirmation", async () => {
+  fetchMock.mockImplementation(async (_url, options) => options?.method === "POST"
+    ? response({ id: "booked-pre1" }, 201)
+    : response({ ticketTypeId: "t1", quantity: 2, attendeeInfo: { realName: "Pre-filled Name" } }));
+  render(<MemoryRouter initialEntries={["/events/e1?preRegistration=t1"]}>
+    <ReserveControl eventId="e1" ticketTypeId="t1" remaining={7} onBooked={vi.fn()}
+      bookingRequirements={{ realName: true, email: false, phone: false, studentId: false, passport: false }} />
+  </MemoryRouter>);
+  await screen.findByText("Pre-filled details loaded. Review and submit to book your tickets.");
+  expect(fetchMock.mock.calls.filter(([, options]) => options?.method === "POST")).toHaveLength(0);
+  expect((screen.getByLabelText("Real name") as HTMLInputElement).value).toBe("Pre-filled Name");
+  expect((screen.getByLabelText("Quantity") as HTMLInputElement).value).toBe("2");
+  fireEvent.change(screen.getByLabelText("Real name"), { target: { value: "Confirmed Name" } });
+  fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
+  await screen.findByText("Reservation confirmed.");
+  const post = fetchMock.mock.calls.find(([, options]) => options?.method === "POST")!;
+  expect(JSON.parse(post[1]?.body as string)).toMatchObject({ quantity: 2, attendeeInfo: { realName: "Confirmed Name" } });
+});

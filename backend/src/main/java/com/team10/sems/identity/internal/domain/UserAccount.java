@@ -70,6 +70,12 @@ public class UserAccount {
     @Column(name = "profile_passport_number", length = 100)
     private String profilePassportNumber;
 
+    @Column(name = "avatar_data", columnDefinition = "text")
+    private String avatarData;
+
+    public String avatarData() { return avatarData; }
+    public void updateAvatar(String data) { avatarData = data; }
+
     public BookingProfile bookingProfile() {
         return new BookingProfile(profileRealName, profileEmail, profilePhone, profileStudentId, profilePassportNumber);
     }

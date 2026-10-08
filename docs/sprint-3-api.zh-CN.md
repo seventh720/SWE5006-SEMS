@@ -9,6 +9,7 @@
 - 全部票种配额之和不得超过活动容量；修改草稿容量也不能低于已分配总配额。
 - 票种第一次预订后名称、价格和配额永久冻结。`salesStarted` 保留此事实，取消后库存归零也不能重新编辑。
 - 只允许 ATTENDEE 为尚未开始的已发布活动预订免费票，每单单票种、1–10张。普通公开注册用户默认具有 ATTENDEE。
+- 活动可设置 `registrationClosesAt`，不得晚于开始时间；省略时默认开始时间。发布时截止时间必须在未来，达到截止时间后新预订返回409。原请求键重放仍返回已有订单；活动开始前仍可取消订单。
 - 免费订单直接为 `CONFIRMED`、`paymentStatus=NOT_REQUIRED`。用户、金额、活动和票种快照由后端确定。
 - 活动开始前可以取消本人订单，状态变为 `CANCELLED`，原因 `ATTENDEE_CANCELLED`。重复取消返回原结果，不重复返还库存。
 - 组织者取消活动时，同事务取消全部有效订单，原因为 `EVENT_CANCELLED`。先前已由用户取消的订单保留原原因；公开活动隐藏，订单快照仍可读取。
@@ -86,6 +87,12 @@ Content-Type: application/json
 
 组织者列表的items字段：`id`、`attendeeId`、`ticketTypeName`、`quantity`、`status`、`cancellationReason`、`createdAt`、`attendeeInfo`、`customFieldLabel`（自定义问题的订单快照）。两类分页统一返回 `items/page/size/totalElements/totalPages`。
 
+### 活动时间与报名截止
+
+创建/修改草稿请求可提交 `registrationClosesAt`（ISO 8601时间戳），公开和管理响应均返回此字段。前端显示SGT，输入固定为 `YYYY-MM-DD HH:mm`，可手输或使用日历，不显示秒。报名截止留空时使用开始时间；旧活动迁移后保持开始时截止。
+
+规则为报名截止不晚于开始、结束晚于开始，发布时开始与报名截止均须晚于当前时间。截止后的活动仍可公开查看，页面会自动关闭预订，后端在持有活动锁的事务内再次检查。复制活动时保留截止时间，新草稿需核对时间再发布。
+
 ### 复用活动
 
 `POST /organizer/events/{eventId}/copy` 接受本人任意状态的活动，包括已取消活动。复制已保存的标题、描述、地点、时间、容量、预订信息要求及票种名称/价格/配额，返回新的DRAFT。票种生成新ID，已售数量为0，首次销售标记为false；订单和参与者资料不复制。
@@ -151,3 +158,43 @@ sequenceDiagram
 
 - 注册时选择3–50字符用户名，允许英文字母、数字、点、下划线和连字符，保存为小写。相同用户名（包括仅大小写不同）返回409；数据库唯一约束也拦截并发重复注册。Dashboard显示已设置的用户名。
 - `frontend/package.json` 的 `allowScripts` 仅批准 `esbuild@0.28.2` 与 `fsevents@2.3.3`。npm 11可用 `npm install-scripts ls` 查看；升级这两个包后需重新审核新版本。
+
+
+## 开始报名时间与预约预填（2026-10-07）
+
+活动创建、编辑、复制和详情增加可选字段 `registrationOpensAt`（ISO 8601）。为空表示发布后直接报名；设置时必须早于 `registrationClosesAt`（截止留空时取活动开始时间）。页面使用 SGT 和 `YYYY-MM-DD HH:mm`。服务端在预订事务中检查报名时间，未到开始时间的新订单返回 409。
+
+预约仅支持当前已实现的免费票。预约不会占库存、触发首次销售或自动提交订单；人数可以超过活动名额。每个用户每个活动保存一条预约，开售前可修改票种、数量及资料。资料须符合发布者的要求；个人常用资料可应用后再修改。
+
+| 方法与路径 | 行为 |
+|---|---|
+| `PUT /api/v1/pre-registrations/{eventId}` | 开售前创建/替换本人预约，body 与 BookingInput 相同（eventId、ticketTypeId、quantity、attendeeInfo） |
+| `GET /api/v1/pre-registrations?page=0&size=10` | 本人预约分页，size 1–50，更新时间倒序 |
+| `GET /api/v1/pre-registrations/{eventId}` | 本人此活动的预填信息；无记录返回 404 |
+| `DELETE /api/v1/pre-registrations/{eventId}` | 删除本人保存的记录，返回 204；不取消实际订单 |
+
+以上接口要求 ATTENDEE，用户身份来自登录令牌。预约资料不向发布者或其他用户公开。
+
+响应状态为 `WAITING`（未开售）、`OPEN`（可正式报名）、`CLOSED`（已截止）、`EVENT_CANCELLED`（活动取消）或 `BOOKED`（已创建订单，同时返回 bookingId）。BOOKED 仅表示曾创建关联订单，订单当前有效性以 My orders 为准。个人 Dashboard 展示最近三条，完整页面提供分页和删除；倒计时归零自动显示 Review and book，不自动发请求下单。正式订单依旧使用库存事务和幂等键，用户确认后才消耗名额。
+
+建议普通活动直接开放，名额紧张的活动按需定时开放。当前没有排队、抽签、候补递补或开售通知；并发安全测试不等于大规模抢票压力验收。
+
+## 活动插图与头像
+
+活动草稿接受可选 `illustration`：`GENERAL`（默认）、`TECH`、`MUSIC`、`SPORT`、`ART`、`SOCIAL`。公开和管理视图返回该字段；复制保留；发布后仍可修改。前端映射到内置 SVG，不接受外部图片 URL。
+
+`GET /api/v1/profile/avatar` 返回 `{ "dataUrl": null }` 或本人头像。`PUT` 接收同结构，null 删除头像，成功返回保存结果。所有角色均须登录，用户 ID 来自 JWT，没有读取其他用户头像的接口。
+
+API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×512；服务端验证实际格式和像素尺寸，再编码为 PNG，移除原始元数据。无效图片返回400。网页允许选择最大5 MiB的 PNG/JPEG，在上传前居中裁剪并缩小到256×256；默认头像不写入数据库。
+
+## 发布前票种配置
+
+发布要求至少一个票种；没有票种返回400，活动仍为DRAFT。检查在活动锁和发布事务内同步执行。草稿管理页不显示订单入口，已发布及已取消活动保留历史订单入口。
+
+`POST /api/v1/organizer/events/{eventId}/ticket-types/default-free` 要求 ORGANIZER/ADMIN 且本人活动，沿用票种可编辑条件。无票种时创建 Free admission、价格0、SGD、配额等于已保存活动容量，返回200。已有同名零价且满容量的单一票种时返回原记录，不重复创建；已有其他配置返回400，需使用票种管理页。此操作不发布活动。
+
+### 已发布活动调整
+
+`PUT /api/v1/organizer/events/{id}` 同时支持草稿和已发布活动，仍需本人权限与当前 `version`。可调整名称、描述、地点、活动及报名时间、插图和容量；容量不能低于票种总配额，活动结束时间须晚于当前时间，报名资料要求发布后固定。已取消活动不可编辑。
+
+个人订单响应新增 `currentEvent`（`title`、`location`、`startsAt`、`endsAt`），供界面展示最新安排；原有活动字段继续保留下单快照，已有订单与库存不因调整而重建。

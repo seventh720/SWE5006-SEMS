@@ -10,6 +10,9 @@ public record DraftInput(
         @NotBlank @Size(max = 500) String location,
         @NotNull Instant startsAt,
         @NotNull Instant endsAt,
+        Instant registrationClosesAt,
+        Instant registrationOpensAt,
+        @Pattern(regexp = "GENERAL|TECH|MUSIC|SPORT|ART|SOCIAL") String illustration,
         @NotNull @Positive Integer capacity,
         @PositiveOrZero Long version,
         @jakarta.validation.Valid BookingRequirements bookingRequirements) {

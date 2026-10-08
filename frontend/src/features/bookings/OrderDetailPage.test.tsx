@@ -60,6 +60,20 @@ describe("Order detail", () => {
     expect(String(fetchMock.mock.calls[0][0])).toBe("/api/v1/bookings/b1");
   });
 
+  it("shows the latest event arrangement after an organizer edits a published event", async () => {
+    fetchMock.mockResolvedValue(response({ ...confirmed, currentEvent: {
+      title: "Updated Open Day", location: "New venue",
+      startsAt: "2031-02-01T02:00:00Z", endsAt: "2031-02-01T04:00:00Z",
+    } }));
+    mount("/bookings/b1");
+    expect(await screen.findByText("Updated Open Day")).toBeTruthy();
+    expect(screen.getByText("New venue")).toBeTruthy();
+    expect(screen.queryByText("Singapore")).toBeNull();
+    expect(screen.getAllByText(/2031/).length).toBeGreaterThan(0);
+    expect(screen.getByText("General admission")).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("shows non-leaking feedback for a missing booking", async () => {
     fetchMock.mockResolvedValue(response({ detail: "Booking not found" }, 404));
     mount("/bookings/b1");

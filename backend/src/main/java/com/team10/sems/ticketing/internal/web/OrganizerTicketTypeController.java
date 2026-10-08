@@ -59,6 +59,11 @@ public class OrganizerTicketTypeController {
                 .body(created);
     }
 
+    @PostMapping("/default-free")
+    public TicketTypeView createDefaultFree(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId) {
+        return ticketTypes.createDefaultFree(UUID.fromString(jwt.getSubject()), eventId);
+    }
+
     @PutMapping("/{ticketTypeId}")
     public TicketTypeView update(
             @AuthenticationPrincipal Jwt jwt,

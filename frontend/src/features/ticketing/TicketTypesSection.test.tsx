@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { TicketTypesSection } from "./TicketTypesSection";
 
@@ -109,4 +109,39 @@ it("keeps confirmation and order link after the last ticket is booked", async ()
   await screen.findByText("Sold out");
   expect(screen.getByText("last-ticket-order")).toBeTruthy();
   expect(screen.getByRole("link",{name:"View my orders"})).toBeTruthy();
+});
+
+it("closes registration before the event starts", async () => {
+  fetchMock.mockResolvedValue(response([free]));
+  render(<MemoryRouter><TicketTypesSection eventId="e1" startsAt="2099-01-01T00:00:00Z" registrationClosesAt="2020-01-01T00:00:00Z" /></MemoryRouter>);
+  await screen.findByText("General admission");
+  expect(screen.getByText("Registration for this event has closed.")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Reserve" })).toBeNull();
+});
+
+it("automatically closes an open page at the registration deadline", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2030-01-01T00:00:00Z"));
+  fetchMock.mockResolvedValue(response([free]));
+  try {
+    await act(async () => { render(<MemoryRouter><TicketTypesSection eventId="e1" startsAt="2030-01-02T00:00:00Z" registrationClosesAt="2030-01-01T00:01:00Z" /></MemoryRouter>); });
+    expect(screen.getByRole("button", { name: "Reserve" })).toBeTruthy();
+    await act(async () => { vi.advanceTimersByTime(60001); });
+    expect(screen.getByText("Registration for this event has closed.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reserve" })).toBeNull();
+  } finally { vi.useRealTimers(); }
+});
+
+it("offers pre-registration until opening, then requires the user to book", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(new Date("2030-01-01T00:00:00Z"));
+  fetchMock.mockResolvedValue(response([free]));
+  try {
+    await act(async () => { render(<MemoryRouter><TicketTypesSection eventId="e1" startsAt="2030-01-02T00:00:00Z"
+      registrationOpensAt="2030-01-01T00:01:00Z" registrationClosesAt="2030-01-01T23:00:00Z" /></MemoryRouter>); });
+    expect(screen.getByRole("button", { name: "Save pre-registration" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Reserve$/ })).toBeNull();
+    await act(async () => { vi.advanceTimersByTime(60001); });
+    expect(screen.getByRole("button", { name: /^Reserve$/ })).toBeTruthy();
+    expect(fetchMock.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+  } finally { vi.useRealTimers(); }
 });

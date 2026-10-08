@@ -183,3 +183,21 @@ erDiagram
         varchar attendee_custom_answer
     }
 ```
+
+## Registration deadline
+
+Migration: `V202610071200__add_registration_deadline.sql` adds `events.registration_closes_at` (`TIMESTAMPTZ`). Existing rows are backfilled from `starts_at`. The database constraint rejects deadlines after the event start. A null value from a legacy writer is read as `starts_at`; new event API writes persist the effective deadline.
+
+Publication requires an unexpired deadline. New reservations check it under the event row lock before reserving inventory. Existing idempotent requests and pre-start cancellation remain supported after registration closes. Public and management event views expose the effective deadline, and event copies retain it.
+
+## Registration opening and private pre-registrations
+
+`V202610071500__registration_opening_and_pre_registrations.sql` adds nullable `events.registration_opens_at`, constrained to precede the effective registration deadline. Null means booking is available on publication.
+
+`pre_registrations` stores one entry per `(user_id, event_id)`: ticket type, quantity, private `attendee_info` JSONB, update timestamp and an optional reference to the first subsequent booking. Foreign keys retain referential integrity. Saves and deletes take the event lock used by booking; saving never changes inventory or the first-sale flag. The list is indexed by user and update time. Saved information is exposed only to its owner; organizer order access receives the actual booking snapshot after explicit booking.
+
+## Event illustrations and avatars
+
+`V202610072200__event_illustrations_and_avatars.sql` adds `events.illustration` with default `GENERAL` and a database allowlist (`GENERAL`, `TECH`, `MUSIC`, `SPORT`, `ART`, `SOCIAL`). Existing events receive the general illustration. Draft editing and copying preserve the selected value.
+
+`users.avatar_data` is nullable TEXT containing a server-decoded and re-encoded PNG data URL. The own-profile avatar endpoint stores and reads it separately from user lists and booking details. Null means the default avatar. No filesystem upload directory or new environment variable is needed; database backup includes saved avatars. This bounded small-image storage suits the current project scope.
