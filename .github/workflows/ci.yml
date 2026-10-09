@@ -12,7 +12,8 @@ jobs:
   backend:
     runs-on: ubuntu-24.04
     outputs:
-      coverage: ${{ steps.coverage.outputs.percentage }}
+      coverage: ${{ steps.coverage.outputs.line }}
+      branch_coverage: ${{ steps.coverage.outputs.branch }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -22,28 +23,25 @@ jobs:
           cache: maven
       - name: Compile, test and generate backend coverage
         working-directory: backend
-        run: mvn -B verify
-      - name: Summarize backend line coverage
+        run: mvn -B clean verify
+      - name: Summarize unit-test coverage
         id: coverage
         if: always()
-        working-directory: backend
-        shell: bash
-        run: |
-          report="target/site/jacoco/jacoco.csv"
-          if [[ ! -f "$report" ]]; then
-            echo "percentage=N/A" >> "$GITHUB_OUTPUT"
-            echo "### Backend coverage" >> "$GITHUB_STEP_SUMMARY"
-            echo "Coverage report was not generated." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-
-          percentage="$(awk -F, 'NR > 1 { missed += $8; covered += $9 } END { total = missed + covered; if (total == 0) print "0.0"; else printf "%.1f", covered * 100 / total }' "$report")"
-          echo "percentage=${percentage}%" >> "$GITHUB_OUTPUT"
-          echo "### Backend coverage" >> "$GITHUB_STEP_SUMMARY"
-          echo "Line coverage: **${percentage}%**" >> "$GITHUB_STEP_SUMMARY"
+        run: python3 scripts/ci/backend-coverage.py backend/target/site/jacoco/jacoco.xml "Backend unit tests"
+      - name: Upload unit-test coverage and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-unit-coverage
+          path: |
+            backend/target/site/jacoco/
+            backend/target/surefire-reports/
 
   backend-integration:
     runs-on: ubuntu-24.04
+    outputs:
+      coverage: ${{ steps.coverage.outputs.line }}
+      branch_coverage: ${{ steps.coverage.outputs.branch }}
     env:
       RUN_CONTAINER_TESTS: "true"
     steps:
@@ -53,12 +51,27 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Run PostgreSQL integration tests
+      - name: Run unit and PostgreSQL integration tests
         working-directory: backend
-        run: mvn -B test
+        run: mvn -B clean verify
+      - name: Summarize combined coverage
+        id: coverage
+        if: always()
+        run: python3 scripts/ci/backend-coverage.py backend/target/site/jacoco/jacoco.xml "Backend unit + PostgreSQL integration tests"
+      - name: Upload combined coverage and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-combined-coverage
+          path: |
+            backend/target/site/jacoco/
+            backend/target/surefire-reports/
 
   frontend:
     runs-on: ubuntu-24.04
+    outputs:
+      coverage: ${{ steps.coverage.outputs.line }}
+      branch_coverage: ${{ steps.coverage.outputs.branch }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -69,13 +82,20 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
-      - name: Typecheck
+      - name: Test with coverage
         working-directory: frontend
-        run: npm run typecheck
-      - name: Test
-        working-directory: frontend
-        run: npm test
-      - name: Build
+        run: npm run test:coverage
+      - name: Summarize frontend coverage
+        id: coverage
+        if: always()
+        run: python3 scripts/ci/frontend-coverage.py frontend/coverage/coverage-summary.json
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+      - name: Typecheck and build
         working-directory: frontend
         run: npm run build
 
@@ -111,8 +131,13 @@ jobs:
 
             Backend: ${{ needs.backend.result }}
             Backend unit-test line coverage: ${{ needs.backend.outputs.coverage }}
+            Backend unit-test branch coverage: ${{ needs.backend.outputs.branch_coverage }}
+            Backend combined line coverage: ${{ needs['backend-integration'].outputs.coverage }}
+            Backend combined branch coverage: ${{ needs['backend-integration'].outputs.branch_coverage }}
             PostgreSQL integration: ${{ needs['backend-integration'].result }}
             Frontend: ${{ needs.frontend.result }}
+            Frontend line coverage: ${{ needs.frontend.outputs.coverage }}
+            Frontend branch coverage: ${{ needs.frontend.outputs.branch_coverage }}
 
             View Changes:
             https://github.com/${{ github.repository }}/commit/${{ github.sha }}

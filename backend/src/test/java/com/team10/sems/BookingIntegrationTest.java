@@ -561,7 +561,12 @@ class BookingIntegrationTest {
         input.put("title", "Updated event"); input.put("description", "Updated description"); input.put("location", "New venue");
         input.put("startsAt", "2030-02-01T10:00:00Z"); input.put("endsAt", "2030-02-01T12:00:00Z");
         input.put("capacity", current.get("capacity").asInt()); input.put("version", current.get("version").asLong());
-        input.put("registrationOpensAt", "2030-01-31T10:00:00Z"); input.put("registrationClosesAt", "2030-02-01T09:00:00Z");
+        input.put("registrationClosesAt", "2030-02-01T09:00:00Z");
+        input.put("registrationOpensAt", "2030-01-31T10:00:00Z");
+        mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(input))).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Registration opening cannot change after registration has opened"));
+        input.remove("registrationOpensAt");
         mvc.perform(put(path).with(as(other, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(input))).andExpect(status().isNotFound());
         mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
@@ -593,7 +598,7 @@ class BookingIntegrationTest {
     void preRegistrationIsPrivateAndIdempotentAndDoesNotHoldInventory() throws Exception {
         scheduleRegistration();
         jdbc.update("UPDATE events SET require_real_name=true WHERE id=?", event);
-        book(attendee, "early", 1).andExpect(status().isConflict())
+        bookWithInfo("early", java.util.Map.of("realName", "Private Name")).andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Registration for this event has not opened yet"));
         preRegister(attendee, 2, java.util.Map.of()).andExpect(status().isBadRequest());
         String id = json(preRegister(attendee, 2, java.util.Map.of("realName", "Private Name"))

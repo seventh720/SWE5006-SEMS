@@ -100,6 +100,26 @@ describe("organizer draft flows", () => {
     expect(JSON.parse(update[1]?.body as string).location).toBe("New venue");
   });
 
+  it("locks an elapsed opening and preserves its original seconds when saving other details", async () => {
+    const opening = "2020-01-01T02:00:37Z";
+    fetchMock.mockResolvedValue(response({ ...draft, status: "PUBLISHED", registrationOpensAt: opening }));
+    mount("/organizer/events/event-1");
+    const field = await screen.findByLabelText("Registration opens", { exact: false });
+    expect((field as HTMLInputElement).readOnly).toBe(true);
+    fireEvent.change(screen.getByLabelText("Location"), { target: { value: "New venue" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, options]) => options?.method === "PUT")).toBe(true));
+    const update = fetchMock.mock.calls.find(([, options]) => options?.method === "PUT")!;
+    expect(JSON.parse(update[1]?.body as string).registrationOpensAt).toBe(opening);
+  });
+
+  it("keeps a future opening editable", async () => {
+    fetchMock.mockResolvedValue(response({ ...draft, status: "PUBLISHED", registrationOpensAt: "2099-01-01T00:00:00Z" }));
+    mount("/organizer/events/event-1");
+    const field = await screen.findByLabelText("Registration opens");
+    expect((field as HTMLInputElement).readOnly).toBe(false);
+  });
+
   it("prevents attendees from entering the organizer routes", () => {
     auth.user.roles = ["ATTENDEE"];
     mount("/organizer/events/new");

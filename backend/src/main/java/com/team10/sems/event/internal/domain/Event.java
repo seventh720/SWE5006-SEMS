@@ -89,6 +89,10 @@ public class Event {
         if ("CANCELLED".equals(status)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancelled events cannot be edited");
         }
+        if ("PUBLISHED".equals(status) && (registrationOpensAt == null || !registrationOpensAt.isAfter(Instant.now()))
+                && !java.util.Objects.equals(opening, registrationOpensAt)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration opening cannot change after registration has opened");
+        }
         if (opening != null && !opening.isBefore(registrationDeadline())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Registration opening must be before the registration deadline");
         }
