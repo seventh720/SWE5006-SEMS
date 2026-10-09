@@ -110,6 +110,7 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
   useEffect(() => { setSaved(Boolean(location.state?.saved)); }, [location.key, location.state?.saved]);
   const readOnly = event?.status === "CANCELLED";
   const published = event?.status === "PUBLISHED";
+  const openingLocked = published && (!event.registrationOpensAt || Date.parse(event.registrationOpensAt) <= Date.now());
   function change(name: keyof typeof values, value: string) {
     setValues((current) => ({ ...current, [name]: value,
       ...(name === "startsAt" && validSingaporeInput(value) && current.endsAt && current.endsAt <= value ? { endsAt: "" } : {}) }));
@@ -139,7 +140,7 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
     try {
       const body = { ...values, bookingRequirements: { ...bookingRequirements, customFieldLabel: customEnabled ? bookingRequirements.customFieldLabel?.trim() : null }, title: values.title.trim(), description: values.description.trim(), location: values.location.trim(),
         startsAt: fromSingaporeInput(values.startsAt), endsAt: fromSingaporeInput(values.endsAt),
-        registrationOpensAt: values.registrationOpensAt ? fromSingaporeInput(values.registrationOpensAt) : null,
+        registrationOpensAt: openingLocked ? (event?.registrationOpensAt ?? null) : values.registrationOpensAt ? fromSingaporeInput(values.registrationOpensAt) : null,
         registrationClosesAt: fromSingaporeInput(values.registrationClosesAt || values.startsAt), capacity: Number(values.capacity), ...(event ? { version: event.version } : {}) };
       const result = await apiRequest<ManagedEvent>(event ? `${API}/${event.id}` : API, { method: event ? "PUT" : "POST", body: JSON.stringify(body) }, token);
       navigate(`/organizer/events/${result.id}`, { replace: true, state: { saved: true } });
@@ -204,10 +205,10 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
         <label>Description<textarea required maxLength={10000} rows={7} value={values.description} onChange={(e) => change("description", e.target.value)} aria-invalid={!!fields.description} aria-describedby={fields.description ? "description-error" : undefined} />{fieldError("description")}</label>
         <p className="muted" id="event-time-zone">All times use Singapore time (SGT, UTC+08:00). Format: YYYY-MM-DD HH:mm (24-hour, no seconds).</p>
         <div className="profile-grid">{([ ["startsAt", "Start time"], ["endsAt", "End time"], ["registrationOpensAt", "Registration opens"], ["registrationClosesAt", "Registration deadline"] ] as const).map(([name, label]) =>
-          <DateTimeField key={name} name={name} label={label} after={name === "endsAt" ? values.startsAt : name === "registrationClosesAt" ? values.registrationOpensAt : undefined}
+          name === "registrationOpensAt" && openingLocked ? <label key={name}>Registration opens<input aria-label="Registration opens" readOnly value={values.registrationOpensAt.replace("T", " ") || "On publication"} /><span className="muted">Fixed after registration has opened.</span></label> : <DateTimeField key={name} name={name} label={label} after={name === "endsAt" ? values.startsAt : name === "registrationClosesAt" ? values.registrationOpensAt : undefined}
             before={name === "registrationOpensAt" ? (values.registrationClosesAt || values.startsAt) : undefined}
             atOrBefore={name === "registrationClosesAt" ? values.startsAt : undefined} value={values[name]} onChange={(value) => change(name, value)} error={fields[name]} required={name === "startsAt" || name === "endsAt"} />)}</div>
-        <p className="muted">Leave Registration opens blank to accept bookings as soon as the event is published. A future opening allows attendees to pre-register without holding tickets.</p>
+        {!openingLocked && <p className="muted">Leave Registration opens blank to accept bookings as soon as the event is published. A future opening allows attendees to pre-register without holding tickets.</p>}
         <p className="muted">Registration closes at this time. Leave blank to use the event start time.</p>
         <label>Capacity<input type="number" min="1" max="2147483647" step="1" required value={values.capacity} onChange={(e) => change("capacity", e.target.value)} aria-invalid={!!fields.capacity} aria-describedby={fields.capacity ? "capacity-error capacity-help" : "capacity-help"} />{fieldError("capacity")}</label>
         <p className="muted" id="capacity-help">Event size only; this does not create ticket inventory.</p>

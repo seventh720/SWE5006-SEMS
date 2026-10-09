@@ -234,7 +234,7 @@ GitHub Actions runs backend unit tests, PostgreSQL integration tests and fronten
 
 ### Telegram CI notifications
 
-The final CI job uses `appleboy/telegram-action@v1.0.1` to send the backend result and line coverage, PostgreSQL integration-test result, frontend result, commit information and a link to the GitHub Actions run. If Telegram is unavailable, the notification step does not change the build result.
+The final CI job uses `appleboy/telegram-action@v1.0.1` to send backend unit and combined line/branch coverage, PostgreSQL integration-test result, frontend result and line/branch coverage, commit information and a link to the GitHub Actions run. If Telegram is unavailable, the notification step does not change the build result.
 
 1. Create a bot with `@BotFather` in Telegram and keep its token private.
 2. Send the bot a message, or add it to the target group and send a message there.
@@ -343,3 +343,7 @@ Telegram notification is not a required quality check for merging.
 Organizers may set a registration opening time; leaving it blank allows booking on publication. Before opening, attendees can save private booking details and see their pre-registrations and countdown on the dashboard. Pre-registration holds no inventory and never submits an order automatically. Once registration opens, review the saved details and confirm the booking. Removing the saved entry does not cancel an existing order.
 
 Before publication, configure at least one ticket type. **Create free ticket** uses the saved event capacity for a free admission ticket; it does not publish the draft. Drafts hide the order link.
+
+For published events, registration opening can be adjusted only before registration has opened. Once open (including immediate opening on publication), the opening time is fixed; event dates, location and the deadline remain editable subject to existing validation. Booking information is validated after the event lock and before inventory reservation.
+
+Frontend coverage: run `npm --prefix frontend run test:coverage`, then open `frontend/coverage/index.html`. CI uploads separate backend unit, backend combined, and frontend coverage artifacts. Frontend type checking runs once as part of the build. Coverage currently reports a baseline without blocking on percentage thresholds; browser end-to-end checks and automated deployment remain future work.

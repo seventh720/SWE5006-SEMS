@@ -54,8 +54,8 @@ public class BookingService {
             return new Created(view(booking), false);
         }
         var event = events.lockEvent(input.eventId());
-        var ticket = tickets.reserve(input.eventId(), input.ticketTypeId(), input.quantity());
         BookingInfoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
+        var ticket = tickets.reserve(input.eventId(), input.ticketTypeId(), input.quantity());
         Booking booking = Booking.confirmed(user, key, event, ticket, input.quantity(), input.attendeeInfo());
         var result = view(bookings.saveAndFlush(booking));
         preRegistrations.findByUserIdAndEventId(user, input.eventId())
