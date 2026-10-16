@@ -122,6 +122,7 @@ public class Booking {
 
     public boolean isCancelled() { return "CANCELLED".equals(status); }
     public UUID eventId() { return eventId; }
+    public UUID userId() { return userId; }
     public UUID ticketTypeId() { return ticketTypeId; }
     public int quantity() { return quantity; }
 

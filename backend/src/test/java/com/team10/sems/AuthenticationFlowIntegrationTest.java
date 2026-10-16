@@ -54,6 +54,70 @@ class AuthenticationFlowIntegrationTest {
         users.deleteAll();
     }
 
+    private org.springframework.test.web.servlet.request.RequestPostProcessor asUser(java.util.UUID id) {
+        return org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt()
+                .jwt(jwt -> jwt.subject(id.toString()));
+    }
+
+    @Test
+    void usernameCanBeChangedWithoutChangingIdentityOrLogin() throws Exception {
+        var user = users.saveAndFlush(UserAccount.register("original", "rename@example.com", passwordEncoder.encode("Password123")));
+        String token = login("rename@example.com", "Password123");
+        mvc.perform(put("/api/v1/profile/username").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"New.Name\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.username").value("new.name"));
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(user.getId().toString()))
+                .andExpect(jsonPath("$.username").value("new.name")).andExpect(jsonPath("$.email").value("rename@example.com"));
+        mvc.perform(put("/api/v1/profile/username").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"NEW.NAME\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.username").value("new.name"));
+        org.junit.jupiter.api.Assertions.assertNotNull(login("rename@example.com", "Password123"));
+    }
+
+    @Test
+    void usernameUpdateRejectsInvalidDuplicateAndAnonymousRequests() throws Exception {
+        var first = users.saveAndFlush(UserAccount.register("first", "first@example.com", "unused"));
+        var second = users.saveAndFlush(UserAccount.register("taken", "second@example.com", "unused"));
+        for (String invalid : java.util.List.of("ab", "", "name with spaces", "x".repeat(51), "名字")) {
+            mvc.perform(put("/api/v1/profile/username").with(asUser(first.getId()))
+                    .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(java.util.Map.of("username", invalid))))
+                    .andExpect(status().isBadRequest());
+        }
+        mvc.perform(put("/api/v1/profile/username").with(asUser(first.getId())).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/v1/profile/username").with(asUser(first.getId()))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"TAKEN\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(put("/api/v1/profile/username").contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"another\"}"))
+                .andExpect(status().isUnauthorized());
+        // An extra userId in the body must never select another account.
+        mvc.perform(put("/api/v1/profile/username").with(asUser(first.getId())).contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(java.util.Map.of("username", "renamed", "userId", second.getId()))))
+                .andExpect(status().isOk());
+        org.junit.jupiter.api.Assertions.assertEquals("taken", users.findById(second.getId()).orElseThrow().getUsername());
+        org.junit.jupiter.api.Assertions.assertEquals("renamed", users.findById(first.getId()).orElseThrow().getUsername());
+    }
+
+    @Test
+    void concurrentUsernameClaimsHaveOnlyOneWinner() throws Exception {
+        var first = users.saveAndFlush(UserAccount.register("one", "one@example.com", "unused"));
+        var second = users.saveAndFlush(UserAccount.register("two", "two@example.com", "unused"));
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var futures = java.util.List.of(first, second).stream().map(user -> pool.submit(() -> {
+                start.await();
+                return mvc.perform(put("/api/v1/profile/username").with(asUser(user.getId()))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"username\":\"shared\"}"))
+                        .andReturn().getResponse().getStatus();
+            })).toList();
+            start.countDown();
+            var results = java.util.List.of(futures.get(0).get(15, java.util.concurrent.TimeUnit.SECONDS),
+                    futures.get(1).get(15, java.util.concurrent.TimeUnit.SECONDS));
+            org.junit.jupiter.api.Assertions.assertTrue(results.containsAll(java.util.List.of(200, 409)));
+        }
+    }
+
     @Test
     void attendeeCanLoginButCannotUseAdminApi() throws Exception {
         mvc.perform(post("/api/v1/auth/register")

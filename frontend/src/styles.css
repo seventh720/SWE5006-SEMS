@@ -10,7 +10,7 @@
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input { font: inherit; }
 button { cursor: pointer; }
-button:disabled { cursor: wait; opacity: 0.65; }
+button:disabled { cursor: not-allowed; opacity: 0.65; }
 
 .auth-shell {
   min-height: 100vh;
@@ -75,6 +75,7 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .role-option { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: 0.4rem; margin: 0; font-weight: 500; }
 .role-option input { width: auto; }
 .muted { color: #72808a; }
+.username-form { margin: 1.5rem 0; }
 
 .button-link { text-decoration: none; text-align: center; white-space: nowrap; }
 .organizer-header { margin: 2rem 0; }
@@ -182,7 +183,30 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .dashboard-account summary { cursor: pointer; color: #17686d; font-weight: 750; padding: 0.7rem; }
 .dashboard-account > .card { position: absolute; right: 0; z-index: 2; width: min(320px, 85vw); overflow-wrap: anywhere; }
 .dashboard-header h1 { overflow-wrap: anywhere; }
-.staff-overview { margin-top: 2rem; padding: 2rem; }
+.staff-navigation { display: flex; flex-wrap: wrap; gap: 1rem 2rem; margin-bottom: 1.5rem; }
+.dashboard-actions, .notification-entry, .notification-meta, .notification-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.notification-count { background: #17686d; color: white; border-radius: 999px; padding: 0.15rem 0.45rem; font-size: 0.8rem; }
+.notification-categories { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.notification-categories h2 { font-size: 1.2rem; }
+.notification-toolbar { justify-content: space-between; margin-bottom: 1.5rem; }
+.notification-toolbar .dashboard-views { margin: 0; }
+.notification-list { list-style: none; padding: 0; display: grid; gap: 1rem; }
+.notification-item { overflow-wrap: anywhere; }
+.notification-item.is-unread { border-left: 4px solid #17686d; }
+.notification-item h2 { font-size: 1.25rem; margin-top: 0.8rem; }
+.notification-meta time { color: #657681; font-size: 0.85rem; }
+.notification-message { white-space: pre-line; }
+@media (max-width: 760px) { .notification-categories { grid-template-columns: 1fr; } }
+.staff-assignments { margin-bottom: 1.5rem; }
+.staff-section-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.staff-workspace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.staff-shell section[id] { scroll-margin-top: 1.5rem; }
+.staff-shell button:disabled, .staff-shell input:disabled { cursor: not-allowed; }
+.staff-scanner-placeholder { min-height: 190px; display: grid; place-content: center; justify-items: center; gap: 1rem; margin-top: 1.5rem; border: 1px dashed #a4bdc2; border-radius: 12px; color: #466c73; background: #f2f7f7; }
+.staff-guidance { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #dce3e8; }
+.staff-guidance h3 { font-size: 1rem; }
+.staff-guidance ol { padding-left: 1.25rem; line-height: 1.8; }
+@media (max-width: 760px) { .staff-workspace-grid { grid-template-columns: 1fr; } }
 @media (max-width: 760px) {
   .dashboard-stats { grid-template-columns: 1fr; }
   .dashboard-header { align-items: start; gap: 1rem; flex-direction: column; }

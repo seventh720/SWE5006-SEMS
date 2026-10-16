@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PreRegistrationRepository extends JpaRepository<PreRegistration, UUID> {
+    java.util.List<PreRegistration> findByEventIdAndBookingIdIsNull(UUID eventId);
     Optional<PreRegistration> findByUserIdAndEventId(UUID userId, UUID eventId);
     Page<PreRegistration> findByUserId(UUID userId, Pageable pageable);
 }

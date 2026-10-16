@@ -9,7 +9,7 @@ let preRegistrationData: unknown = { items: [], totalElements: 0, totalPages: 0 
 const fetchMock = vi.fn<typeof fetch>();
 function response(data: unknown, status = 200) { return new Response(JSON.stringify(data), { status }); }
 function mount() { render(<MemoryRouter><DashboardPage /></MemoryRouter>); }
-beforeEach(() => { auth.user.roles = ["ATTENDEE"]; fetchMock.mockReset(); auth.logout.mockClear(); preRegistrationData = { items: [], totalElements: 0, totalPages: 0 }; vi.stubGlobal("fetch", (url: RequestInfo | URL, options?: RequestInit) => String(url) === "/api/v1/profile/avatar" ? Promise.resolve(response({ dataUrl: null })) : String(url).startsWith("/api/v1/pre-registrations") ? Promise.resolve(response(preRegistrationData)) : fetchMock(url, options)); });
+beforeEach(() => { auth.user.roles = ["ATTENDEE"]; fetchMock.mockReset(); auth.logout.mockClear(); preRegistrationData = { items: [], totalElements: 0, totalPages: 0 }; vi.stubGlobal("fetch", (url: RequestInfo | URL, options?: RequestInit) => String(url).startsWith("/api/v1/notifications") ? Promise.resolve(response({ items: [], unreadCount: 0, totalPages: 0 })) : String(url) === "/api/v1/profile/avatar" ? Promise.resolve(response({ dataUrl: null })) : String(url).startsWith("/api/v1/pre-registrations") ? Promise.resolve(response(preRegistrationData)) : fetchMock(url, options)); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("shows real public events without RBAC demos or management entry points", async () => {
   fetchMock.mockResolvedValue(response({ items: [{ id: "e1", title: "Community day", startsAt: "2030-01-01T00:00:00Z", location: "Singapore" }] }));
@@ -32,7 +32,7 @@ it("shows organizer totals from the summary and can switch to personal browsing"
 });
 it("shows honest staff availability without pretending assignments have been queried", () => {
   auth.user.roles = ["STAFF"]; mount();
-  expect(screen.getByText(/Activity assignments, check-in/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Open staff workspace →" }).getAttribute("href")).toBe("/staff");
   expect(screen.queryByText("0")).toBeNull();
   expect(fetchMock).not.toHaveBeenCalled();
 });

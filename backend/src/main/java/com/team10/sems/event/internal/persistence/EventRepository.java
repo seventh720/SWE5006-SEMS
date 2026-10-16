@@ -12,6 +12,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 
 public interface EventRepository extends JpaRepository<Event, UUID> {
+    @Query("select e.id from Event e where e.status='PUBLISHED' and e.registrationOpensAt > :now and e.registrationOpensAt <= :until")
+    java.util.List<UUID> findOpeningSoon(@Param("now") java.time.Instant now, @Param("until") java.time.Instant until);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Event e where e.id = :id")
     Optional<Event> lockById(@Param("id") UUID id);

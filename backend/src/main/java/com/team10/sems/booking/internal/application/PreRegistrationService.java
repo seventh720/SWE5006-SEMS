@@ -22,9 +22,11 @@ public class PreRegistrationService {
     private final PreRegistrationRepository registrations;
     private final EventAccessService events;
     private final TicketReservationService tickets;
+    private final RegistrationReminderService reminders;
 
     public PreRegistrationService(PreRegistrationRepository registrations, EventAccessService events,
-            TicketReservationService tickets) {
+            TicketReservationService tickets, RegistrationReminderService reminders) {
+        this.reminders = reminders;
         this.registrations = registrations;
         this.events = events;
         this.tickets = tickets;
@@ -52,7 +54,9 @@ public class PreRegistrationService {
         var registration = registrations.findByUserIdAndEventId(user, eventId)
                 .orElseGet(() -> PreRegistration.create(user, eventId));
         registration.update(input.ticketTypeId(), input.quantity(), input.attendeeInfo());
-        return view(registrations.saveAndFlush(registration));
+        var saved = registrations.saveAndFlush(registration);
+        reminders.notifyEvent(eventId);
+        return view(saved);
     }
 
     @Transactional(readOnly = true)

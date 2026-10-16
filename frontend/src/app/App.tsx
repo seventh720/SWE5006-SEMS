@@ -12,6 +12,8 @@ import { EditEventPage, MyEventsPage, NewEventPage, OrganizerRoute } from "../fe
 import { OrganizerTicketTypesPage } from "../features/ticketing/OrganizerTicketTypesPage";
 
 import { ProfilePage } from "../features/profile/ProfilePage";
+import { StaffPage, StaffRoute } from "../features/staff/StaffPage";
+import { NotificationsPage } from "../features/notifications/NotificationsPage";
 
 export function App() {
   return (
@@ -22,7 +24,11 @@ export function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
+        <Route element={<StaffRoute />}>
+          <Route path="/staff" element={<StaffPage />} />
+        </Route>
         <Route element={<OrganizerRoute />}>
           <Route path="/organizer/events" element={<MyEventsPage />} />
           <Route path="/organizer/events/new" element={<NewEventPage />} />

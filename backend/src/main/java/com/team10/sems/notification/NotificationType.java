@@ -1,0 +1,6 @@
+package com.team10.sems.notification;
+
+public enum NotificationType {
+    STAFF_ASSIGNED, STAFF_REVOKED, BOOKING_CONFIRMED, BOOKING_CANCELLED,
+    REGISTRATION_OPENING_SOON, EVENT_UPDATED, EVENT_CANCELLED
+}

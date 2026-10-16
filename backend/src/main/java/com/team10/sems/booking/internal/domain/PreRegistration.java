@@ -56,6 +56,7 @@ public class PreRegistration {
     }
 
     public UUID id() { return id; }
+    public UUID userId() { return userId; }
     public UUID eventId() { return eventId; }
     public UUID ticketTypeId() { return ticketTypeId; }
     public int quantity() { return quantity; }
