@@ -59,6 +59,7 @@ public class EventManagementService {
 
     public EventManagementView update(UUID owner, UUID id, DraftInput input) {
         Event event = lockedOwned(owner, id);
+        var before = event.toManagementView();
         validateTime(input);
         if (input.version() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The current event version is required");
@@ -74,6 +75,7 @@ public class EventManagementService {
         event.configureRegistrationDeadline(input.registrationClosesAt());
         event.configureRegistrationOpening(input.registrationOpensAt());
         events.flush(); // Trigger optimistic-lock conflicts before constructing the response.
+        publisher.publishEvent(new com.team10.sems.event.EventUpdated(before, event.toManagementView()));
         return event.toManagementView();
     }
 

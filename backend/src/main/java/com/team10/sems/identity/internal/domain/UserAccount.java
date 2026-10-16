@@ -135,6 +135,8 @@ public class UserAccount {
         return username;
     }
 
+    public void changeUsername(String username) { this.username = username; }
+
     public String getEmail() {
         return email;
     }

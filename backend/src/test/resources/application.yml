@@ -1,4 +1,6 @@
 sems:
+  notifications:
+    reminders-enabled: false
   security:
     jwt:
       secret: integration-test-secret-with-at-least-32-characters

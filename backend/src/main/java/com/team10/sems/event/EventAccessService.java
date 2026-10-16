@@ -23,6 +23,10 @@ public class EventAccessService {
         return findEvent(eventId).toAccessView();
     }
 
+    public java.util.List<UUID> openingSoon(java.time.Instant now) {
+        return events.findOpeningSoon(now, now.plusSeconds(300));
+    }
+
     public EventAccessView requireOwnedEvent(UUID eventId, UUID ownerId) {
         EventAccessView event = requireEvent(eventId);
 

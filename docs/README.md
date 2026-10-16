@@ -6,6 +6,8 @@
 |---|---|
 | [项目说明（中文）](../README.zh-CN.md) / [English](../README.md) | 环境准备、运行、角色、常用流程和团队协作 |
 | [接口、权限与事务](sprint-3-api.zh-CN.md) | 票种、订单、个人资料、报名时间、预约接口与业务规则 |
+| [Sprint 4 取消联动](sprint-4-cancellation.zh-CN.md) | 票券作废、出票/核销事务、内部接口及后续接入边界 |
+| [通知接入](notification-integration.zh-CN.md) | 通知入口、前端接口约定、STAFF通知和开售前5分钟提醒 |
 | [数据库](database/README.md) | Flyway 迁移、字段和数据关系 |
 | [架构决策](adr/0001-modular-monolith.md) | 模块化单体及事务边界 |
 | [测试覆盖](testing.zh-CN.md) | 当前实测结果、执行方法、业务覆盖和缺口 |

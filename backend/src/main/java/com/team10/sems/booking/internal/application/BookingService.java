@@ -1,6 +1,8 @@
 package com.team10.sems.booking.internal.application;
 
 import com.team10.sems.booking.BookingView;
+import com.team10.sems.booking.BookingCancelled;
+import org.springframework.context.ApplicationEventPublisher;
 import com.team10.sems.booking.OrganizerBookingView;
 import com.team10.sems.booking.internal.domain.Booking;
 import com.team10.sems.booking.internal.persistence.BookingRepository;
@@ -28,10 +30,12 @@ public class BookingService {
     private final PreRegistrationRepository preRegistrations;
     private final EventAccessService events;
     private final TicketReservationService tickets;
+    private final ApplicationEventPublisher publisher;
 
     public BookingService(BookingRepository bookings, BookingRequestLock requestLocks,
             EventAccessService events, TicketReservationService tickets,
-            PreRegistrationRepository preRegistrations) {
+            PreRegistrationRepository preRegistrations, ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
         this.preRegistrations = preRegistrations;
         this.bookings = bookings;
         this.requestLocks = requestLocks;
@@ -60,6 +64,7 @@ public class BookingService {
         var result = view(bookings.saveAndFlush(booking));
         preRegistrations.findByUserIdAndEventId(user, input.eventId())
                 .ifPresent(preRegistration -> preRegistration.markBooked(result.id()));
+        publisher.publishEvent(new com.team10.sems.booking.BookingConfirmed(result.id()));
         return new Created(result, true);
     }
 
@@ -84,6 +89,7 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This event has already started");
         }
         if (booking.cancel("ATTENDEE_CANCELLED")) {
+            publisher.publishEvent(new BookingCancelled(id, eventId, "ATTENDEE_CANCELLED"));
             tickets.release(eventId, booking.ticketTypeId(), booking.quantity());
         }
         bookings.flush();

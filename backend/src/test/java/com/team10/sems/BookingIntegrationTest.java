@@ -48,10 +48,17 @@ class BookingIntegrationTest {
     @Autowired ObjectMapper mapper;
     @Autowired PlatformTransactionManager transactions;
     @Autowired EventManagementService eventManagement;
+    @Autowired com.team10.sems.ticketing.TicketLifecycleService lifecycle;
+    @Autowired com.team10.sems.booking.internal.application.RegistrationReminderService reminders;
+    @Autowired com.team10.sems.notification.NotificationDeliveryService notifications;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean java.time.Clock notificationClock;
     UUID owner, attendee, other, event, ticket;
 
     @BeforeEach
     void prepare() {
+        org.mockito.Mockito.when(notificationClock.instant()).thenAnswer(invocation -> java.time.Instant.now());
+        jdbc.update("DELETE FROM notifications");
+        jdbc.update("DELETE FROM issued_tickets");
         jdbc.update("DELETE FROM pre_registrations");
         jdbc.update("DELETE FROM bookings");
         jdbc.update("DELETE FROM ticket_types");
@@ -233,7 +240,8 @@ class BookingIntegrationTest {
 
     @Test
     void eventCancellationRollsBackWithOrdersAndInventory() throws Exception {
-        confirmed(3);
+        UUID id = UUID.fromString(confirmed(3));
+        lifecycle.issue(event, id);
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(owner.toString(),"", "ROLE_ORGANIZER"));
         try {
             new TransactionTemplate(transactions).executeWithoutResult(status -> {
@@ -243,6 +251,263 @@ class BookingIntegrationTest {
         } finally { SecurityContextHolder.clearContext(); }
         assertEquals("PUBLISHED",jdbc.queryForObject("SELECT status FROM events WHERE id=?",String.class,event));
         assertEquals(3,inventory()); assertEquals(1,count("CONFIRMED"));
+        assertEquals(3, ticketCount("VALID"));
+        assertEquals(0, notificationCount("BOOKING_CANCELLED"));
+    }
+
+    private int ticketCount(String state) {
+        return Objects.requireNonNull(
+                jdbc.queryForObject("SELECT count(*) FROM issued_tickets WHERE status=?", Integer.class, state),
+                "Issued ticket count must not be null");
+    }
+
+    private int notificationCount(String type) {
+        return Objects.requireNonNull(jdbc.queryForObject("SELECT count(*) FROM notifications WHERE type=?", Integer.class, type));
+    }
+
+    @Test
+    void notificationsArePersistentPrivateAndIdempotent() throws Exception {
+        String id = json(book(attendee, "notify-once", 1).andExpect(status().isCreated())).get("id").asText();
+        book(attendee, "notify-once", 1).andExpect(status().isOk());
+        assertEquals(1, notificationCount("BOOKING_CONFIRMED"));
+        var list = json(mvc.perform(get("/api/v1/notifications").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.unreadCount").value(1)));
+        String notificationId = list.get("items").get(0).get("id").asText();
+        mvc.perform(get("/api/v1/notifications")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/notifications").with(as(other, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
+        mvc.perform(post("/api/v1/notifications/" + notificationId + "/read").with(as(other, "ATTENDEE")))
+                .andExpect(status().isNotFound());
+        for (int i = 0; i < 2; i++) mvc.perform(post("/api/v1/notifications/" + notificationId + "/read").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/v1/notifications?unreadOnly=true").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty()).andExpect(jsonPath("$.unreadCount").value(0));
+        cancel(id, attendee).andExpect(status().isOk());
+        cancel(id, attendee).andExpect(status().isOk());
+        assertEquals(1, notificationCount("BOOKING_CANCELLED"));
+        mvc.perform(get("/api/v1/notifications?page=0&size=1").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalPages").value(2)).andExpect(jsonPath("$.unreadCount").value(1));
+        mvc.perform(get("/api/v1/notifications?page=-1").with(as(attendee, "ATTENDEE"))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/notifications?size=51").with(as(attendee, "ATTENDEE"))).andExpect(status().isBadRequest());
+    }
+
+    private UUID waitingRegistration(UUID user) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("INSERT INTO pre_registrations(id,user_id,event_id,ticket_type_id,quantity,attendee_info) VALUES (?,?,?,?,1,'{}')",
+                id, user, event, ticket);
+        return id;
+    }
+
+    private void openingAt(java.time.Instant opens) {
+        jdbc.update("UPDATE events SET registration_opens_at=? WHERE id=?", java.sql.Timestamp.from(opens), event);
+    }
+
+    @Test
+    void remindersHonorFiveMinuteBoundaryAndDeduplicateConcurrentRuns() throws Exception {
+        var now = java.time.Instant.parse("2030-01-01T09:00:00Z");
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(now);
+        waitingRegistration(attendee);
+        openingAt(now.plusSeconds(301));
+        reminders.notifyEvent(event);
+        assertEquals(0, notificationCount("REGISTRATION_OPENING_SOON"));
+        openingAt(now.plusSeconds(300));
+        assertEquals(List.of(200, 200), race(() -> lifecycleResult(() -> reminders.notifyEvent(event)),
+                () -> lifecycleResult(() -> reminders.notifyEvent(event))));
+        assertEquals(1, notificationCount("REGISTRATION_OPENING_SOON"));
+        assertEquals(0, inventory());
+        openingAt(now.plusSeconds(240));
+        reminders.notifyEvent(event);
+        assertEquals(2, notificationCount("REGISTRATION_OPENING_SOON"));
+        waitingRegistration(other);
+        openingAt(now);
+        reminders.notifyEvent(event);
+        assertEquals(2, notificationCount("REGISTRATION_OPENING_SOON"));
+    }
+
+    @Test
+    void remindersIgnoreDeletedBookedCancelledAndUnscheduledRegistrations() throws Exception {
+        UUID booking = UUID.fromString(confirmed(1));
+        UUID registration = waitingRegistration(attendee);
+        var now = java.time.Instant.parse("2030-01-01T09:00:00Z");
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(now);
+        reminders.notifyEvent(event); // No scheduled opening.
+        assertEquals(0, notificationCount("REGISTRATION_OPENING_SOON"));
+        openingAt(now.plusSeconds(180));
+        jdbc.update("UPDATE pre_registrations SET booking_id=? WHERE id=?", booking, registration);
+        reminders.notifyEvent(event);
+        assertEquals(0, notificationCount("REGISTRATION_OPENING_SOON"));
+        jdbc.update("DELETE FROM pre_registrations WHERE id=?", registration);
+        reminders.notifyEvent(event);
+        assertEquals(0, notificationCount("REGISTRATION_OPENING_SOON"));
+        waitingRegistration(other);
+        cancelEvent().andExpect(status().isOk());
+        reminders.notifyEvent(event);
+        assertEquals(0, notificationCount("REGISTRATION_OPENING_SOON"));
+        assertEquals(1, notificationCount("EVENT_CANCELLED"));
+        assertEquals(1, notificationCount("BOOKING_CANCELLED"));
+    }
+
+    @Test
+    void preRegistrationInsideWindowCreatesImmediateReminder() throws Exception {
+        var now = java.time.Instant.now();
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(now);
+        openingAt(now.plusSeconds(200));
+        for (int i = 0; i < 2; i++) mvc.perform(put("/api/v1/pre-registrations/" + event).with(as(attendee, "ATTENDEE"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of(
+                        "eventId", event, "ticketTypeId", ticket, "quantity", 1))))
+                .andExpect(status().isOk());
+        assertEquals(1, notificationCount("REGISTRATION_OPENING_SOON"));
+        assertEquals(0, inventory());
+    }
+
+    @Test
+    void staffNotificationHookDeduplicatesAndRollsBackWithCaller() {
+        var tx = new TransactionTemplate(transactions);
+        tx.executeWithoutResult(status -> {
+            notifications.staffAssignment(other, event, "Workshop", "assignment-v1", true);
+            notifications.staffAssignment(other, event, "Workshop", "assignment-v1", true);
+        });
+        assertEquals(1, notificationCount("STAFF_ASSIGNED"));
+        tx.executeWithoutResult(status -> {
+            notifications.staffAssignment(other, event, "Workshop", "assignment-v2", false);
+            status.setRollbackOnly();
+        });
+        assertEquals(0, notificationCount("STAFF_REVOKED"));
+    }
+
+    private int lifecycleResult(Runnable action) {
+        try { action.run(); return 200; }
+        catch (org.springframework.web.server.ResponseStatusException exception) {
+            return exception.getStatusCode().value();
+        }
+    }
+
+    @Test
+    void cancellationVoidsEveryTicketAndCannotIssueOrRedeemAgain() throws Exception {
+        UUID id = UUID.fromString(confirmed(3));
+        var issued = lifecycle.issue(event, id);
+        assertEquals(issued, lifecycle.issue(event, id));
+        assertEquals(3, issued.size());
+        assertEquals(3, issued.stream().map(t -> t.id()).distinct().count());
+        cancel(id.toString(), attendee).andExpect(status().isOk());
+        cancel(id.toString(), attendee).andExpect(status().isOk());
+        assertEquals(3, ticketCount("VOID"));
+        assertEquals(0, inventory());
+        assertEquals(409, lifecycleResult(() -> lifecycle.issue(event, id)));
+        assertEquals(409, lifecycleResult(() -> lifecycle.checkIn(event, id, issued.getFirst().id())));
+    }
+
+    @Test
+    void cancellationBeforeIssuanceNeverCreatesTickets() throws Exception {
+        UUID id = UUID.fromString(confirmed(1));
+        cancel(id.toString(), attendee).andExpect(status().isOk());
+        assertEquals(409, lifecycleResult(() -> lifecycle.issue(event, id)));
+        assertEquals(0, ticketCount("VALID"));
+        assertEquals(0, inventory());
+    }
+
+    @Test
+    void usedTicketRejectsPersonalCancellationButEventCancellationPreservesHistory() throws Exception {
+        UUID id = UUID.fromString(confirmed(2));
+        var issued = lifecycle.issue(event, id);
+        var used = lifecycle.checkIn(event, id, issued.getFirst().id());
+        assertNotNull(used.checkedInAt());
+        cancel(id.toString(), attendee).andExpect(status().isConflict());
+        assertEquals(1, count("CONFIRMED"));
+        assertEquals(2, inventory());
+        assertEquals(1, ticketCount("CHECKED_IN"));
+        assertEquals(1, ticketCount("VALID"));
+        cancelEvent().andExpect(status().isOk());
+        assertEquals(2, ticketCount("VOID"));
+        assertEquals(0, inventory());
+        assertNotNull(jdbc.queryForObject("SELECT checked_in_at FROM issued_tickets WHERE id=?",
+                java.sql.Timestamp.class, used.id()));
+        assertEquals(409, lifecycleResult(() -> lifecycle.checkIn(event, id, used.id())));
+    }
+
+    @Test
+    void eventCancellationVoidsTicketsForAllOrders() throws Exception {
+        UUID first = UUID.fromString(confirmed(2));
+        UUID second = UUID.fromString(json(book(other, "other-issued", 3)).get("id").asText());
+        lifecycle.issue(event, first);
+        lifecycle.issue(event, second);
+        cancelEvent().andExpect(status().isOk());
+        assertEquals(5, ticketCount("VOID"));
+        assertEquals(0, ticketCount("VALID"));
+        assertEquals(0, inventory());
+    }
+
+    @Test
+    void issuanceSerializesWithOrderAndEventCancellation() throws Exception {
+        for (boolean wholeEvent : List.of(false, true)) {
+            UUID id = UUID.fromString(confirmed(2));
+            var result = race(() -> lifecycleResult(() -> lifecycle.issue(event, id)),
+                    () -> (wholeEvent ? cancelEvent() : cancel(id.toString(), attendee))
+                            .andReturn().getResponse().getStatus());
+            assertTrue(List.of(200, 409).contains(result.getFirst()));
+            assertEquals(200, result.getLast());
+            assertEquals(0, ticketCount("VALID"));
+            assertEquals(0, inventory());
+        }
+    }
+
+    @Test
+    void concurrentIssuanceAndCheckInAreExactlyOnce() throws Exception {
+        UUID id = UUID.fromString(confirmed(2));
+        assertEquals(List.of(200, 200), race(
+                () -> lifecycleResult(() -> lifecycle.issue(event, id)),
+                () -> lifecycleResult(() -> lifecycle.issue(event, id))));
+        assertEquals(2, ticketCount("VALID"));
+        UUID issuedId = lifecycle.issue(event, id).getFirst().id();
+        var results = race(() -> lifecycleResult(() -> lifecycle.checkIn(event, id, issuedId)),
+                () -> lifecycleResult(() -> lifecycle.checkIn(event, id, issuedId)));
+        assertTrue(results.containsAll(List.of(200, 409)));
+        assertEquals(1, ticketCount("CHECKED_IN"));
+    }
+
+    @Test
+    void checkInSerializesWithAttendeeCancellation() throws Exception {
+        UUID id = UUID.fromString(confirmed(1));
+        UUID issuedId = lifecycle.issue(event, id).getFirst().id();
+        var result = race(() -> lifecycleResult(() -> lifecycle.checkIn(event, id, issuedId)),
+                () -> cancel(id.toString(), attendee).andReturn().getResponse().getStatus());
+        assertTrue(result.containsAll(List.of(200, 409)));
+        if (result.getFirst() == 200) {
+            assertEquals(1, ticketCount("CHECKED_IN"));
+            assertEquals(1, count("CONFIRMED"));
+            assertEquals(1, inventory());
+        } else {
+            assertEquals(1, ticketCount("VOID"));
+            assertEquals(1, count("CANCELLED"));
+            assertEquals(0, inventory());
+        }
+    }
+
+    @Test
+    void checkInSerializesWithEventCancellation() throws Exception {
+        UUID id = UUID.fromString(confirmed(1));
+        UUID issuedId = lifecycle.issue(event, id).getFirst().id();
+        var result = race(() -> lifecycleResult(() -> lifecycle.checkIn(event, id, issuedId)),
+                () -> cancelEvent().andReturn().getResponse().getStatus());
+        assertTrue(List.of(200, 409).contains(result.getFirst()));
+        assertEquals(200, result.getLast());
+        assertEquals(1, ticketCount("VOID"));
+        assertEquals(0, inventory());
+        assertEquals(0, count("CONFIRMED"));
+    }
+
+    @Test
+    void wrongOrderTicketAndUnauthorizedCancellationCannotMutateTickets() throws Exception {
+        UUID id = UUID.fromString(confirmed(1));
+        UUID another = UUID.fromString(confirmed(1));
+        UUID issuedId = lifecycle.issue(event, id).getFirst().id();
+        assertEquals(404, lifecycleResult(() -> lifecycle.checkIn(event, another, issuedId)));
+        assertEquals(404, lifecycleResult(() -> lifecycle.checkIn(UUID.randomUUID(), id, issuedId)));
+        cancel(id.toString(), other).andExpect(status().isNotFound());
+        mvc.perform(post("/api/v1/bookings/" + id + "/cancel").with(as(attendee, "STAFF")))
+                .andExpect(status().isForbidden());
+        assertEquals(1, ticketCount("VALID"));
+        assertEquals(2, inventory());
     }
 
     private ResultActions createType(int quota) throws Exception {
@@ -577,6 +842,11 @@ class BookingIntegrationTest {
                 .andExpect(jsonPath("$.currentEvent.startsAt").value("2030-02-01T10:00:00Z"));
         assertNotEquals("New venue", jdbc.queryForObject("SELECT event_location FROM bookings WHERE id=?", String.class, UUID.fromString(orderId)));
         assertEquals(1, jdbc.queryForObject("SELECT booked_quantity FROM ticket_types WHERE id=?", Integer.class, ticket));
+        assertEquals(1, notificationCount("EVENT_UPDATED"));
+        String message = jdbc.queryForObject("SELECT message FROM notifications WHERE type='EVENT_UPDATED'", String.class);
+        assertNotNull(message);
+        assertTrue(message.contains("New venue"));
+        assertTrue(message.contains("Singapore"));
         mvc.perform(put(path).with(as(owner, "ORGANIZER")).contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(input))).andExpect(status().isConflict());
         input.put("version", current.get("version").asLong() + 1); input.put("capacity", 1);

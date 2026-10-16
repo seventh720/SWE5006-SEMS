@@ -19,6 +19,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  changeUsername: (username: string) => Promise<string>;
 }
 
 const STORAGE_KEY = "sems-auth";
@@ -61,6 +62,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setState(null);
   }
 
+  async function changeUsername(username: string) {
+    if (!state) throw new Error("Please sign in again.");
+    const originalToken = state.token;
+    const result = await apiRequest<{ username: string }>("/api/v1/profile/username", {
+      method: "PUT", body: JSON.stringify({ username }),
+    }, originalToken);
+    setState(current => {
+      if (!current || current.token !== originalToken) return current;
+      const next = { ...current, user: { ...current.user, username: result.username } };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    return result.username;
+  }
+
   const value = useMemo<AuthContextValue>(
     () => ({
       token: state?.token ?? null,
@@ -68,6 +84,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       login,
       register,
       logout,
+      changeUsername,
     }),
     [state],
   );

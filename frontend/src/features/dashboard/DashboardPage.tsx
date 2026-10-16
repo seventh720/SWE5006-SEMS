@@ -10,6 +10,8 @@ import { formatEventTime, type EventPage, type PublishedEvent } from "../events/
 import type { ManagedEvent } from "../events/drafts";
 
 import { PreRegistrationsPanel } from "../bookings/PreRegistrationsPage";
+import { StaffOverview } from "../staff/StaffPage";
+import { NotificationEntry } from "../notifications/NotificationsPage";
 
 type View = "personal" | "organizer" | "staff" | "admin";
 const labels: Record<View, string> = { personal: "Personal", organizer: "Organizer", staff: "Staff", admin: "Administration" };
@@ -89,10 +91,6 @@ function AdminDashboard() {
   </>;
 }
 
-function StaffDashboard() {
-  return <section className="card staff-overview"><p className="eyebrow">Staff workspace</p><h2>Your event-day workspace</h2><p>Activity assignments, check-in, and ticket verification are not available yet.</p><p className="muted">Your staff role is active. Assigned tasks will appear here when these features become available.</p><Link className="text-link" to="/events">Browse published events →</Link></section>;
-}
-
 export function DashboardPage() {
   const { user, token, logout } = useAuth();
   const [selected, setSelected] = useState<View | null>(null);
@@ -105,11 +103,11 @@ export function DashboardPage() {
   const view = selected && views.includes(selected) ? selected : preferred;
   return <main className="app-shell">
     <header className="app-header dashboard-header"><div className="dashboard-identity"><Link to="/profile" aria-label="Edit profile picture"><Avatar /></Link><div><p className="eyebrow">SEMS · {labels[view]}</p><h1>Welcome, {user.username}</h1></div></div>
-      <details className="dashboard-account"><summary>My account</summary><div className="card"><strong>{user.username}</strong><p>{user.email}</p><p><Link className="text-link" to="/profile">Saved booking details →</Link></p><p className="muted">{user.status}</p><p>{user.roles.map(roleLabel).join(" · ")}</p><button className="secondary-button" onClick={logout}>Logout</button></div></details>
+      <div className="dashboard-actions"><NotificationEntry /><details className="dashboard-account"><summary>My account</summary><div className="card"><strong>{user.username}</strong><p>{user.email}</p><p><Link className="text-link" to="/profile">Saved booking details →</Link></p><p className="muted">{user.status}</p><p>{user.roles.map(roleLabel).join(" · ")}</p><button className="secondary-button" onClick={logout}>Logout</button></div></details></div>
     </header>
     {views.length > 1 && <nav className="dashboard-views" aria-label="Dashboard view">{views.map((item) => <button className="secondary-button" key={item} aria-pressed={view === item} onClick={() => setSelected(item)}>{labels[item]}</button>)}</nav>}
     <section key={`${user.id}-${view}`} aria-label={`${labels[view]} overview`}>
-      {view === "personal" ? <PersonalDashboard /> : view === "organizer" ? <OrganizerDashboard /> : view === "admin" ? <AdminDashboard /> : <StaffDashboard />}
+      {view === "personal" ? <PersonalDashboard /> : view === "organizer" ? <OrganizerDashboard /> : view === "admin" ? <AdminDashboard /> : <StaffOverview />}
     </section>
   </main>;
 }
