@@ -352,6 +352,7 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .privacy-summary summary span { color: #176d76; font-weight: 650; margin-left: 0.35rem; }
 .privacy-summary .privacy-notice { margin: 0.65rem 0 0; padding: 0; border: 0; }
 .event-orders-entry { margin-top: 1.5rem; }
+.event-statistics-entry { margin-top: 1.5rem; }
 @media (max-width: 760px) {
   .event-title-copy { max-width: 100%; }
   .event-title-hero::before { background: linear-gradient(90deg, #e8f3f1f5, #e8f3f1c9); }

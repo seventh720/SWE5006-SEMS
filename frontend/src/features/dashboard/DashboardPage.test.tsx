@@ -78,3 +78,59 @@ it("shows upcoming pre-registrations and their opening countdown on the personal
   expect(screen.getByLabelText("Countdown to registration").textContent).toContain("Opens in");
   expect(screen.getByRole("link", { name: "Edit pre-registration" }).getAttribute("href")).toBe("/events/e2?preRegistration=t1");
 });
+
+it("links organizers to per-event statistics from the dashboard", async () => {
+  auth.user.roles = ["ORGANIZER"];
+  fetchMock.mockImplementation(async (url) => response(String(url).endsWith("summary") ? { drafts: 12, published: 3, cancelled: 2, upcoming: [] } : { items: [] }));
+  mount();
+  await screen.findByText("Event statistics");
+  expect(screen.getByText("12")).toBeTruthy();
+  expect(screen.getByText("3")).toBeTruthy();
+  expect(screen.getByText("2")).toBeTruthy();
+  expect(screen.getByRole("link", { name: "View statistics →" }).getAttribute("href")).toBe("/organizer/events");
+});
+
+it("keeps attendee navigation entry points accessible", async () => {
+  fetchMock.mockResolvedValue(response({ items: [] }));
+  mount();
+  await screen.findByText("New experiences are on the way");
+  expect(screen.getByRole("link", { name: "Explore all events →" }).getAttribute("href")).toBe("/events");
+  expect(screen.getByRole("link", { name: "Edit profile picture" }).getAttribute("href")).toBe("/profile");
+  expect(screen.getByRole("link", { name: "My orders →" }).getAttribute("href")).toBe("/bookings");
+  expect(screen.getByRole("link", { name: "My pre-registrations →" }).getAttribute("href")).toBe("/pre-registrations");
+  expect(screen.getByRole("link", { name: /Notifications/ }).getAttribute("href")).toBe("/notifications");
+});
+
+it("offers staff and personal views to staff+attendee users", async () => {
+  auth.user.roles = ["ATTENDEE", "STAFF"];
+  fetchMock.mockResolvedValue(response({ items: [] }));
+  mount();
+  await screen.findByText("Open staff workspace →");
+  expect(screen.getByRole("link", { name: "Open staff workspace →" }).getAttribute("href")).toBe("/staff");
+  fireEvent.click(screen.getByRole("button", { name: "Personal" }));
+  await screen.findByRole("link", { name: "My orders →" });
+});
+
+it("keeps organizer navigation available to administrators", async () => {
+  auth.user.roles = ["ADMIN"];
+  fetchMock.mockImplementation(async (url) => {
+    if (String(url).endsWith("/api/v1/admin/users")) return response([{ roles: ["ORGANIZER"] }]);
+    if (String(url).endsWith("summary")) return response({ drafts: 1, published: 0, cancelled: 0, upcoming: [] });
+    return response({ items: [] });
+  });
+  mount();
+  await screen.findByText("Registered accounts");
+  fireEvent.click(screen.getByRole("button", { name: "Organizer" }));
+  await screen.findByText("Event statistics");
+  expect(screen.getByRole("link", { name: "View statistics →" }).getAttribute("href")).toBe("/organizer/events");
+});
+
+it("does not expose organizer or staff entries to attendee-only users", async () => {
+  fetchMock.mockResolvedValue(response({ items: [] }));
+  mount();
+  await screen.findByText("New experiences are on the way");
+  expect(screen.queryByRole("link", { name: "View statistics →" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Organizer" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Staff" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Administration" })).toBeNull();
+});

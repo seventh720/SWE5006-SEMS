@@ -74,6 +74,11 @@ function OrganizerDashboard() {
     <section className="event-hero"><p className="eyebrow">Your organizer workspace</p><h2>Bring your next event to life</h2><p>Prepare drafts, publish your events, and keep track of what is coming up.</p><div className="button-row"><Link className="primary-button compact button-link" to="/organizer/events/new">Create event</Link><Link className="secondary-button button-link" to="/organizer/events">My events →</Link></div></section>
     <DataPanel<OrganizerSummary> path="/api/v1/organizer/events/summary" authenticated>{(data) => <>
       <Stats items={[{ label: "Drafts", value: data.drafts }, { label: "Published", value: data.published }, { label: "Cancelled", value: data.cancelled }]} />
+      <section className="card" aria-label="Event statistics">
+        <h2>Event statistics</h2>
+        <p>Reserved, cancelled and checked-in ticket counts are per event. Open an event to see its numbers.</p>
+        <Link className="text-link" to="/organizer/events">View statistics →</Link>
+      </section>
       {data.drafts > 0 && <p className="result-message">You have {data.drafts} saved drafts. <Link className="text-link" to="/organizer/events">Review your events →</Link></p>}
       <div className="event-results-heading"><h2>Your upcoming published events</h2><Link className="text-link" to="/organizer/events">Manage all</Link></div>
       {data.upcoming.length ? <EventCards events={data.upcoming} manage /> : <section className="card event-feedback"><h3>No upcoming published events</h3><p>Save a draft and publish it when you are ready.</p></section>}
