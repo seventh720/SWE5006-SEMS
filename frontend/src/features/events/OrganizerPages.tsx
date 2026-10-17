@@ -270,6 +270,10 @@ function DraftForm({ event, reload }: { event?: ManagedEvent; reload?: () => voi
       <h2>Event orders</h2>
       <Link className="text-link" to={`/organizer/events/${event.id}/bookings`}>View event orders →</Link>
     </section>}
+    {event && <section className="card event-statistics-entry" aria-label="Event statistics">
+      <h2>Event statistics</h2>
+      <Link className="text-link" to={`/organizer/events/${event.id}/statistics`}>View statistics →</Link>
+    </section>}
 
   </main>;
 }
