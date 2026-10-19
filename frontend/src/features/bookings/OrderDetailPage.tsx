@@ -67,6 +67,7 @@ export function OrderDetailPage() {
     {booking && <>
       <section className="card">
         <h2>Reservation details</h2>
+        <Link className="primary-button button-link" to={`/bookings/${booking.id}/tickets`}>View tickets</Link>
         <dl className="event-facts">
           <dt>Order number</dt><dd>{booking.id}</dd>
           <dt>Status</dt><dd><BookingStatusBadge status={booking.status} /></dd>

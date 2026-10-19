@@ -96,7 +96,8 @@ describe("attendee free-ticket reservation", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reserve" }));
     await screen.findByText("Reservation confirmed.");
     expect(screen.getByText("booking-1")).toBeTruthy();
-    expect(screen.getByText(/Electronic tickets are not issued yet/)).toBeTruthy();
+    expect(screen.getByText(/Your electronic tickets are ready/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View tickets" }).getAttribute("href")).toBe("/bookings/booking-1/tickets");
     expect(onBooked).toHaveBeenCalledOnce();
   });
 

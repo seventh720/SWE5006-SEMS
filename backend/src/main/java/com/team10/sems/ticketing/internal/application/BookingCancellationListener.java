@@ -11,9 +11,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class BookingCancellationListener {
+    private final java.time.Clock clock;
     private final IssuedTicketRepository tickets;
 
-    public BookingCancellationListener(IssuedTicketRepository tickets) { this.tickets = tickets; }
+    public BookingCancellationListener(IssuedTicketRepository tickets, java.time.Clock clock) { this.tickets = tickets; this.clock = clock; }
 
     @EventListener
     @Transactional(propagation = Propagation.MANDATORY)
@@ -22,7 +23,8 @@ public class BookingCancellationListener {
         if ("ATTENDEE_CANCELLED".equals(event.reason()) && issued.stream().anyMatch(t -> t.hasBeenUsed())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "An order with checked-in tickets cannot be cancelled");
         }
-        issued.forEach(ticket -> ticket.voidTicket());
+        var now = clock.instant();
+        issued.forEach(ticket -> ticket.voidTicket(now));
         tickets.flush();
     }
 }

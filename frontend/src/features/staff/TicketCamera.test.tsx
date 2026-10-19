@@ -56,7 +56,8 @@ it("ignores unrelated QR content without posting it",async()=>{
 it("stops the stream on camera switching and requests the selected PC webcam",async()=>{
  navigator.mediaDevices.enumerateDevices=vi.fn().mockResolvedValue([{kind:"videoinput",deviceId:"one",label:"Built-in"},{kind:"videoinput",deviceId:"two",label:"USB webcam"}]);
  render(<TicketCamera onScan={vi.fn()} onClose={vi.fn()}/>);
- fireEvent.change(await screen.findByRole("combobox",{name:/Camera/}),{target:{value:"two"}});
+ fireEvent.click(await screen.findByRole("combobox",{name:"Camera"}));
+ fireEvent.click(screen.getByRole("option",{name:"USB webcam"}));
  await waitFor(()=>expect(getUserMedia).toHaveBeenCalledWith({audio:false,video:{deviceId:{exact:"two"}}}));expect(stop).toHaveBeenCalled();
 });
 it("releases the camera when the tab goes into the background",async()=>{

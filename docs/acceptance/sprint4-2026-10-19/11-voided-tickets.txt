@@ -1,0 +1,23 @@
+- main:
+  - link "← Order details":
+    - /url: /bookings/df99f5c5-7ab3-4fdb-bff9-3ea466febb34
+  - paragraph: My tickets
+  - heading "Electronic tickets" [level=1]
+  - paragraph: Show one QR code per attendee. Each ticket can be checked in once.
+  - button "Refresh tickets"
+  - heading "Sprint 4 Browser Acceptance" [level=2]
+  - paragraph: NUS Test Hall B
+  - paragraph: 19 Oct 2026, 12:50 pm – 19 Oct 2026, 2:00 pm
+  - paragraph: Check-in opens 15 minutes before the start and closes 15 minutes after the start, or at the event end if earlier.
+  - paragraph: Keep your ticket private. Staff confirm its current status at the door.
+  - article:
+    - heading "Ticket 1" [level=2]
+    - paragraph: Voided
+    - paragraph: This ticket cannot be used for admission.
+    - paragraph: df6528c8-b707-4577-89ef-f766d68f7ca6
+    - paragraph: "Checked in: 19 Oct 2026, 12:38 pm"
+  - article:
+    - heading "Ticket 2" [level=2]
+    - paragraph: Voided
+    - paragraph: This ticket cannot be used for admission.
+    - paragraph: e1a0e025-c7b3-4614-9275-76b9d4a68687

@@ -18,10 +18,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional
 public class TicketLifecycleService {
+    private final java.time.Clock clock;
     private final BookingAccessService bookings;
     private final IssuedTicketRepository tickets;
 
-    public TicketLifecycleService(BookingAccessService bookings, IssuedTicketRepository tickets) {
+    public TicketLifecycleService(BookingAccessService bookings, IssuedTicketRepository tickets, java.time.Clock clock) {
+        this.clock = clock;
         this.bookings = bookings;
         this.tickets = tickets;
     }
@@ -39,11 +41,18 @@ public class TicketLifecycleService {
         return tickets.findByBookingIdOrderByOrdinal(bookingId).stream().map(IssuedTicket::toView).toList();
     }
 
+    public List<TicketView> ownedTickets(UUID bookingId, UUID userId) {
+        var booking = bookings.lockOwned(bookingId, userId);
+        // Idempotent backfill for confirmed orders created before automatic issuance.
+        if (booking.active()) return issue(booking.eventId(), bookingId);
+        return tickets.findByBookingIdOrderByOrdinal(bookingId).stream().map(IssuedTicket::toView).toList();
+    }
+
     public TicketView checkIn(UUID eventId, UUID bookingId, UUID ticketId) {
         bookings.lockActive(eventId, bookingId);
         var ticket = tickets.findByIdAndBookingIdAndEventId(ticketId, bookingId, eventId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
-        ticket.checkIn();
+        ticket.checkIn(clock.instant());
         tickets.flush();
         return ticket.toView();
     }

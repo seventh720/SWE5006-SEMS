@@ -8,6 +8,7 @@
 - 核销与记录同一事务；活动行锁先于授权检查和票券读取，避免与取消或撤权竞态。
 - 组织者可通过接口授权或撤销单个活动的 STAFF 访问；角色本身不代表任何活动授权。
   HTTP 接口
+- GET /api/v1/staff/events/{eventId}/assignments：活动所有者读取可用人员和当前分配。
 - GET /api/v1/staff/events：当前 STAFF 已分配活动。
 - PUT /api/v1/staff/events/{eventId}/assignments/{staffId}：该活动组织者授权 STAFF。
 - DELETE /api/v1/staff/events/{eventId}/assignments/{staffId}：撤权。
@@ -15,7 +16,7 @@
 - POST /api/v1/staff/events/{eventId}/check-ins：相同请求体，原子核销并记操作员。
 - GET /api/v1/staff/events/{eventId}/check-ins：签到记录。 
 ## 联调前注意
-1. 电子票模块须将票券 ID 作为二维码载荷（sems:ticket:<ticketId>），并确保确认订单已出票。当前仓库尚未自动出票，未出票订单无法验票。
+1. 电子票模块须将票券 ID 作为二维码载荷（sems:ticket:<ticketId>），并确保确认订单已出票。2026-10-19 已接入确认订单自动出票及本人电子票页面，旧有效订单查看票券时幂等补票。
 2. 工作人员授权模块后续接入时，应复用 event_staff_assignments 表及授权 API，避免建立第二套授权体系。授权需要组织者拥有活动，且目标账号具备 STAFF 角色。
 3. 摄像头扫码要求 HTTPS 和摄像头权限，不再依赖 BarcodeDetector。优先后置摄像头，支持切换设备、权限失败重试及手动启动预览。手机通过局域网 HTTP IP 访问不能调用摄像头。
 4. 签到窗口为 [startsAt − 15min, min(startsAt + 15min, endsAt))，验票和核销均由后端执行该规则。
@@ -28,3 +29,8 @@
 - 扫码只填入票码，仍需 Verify ticket → Confirm check-in，保持人工确认流程。
 - 切换票码后丢弃旧验票响应；活动时间窗口每秒更新，签到窗口结束后关闭扫码。
 - 自动化覆盖摄像头权限、播放恢复、横竖屏比例、释放资源、旧验票响应和活动开始边界。真机摄像头硬件、实际画面和 HTTPS 部署仍需手机验收。
+
+
+## 组织者分配界面与通知（2026-10-19）
+活动详情页的 Manage staff 进入 /organizer/events/:id/staff。可查看当前分配，选择具备 STAFF 角色的有效账号，分配或移除；成功后重新读取服务器列表。没有候选人员时提示联系管理员授予角色，失败时保留当前状态并提示重试。
+分配与撤权成功返回 204；仅真实授权变化发送站内通知，重复请求不重复发送，通知失败回滚授权。分配通知链接到 Staff 工作台，撤权通知不提供已撤销活动入口。无需新增数据库迁移。

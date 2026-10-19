@@ -1,0 +1,20 @@
+- main:
+  - link "← My dashboard":
+    - /url: /
+  - paragraph: Your updates
+  - heading "Notifications" [level=1]
+  - paragraph: Booking updates, event changes, registration reminders, and staff assignments.
+  - generic: 1 unread
+  - generic "Notification filter":
+    - button "All" [pressed]
+    - button "Unread"
+  - button "Refresh"
+  - list:
+    - generic: Staff assignment
+    - time: 19 Oct 2026, 12:36 pm · SGT
+    - generic: Unread
+    - heading "New staff assignment" [level=2]
+    - paragraph: "Sprint 4 Browser Acceptance: you have been assigned to this event."
+    - link "View staff workspace →":
+      - /url: /staff
+    - button "Mark as read"

@@ -208,3 +208,15 @@ API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×
 个人订单响应新增 `currentEvent`（`title`、`location`、`startsAt`、`endsAt`），供界面展示最新安排；原有活动字段继续保留下单快照，已有订单与库存不因调整而重建。
 
 报名窗口调整规则：尚未开放的已发布活动可以调整报名开始时间；一旦已开放（含发布后立即开放），开始时间固定，后端拒绝修改并返回409。活动时间、地点和报名截止时间仍可按现有规则调整。预订先完成幂等检查、锁定活动和报名资料校验，再预留库存。
+
+
+## Sprint 4 电子票与 Staff 补充（2026-10-19）
+
+- 确认订单的 BookingConfirmed 在同一事务触发逐张出票；失败则回滚订单、库存和通知。
+- POST /api/v1/bookings/{bookingId}/tickets：ATTENDEE 本人订单；返回逐张 id、bookingId、eventId、ordinal、status、checkedInAt、voidedAt。有效旧订单在此幂等补票，取消订单只读已有票券。角色不符403、非本人或不存在404。
+- QR 内容是 sems:ticket:<ticketId>；没有用户名、邮箱或证件信息。凭证只用于现场验票，不能替代 Staff 的登录及活动授权。
+- 本人入口：订单详情 → View tickets。有效票展示 QR；CHECKED_IN/VOID 票只显示状态。
+- Staff 分配入口：活动详情 → Manage staff；候选账号需有效且具备 STAFF 角色。分配/撤权真实变化才发送通知；事务中通知失败会回滚授权。
+- GET /api/v1/staff/events/{eventId}/assignments：活动所有者查询目录及当前分配；PUT/DELETE /api/v1/staff/events/{eventId}/assignments/{staffId} 返回204。
+- 验票与核销窗口：[startsAt−15min, min(startsAt+15min, endsAt))，后端为最终判断依据。
+- 业务验证与演示步骤见 [Sprint 4 演示脚本](sprint-4-demo.zh-CN.md)。

@@ -102,3 +102,5 @@ Chrome + 隔离 PostgreSQL 实际验证：草稿选择插图并保存/发布、�
 
 - [桌面菜单](custom-select-2026-10-08/01-menu.png)
 - [手机分钟菜单](custom-select-2026-10-08/02-mobile-menu.png)
+
+- [2026-10-19 Sprint 4 浏览器过程验收](sprint4-2026-10-19/README.md)：订票、电子票、Staff分配/通知、手输验票、统计及取消联动；含实际页面状态记录和未验证边界。

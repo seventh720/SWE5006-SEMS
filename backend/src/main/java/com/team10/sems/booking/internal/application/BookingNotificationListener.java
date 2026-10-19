@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Transactional(propagation = Propagation.MANDATORY)
 public class BookingNotificationListener {
+    private final com.team10.sems.checkin.StaffAssignmentService staff;
     private final BookingRepository bookings;
     private final PreRegistrationRepository registrations;
     private final NotificationDeliveryService notifications;
@@ -30,7 +31,8 @@ public class BookingNotificationListener {
             .withZone(ZoneId.of("Asia/Singapore"));
 
     public BookingNotificationListener(BookingRepository bookings, PreRegistrationRepository registrations,
-            NotificationDeliveryService notifications, EventAccessService events) {
+            NotificationDeliveryService notifications, EventAccessService events, com.team10.sems.checkin.StaffAssignmentService staff) {
+        this.staff = staff;
         this.bookings = bookings; this.registrations = registrations; this.notifications = notifications; this.events = events;
     }
 
@@ -55,6 +57,12 @@ public class BookingNotificationListener {
     @EventListener
     public void eventCancelled(EventCancelled event) {
         String title = events.requireEvent(event.eventId()).title();
+        var bookers = new java.util.HashSet<>(bookings.eventCancellationRecipients(event.eventId()));
+        for (UUID user : staff.recipients(event.eventId())) {
+            if (!bookers.contains(user)) notifications.send(user, NotificationType.EVENT_CANCELLED, event.eventId().toString(),
+                    "Event cancelled", title + ": the organizer cancelled this event. Staff check-in is no longer available.",
+                    event.eventId(), null, null);
+        }
         for (var registration : registrations.findByEventIdAndBookingIdIsNull(event.eventId())) {
             notifications.send(registration.userId(), NotificationType.EVENT_CANCELLED, event.eventId().toString(),
                     "Event cancelled", title + ": the organizer cancelled this event. Your pre-registration is no longer available.",
@@ -83,6 +91,7 @@ public class BookingNotificationListener {
         for (var registration : registrations.findByEventIdAndBookingIdIsNull(after.id())) {
             recipients.putIfAbsent(registration.userId(), null);
         }
+        for (UUID user : staff.recipients(after.id())) recipients.putIfAbsent(user, null);
         recipients.forEach((user, booking) -> notifications.send(user, NotificationType.EVENT_UPDATED,
                 after.id() + ":" + after.version(), "Event updated", after.title() + "\n" + String.join("\n", changes),
                 after.id(), booking, null));

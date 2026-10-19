@@ -12,12 +12,14 @@
   },
   "dependencies": {
     "jsqr": "1.4.0",
+    "qrcode": "1.5.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "react-router-dom": "7.18.3"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.3",
+    "@types/qrcode": "1.5.5",
     "@types/react": "19.1.12",
     "@types/react-dom": "19.1.9",
     "@vitejs/plugin-react": "5.0.2",

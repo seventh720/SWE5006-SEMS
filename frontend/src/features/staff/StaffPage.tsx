@@ -1,3 +1,4 @@
+import { Select } from "../../shared/components/Select";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -91,7 +92,9 @@ export function StaffPage() {
     <header className="app-header organizer-header"><div><p className="eyebrow">Event operations</p><h1>Staff workspace</h1><p>Verify tickets and review check-ins for assigned events.</p></div><NotificationEntry /></header>
     <nav className="staff-navigation" aria-label="Staff workspace sections"><a className="text-link" href="#assigned-events">My events</a><a className="text-link" href="#ticket-verification">Ticket verification</a><a className="text-link" href="#check-in-records">Check-in records</a></nav>
     <section className="card staff-assignments" id="assigned-events"><h2>My assigned events</h2>
-      {events.length === 0 ? <p>No event assignments yet. Ask an organizer to assign you to an event.</p> : <label htmlFor="staff-event">Choose event <select id="staff-event" value={eventId} disabled={busy || checkingIn} onChange={e => { generation.current++; stopScan(); setEventId(e.target.value); setMessage(""); }}><option value="">Select an event</option>{events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}</select></label>}
+      {events.length === 0 ? <p>No event assignments yet. Ask an organizer to assign you to an event.</p> : <Select label="Choose event" value={eventId} disabled={busy || checkingIn}
+        onChange={value => { generation.current++; stopScan(); setEventId(value); setMessage(""); }}
+        options={[{ value: "", label: "Select an event" }, ...events.map(event => ({ value: event.id, label: event.title }))]} />}
       {selected && <p className="muted">{new Date(selected.startsAt).toLocaleString()} – {new Date(selected.endsAt).toLocaleString()}{!inWindow && " · Check-in opens 15 minutes before the event and closes 15 minutes after it starts (or at its end, if earlier)."}</p>}
     </section>
     <div className="staff-workspace-grid"><section className="card" id="ticket-verification"><p className="section-label">Arrival desk</p><h2>Ticket verification</h2>

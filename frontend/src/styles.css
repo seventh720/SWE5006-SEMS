@@ -352,8 +352,20 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .privacy-summary summary span { color: #176d76; font-weight: 650; margin-left: 0.35rem; }
 .privacy-summary .privacy-notice { margin: 0.65rem 0 0; padding: 0; border: 0; }
 .event-orders-entry { margin-top: 1.5rem; }
+.event-staff-entry { margin-top: 1.5rem; }
 .event-statistics-entry { margin-top: 1.5rem; }
 @media (max-width: 760px) {
   .event-title-copy { max-width: 100%; }
   .event-title-hero::before { background: linear-gradient(90deg, #e8f3f1f5, #e8f3f1c9); }
 }
+
+.staff-assignment-list { list-style: none; padding: 0; }
+.staff-assignment-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 0; border-bottom: 1px solid #dce5eb; }
+.staff-assignment-list strong { overflow-wrap: anywhere; }
+
+.ticket-code { overflow-wrap: anywhere; font-family: monospace; }
+
+.staff-event-context { margin-top: 1.25rem; padding-left: 1rem; border-left: 4px solid #176d76; }
+.staff-event-context > span { color: #526774; font-size: 0.85rem; font-weight: 600; }
+.staff-event-context h2 { margin: 0.25rem 0 0; font-size: clamp(1.4rem, 2.5vw, 2rem); color: #176d76; overflow-wrap: anywhere; }
+.staff-management-sections { display: grid; gap: 1.5rem; }
