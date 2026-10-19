@@ -15,7 +15,9 @@ def request(path, data=None, token=None):
     req = urllib.request.Request(base + path, headers=headers,
                                  data=None if data is None else json.dumps(data).encode())
     with urllib.request.urlopen(req, timeout=20) as response:
-        for name, expected in [('X-Frame-Options', 'DENY'), ('X-Content-Type-Options', 'nosniff')]:
+        for name, expected in [('X-Frame-Options', 'DENY'), ('X-Content-Type-Options', 'nosniff'),
+                               ('Cross-Origin-Opener-Policy', 'same-origin'),
+                               ('Cross-Origin-Embedder-Policy', 'require-corp')]:
             assert response.headers.get_all(name) == [expected], f'{path}: missing or duplicate {name}'
         assert "frame-ancestors 'none'" in response.headers.get('Content-Security-Policy', ''), path
         assert 'camera=(self)' in response.headers.get('Permissions-Policy', ''), 'Keep phone scanning available'

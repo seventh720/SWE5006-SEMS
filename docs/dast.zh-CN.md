@@ -13,13 +13,14 @@
 | 环境 | URL数 | 高危 | 中危 | 低危 | 信息 | 结果 |
 |---|---:|---:|---:|---:|---:|---|
 | 云端 `https://swe5006.seventh720.com`，已部署基线 `fce7f1f` | 22 | 0 | 2 | 7 | 5 | 按门槛失败，发现缺少CSP和防嵌入头 |
-| 本分支修复镜像，隔离PostgreSQL/后端/前端、临时Caddy HTTPS `https://dast.local` | 22 | 0 | 0 | 2 | 5 | 通过，剩余低危保留 |
+| 首次安全头修复，隔离HTTPS `https://dast.local` | 22 | 0 | 0 | 2 | 5 | 通过中高危门槛，继续修复COOP/COEP低危 |
+| 补齐COOP/COEP后的最终镜像，隔离PostgreSQL/后端/前端及临时Caddy HTTPS | 22 | 0 | 0 | 0 | 5 | 66项规则通过，0失败、0警告、0忽略 |
 
 计数为ZAP JSON中按来源站点划分的告警条目；同一规则可有多个实例或跨HTTP/HTTPS站点出现。没有将规则标为IGNORE，也没有将所有警告统一当作通过。
 
 修复内容：Nginx统一发送CSP、`X-Frame-Options`、`X-Content-Type-Options`、HTTPS HSTS、Referrer/Permissions/Cross-Origin-Resource策略，并隐藏Nginx版本。CSP允许本地头像预览和二维码的data/blob图片、React样式属性及同源脚本；`camera=(self)`保留本站手机摄像头权限。Nginx代理响应去除重复的后端安全头，再统一添加一次。HSTS只对HTTPS或可信代理转发的HTTPS发送。
 
-剩余两项低危是缺少COOP/COEP响应头。本次没有启用跨源隔离；这些告警保留在完整报告和摘要，不作为中高危门槛的例外。信息项包括缓存策略及SPA识别，不表示已发现可利用漏洞。
+首次修复复扫的两项低危已通过`Cross-Origin-Opener-Policy: same-origin`和`Cross-Origin-Embedder-Policy: require-corp`修复；最终复扫高、中、低危均为0。当前脚本、样式、API及插图均同源，头像预览和二维码使用data/blob图片。后续若新增跨源资源，需要其显式支持CORP或CORS，见[COEP说明](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy)。剩余信息项包括缓存策略及SPA识别，不表示已发现可利用漏洞。
 
 修复后的响应头、公开入口、API和HTTPS Origin注册/登录冒烟通过；Chrome活动页和日历选择/应用正常，应用error日志为空。DAST门槛测试5项通过，覆盖中高危失败、低危保留、缺失报告/站点和种子访问不完整不能误报通过。
 
@@ -35,7 +36,7 @@ bash scripts/security/dast.sh https://swe5006.seventh720.com
 
 报告默认保存到被Git忽略的`dast-reports/`：`zap.html`、`zap.json`、`zap.md`、`summary.md`、`coverage.json`、`scan.log`、`run.json`和镜像digest。`run.json`记录目标、时间、配置提交及工作树是否有未提交改动。报告不保存登录凭据。
 
-本次云端初扫位于该目录顶层，隔离复扫位于`dast-reports/isolated/`。两份报告均为实际运行产物。隔离环境使用自签临时证书，只验证应用响应；它不证明云端证书或TLS配置质量。
+本次云端初扫位于该目录顶层，隔离复扫位于`dast-reports/isolated/`。补齐COOP/COEP后的最终复扫位于`dast-reports/isolated-final/`，三份报告均为实际运行产物。隔离环境使用自签临时证书，只验证应用响应；它不证明云端证书或TLS配置质量。
 
 可用`DAST_REPORT_DIR`指定其他报告目录；`DAST_DOCKER_NETWORK`用于连接已有隔离Docker网络。不要将隔离环境目标写入云端验收结果。
 
