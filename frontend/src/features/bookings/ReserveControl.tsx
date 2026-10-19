@@ -154,10 +154,11 @@ export function ReserveControl({ eventId, ticketTypeId, remaining, onBooked, clo
       <div role="status">
         <p>{booking.status === "CANCELLED" ? "This reservation was already cancelled." : "Reservation confirmed."}</p>
         <p>Reservation number: <strong>{booking.id}</strong></p>
-        <p className="muted">Electronic tickets are not issued yet — they will be available in a later release.</p>
+        {booking.status !== "CANCELLED" && <p className="muted">Your electronic tickets are ready. Show one QR code per attendee at check-in.</p>}
       </div>
       <div className="button-row">
-        <Link className="primary-button compact button-link" to="/bookings">View my orders</Link>
+        {booking.status !== "CANCELLED" && <Link className="primary-button compact button-link" to={`/bookings/${booking.id}/tickets`}>View tickets</Link>}
+        <Link className="secondary-button compact button-link" to="/bookings">View my orders</Link>
         <button type="button" className="secondary-button" disabled={closed || remaining === 0} onClick={startNewReservation}>Reserve more</button>
       </div>
     </div>;

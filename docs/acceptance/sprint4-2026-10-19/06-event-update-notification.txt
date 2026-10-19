@@ -1,0 +1,28 @@
+- main:
+  - link "← My dashboard":
+    - /url: /
+  - paragraph: Your updates
+  - heading "Notifications" [level=1]
+  - paragraph: Booking updates, event changes, registration reminders, and staff assignments.
+  - generic: 2 unread
+  - generic "Notification filter":
+    - button "All" [pressed]
+    - button "Unread"
+  - button "Refresh"
+  - list:
+    - generic: Event updated
+    - time: 19 Oct 2026, 12:39 pm · SGT
+    - generic: Unread
+    - heading "Event updated" [level=2]
+    - paragraph: "Sprint 4 Browser Acceptance Location: NUS Test Hall → NUS Test Hall B"
+    - link "View event →":
+      - /url: /events/f949ec00-129b-4e72-afdf-fef9c5917672
+    - button "Mark as read"
+    - generic: Staff assignment
+    - time: 19 Oct 2026, 12:36 pm · SGT
+    - generic: Unread
+    - heading "New staff assignment" [level=2]
+    - paragraph: "Sprint 4 Browser Acceptance: you have been assigned to this event."
+    - link "View staff workspace →":
+      - /url: /staff
+    - button "Mark as read"

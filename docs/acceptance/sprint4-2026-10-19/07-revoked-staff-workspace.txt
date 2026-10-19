@@ -1,0 +1,30 @@
+- main:
+  - link "← My dashboard":
+    - /url: /
+  - paragraph: Event operations
+  - heading "Staff workspace" [level=1]
+  - paragraph: Verify tickets and review check-ins for assigned events.
+  - link "Notifications, 3 unread":
+    - /url: /notifications
+    - text: Notifications
+    - generic: "3"
+  - navigation "Staff workspace sections":
+    - link "My events":
+      - /url: "#assigned-events"
+    - link "Ticket verification":
+      - /url: "#ticket-verification"
+    - link "Check-in records":
+      - /url: "#check-in-records"
+  - heading "My assigned events" [level=2]
+  - paragraph: No event assignments yet. Ask an organizer to assign you to an event.
+  - paragraph: Arrival desk
+  - heading "Ticket verification" [level=2]
+  - button "Open scanner" [disabled]
+  - text: Or enter a ticket code
+  - textbox "Or enter a ticket code" [disabled]:
+    - /placeholder: Ticket UUID or sems:ticket:UUID
+  - button "Verify ticket" [disabled]
+  - paragraph: Attendance
+  - heading "Check-in records" [level=2]
+  - paragraph: Select an assigned event to view records.
+  - paragraph: Already used or voided tickets cannot be admitted again.

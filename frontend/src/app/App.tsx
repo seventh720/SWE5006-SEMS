@@ -9,6 +9,8 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { EventDetailPage, EventListPage } from "../features/events/EventPages";
 import { EditEventPage, MyEventsPage, NewEventPage, OrganizerRoute } from "../features/events/OrganizerPages";
+import { MyTicketsPage } from "../features/ticketing/MyTicketsPage";
+import { OrganizerStaffPage } from "../features/staff/OrganizerStaffPage";
 import { OrganizerStatisticsPage } from "../features/reporting/OrganizerStatisticsPage";
 import { OrganizerTicketTypesPage } from "../features/ticketing/OrganizerTicketTypesPage";
 
@@ -36,11 +38,13 @@ export function App() {
           <Route path="/organizer/events/:id" element={<EditEventPage />} />
           <Route path="/organizer/events/:id/bookings" element={<OrganizerOrdersPage />} />
           <Route path="/organizer/events/:id/ticket-types" element={<OrganizerTicketTypesPage />} />
+          <Route path="/organizer/events/:id/staff" element={<OrganizerStaffPage />} />
           <Route path="/organizer/events/:id/statistics" element={<OrganizerStatisticsPage />} />
         </Route>
         <Route element={<AttendeeRoute />}>
           <Route path="/pre-registrations" element={<PreRegistrationsPage />} />
           <Route path="/bookings" element={<MyOrdersPage />} />
+          <Route path="/bookings/:id/tickets" element={<MyTicketsPage />} />
           <Route path="/bookings/:id" element={<OrderDetailPage />} />
         </Route>
       </Route>

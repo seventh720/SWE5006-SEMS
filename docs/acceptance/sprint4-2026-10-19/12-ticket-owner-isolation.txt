@@ -1,0 +1,9 @@
+- main:
+  - link "← Order details":
+    - /url: /bookings/df99f5c5-7ab3-4fdb-bff9-3ea466febb34
+  - paragraph: My tickets
+  - heading "Electronic tickets" [level=1]
+  - paragraph: Show one QR code per attendee. Each ticket can be checked in once.
+  - button "Refresh tickets"
+  - alert:
+    - paragraph: This booking is unavailable or does not belong to your account.

@@ -1,0 +1,23 @@
+- main:
+  - navigation "Statistics navigation":
+    - link "← My events":
+      - /url: /organizer/events
+    - link "← Event details":
+      - /url: /organizer/events/f949ec00-129b-4e72-afdf-fef9c5917672
+  - paragraph: Organizer workspace
+  - heading "Event statistics" [level=1]
+  - paragraph: Reserved, cancelled and checked-in ticket counts for this event.
+  - region "Event status":
+    - heading "Event status" [level=2]
+    - paragraph: CANCELLED
+  - generic "Ticket statistics":
+    - term: Capacity
+    - definition: "10"
+    - term: Valid reserved tickets
+    - definition: "0"
+    - term: Cancelled tickets
+    - definition: "3"
+    - term: Checked-in tickets
+    - definition: "0"
+  - heading "About these numbers" [level=2]
+  - paragraph: Reserved and cancelled counts are ticket quantities, not order counts. Checked-in counts only currently valid CHECKED_IN tickets. Capacity is the event size, not ticket availability. Zero is a normal value, not missing data.

@@ -11,7 +11,8 @@
 | [数据库](database/README.md) | Flyway 迁移、字段和数据关系 |
 | [架构决策](adr/0001-modular-monolith.md) | 模块化单体及事务边界 |
 | [测试覆盖](testing.zh-CN.md) | 当前实测结果、执行方法、业务覆盖和缺口 |
-| [剩余工作](remaining-work.zh-CN.md) | Sprint 3 收尾、Sprint 4 业务与 Sprint 5 交付 |
+| [剩余工作](remaining-work.zh-CN.md) | Sprint 4 当前实现状态与演示前交付清单 |
+| [Sprint 4 演示脚本](sprint-4-demo.zh-CN.md) | 免费预订、电子票、Staff 分配、签到、统计与取消验收 |
 
 ## 计划与验收
 

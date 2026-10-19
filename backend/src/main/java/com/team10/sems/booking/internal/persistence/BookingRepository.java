@@ -17,6 +17,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     Page<Booking> findByEventId(UUID eventId, Pageable pageable);
     List<Booking> findByEventIdAndStatusOrderByTicketTypeIdAscIdAsc(UUID eventId, String status);
 
+    @Query("select distinct b.userId from Booking b where b.eventId = :eventId and (b.status = 'CONFIRMED' or b.cancellationReason = 'EVENT_CANCELLED')")
+    List<UUID> eventCancellationRecipients(@Param("eventId") UUID eventId);
+
     // Read only the immutable event ID before locking, not a potentially stale managed Booking.
     @Query("select b.eventId from Booking b where b.id = :id and b.userId = :userId")
     Optional<UUID> findOwnedEventId(@Param("id") UUID id, @Param("userId") UUID userId);

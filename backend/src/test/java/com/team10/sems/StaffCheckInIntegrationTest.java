@@ -5,8 +5,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -36,8 +34,6 @@ class StaffCheckInIntegrationTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
-    @Autowired ObjectMapper mapper;
-    @Autowired com.team10.sems.ticketing.TicketLifecycleService lifecycle;
 
     @org.springframework.test.context.bean.override.mockito.MockitoBean java.time.Clock clock;
     private static final Instant START = Instant.parse("2030-01-01T10:00:00Z");
@@ -75,10 +71,6 @@ class StaffCheckInIntegrationTest {
         return jwt().jwt(token -> token.subject(user.toString())).authorities(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
-    private JsonNode json(ResultActions result) throws Exception {
-        return mapper.readTree(result.andReturn().getResponse().getContentAsString());
-    }
-
     private UUID insertBooking(UUID user, int quantity, String status, String reason) {
         UUID id = UUID.randomUUID();
         java.sql.Timestamp now = java.sql.Timestamp.from(Instant.now());
@@ -108,7 +100,7 @@ class StaffCheckInIntegrationTest {
         staff = user();
         jdbc.update("INSERT INTO user_roles(user_id,role_code) VALUES (?,'STAFF')", staff);
         mvc.perform(put("/api/v1/staff/events/" + event + "/assignments/" + staff).with(as(owner, "ORGANIZER")))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         issued = insertTicket(insertBooking(attendee, 1, "CONFIRMED", null), "VALID", false);
     }
@@ -120,7 +112,8 @@ class StaffCheckInIntegrationTest {
         ready();
         submit(staff, event, "verify").andExpect(status().isOk()).andExpect(jsonPath("$.status").value("VALID"));
         assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM ticket_check_in_records", Integer.class));
-        submit(staff, event, "check-ins").andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CHECKED_IN"));
+        submit(staff, event, "check-ins").andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CHECKED_IN"))
+                .andExpect(jsonPath("$.checkedInAt").value(START.toString()));
         submit(staff, event, "check-ins").andExpect(status().isConflict());
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM ticket_check_in_records WHERE operator_id=?", Integer.class, staff));
     }
@@ -129,7 +122,7 @@ class StaffCheckInIntegrationTest {
         submit(other, event, "verify").andExpect(status().isForbidden());
         submit(other, event, "check-ins").andExpect(status().isForbidden());
         mvc.perform(delete("/api/v1/staff/events/" + event + "/assignments/" + staff).with(as(owner, "ORGANIZER")))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
         submit(staff, event, "check-ins").andExpect(status().isForbidden());
     }
     @Test void rejectsVoidedAndWrongEventTickets() throws Exception {
@@ -175,5 +168,48 @@ class StaffCheckInIntegrationTest {
         org.mockito.Mockito.when(clock.instant()).thenReturn(START.plusSeconds(300));
         submit(staff, event, "verify").andExpect(status().isConflict());
         submit(staff, event, "check-ins").andExpect(status().isConflict());
+    }
+
+    @Test void assignmentDirectoryIsOwnerOnlyAndExposesNoContactDetails() throws Exception {
+        ready();
+        mvc.perform(get("/api/v1/staff/events/" + event + "/assignments").with(as(owner, "ORGANIZER")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.eventTitle").value("Workshop"))
+            .andExpect(jsonPath("$.staff[0].id").value(staff.toString()))
+            .andExpect(jsonPath("$.staff[0].assigned").value(true))
+            .andExpect(jsonPath("$.staff[0].email").doesNotExist());
+        mvc.perform(get("/api/v1/staff/events/" + event + "/assignments").with(as(other, "ORGANIZER")))
+            .andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/staff/events/" + event + "/assignments").with(as(staff, "STAFF")))
+            .andExpect(status().isForbidden());
+    }
+    @Test void assignmentNotificationsFollowRealTransitionsOnly() throws Exception {
+        ready();
+        String path = "/api/v1/staff/events/" + event + "/assignments/" + staff;
+        mvc.perform(put(path).with(as(owner, "ORGANIZER"))).andExpect(status().isNoContent());
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=? AND type='STAFF_ASSIGNED'", Integer.class, staff));
+        mvc.perform(delete(path).with(as(owner, "ORGANIZER"))).andExpect(status().isNoContent());
+        mvc.perform(delete(path).with(as(owner, "ORGANIZER"))).andExpect(status().isNoContent());
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=? AND type='STAFF_REVOKED'", Integer.class, staff));
+        mvc.perform(put(path).with(as(owner, "ORGANIZER"))).andExpect(status().isNoContent());
+        assertEquals(2, jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=? AND type='STAFF_ASSIGNED'", Integer.class, staff));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=?", Integer.class, owner));
+    }
+    @Test void rejectsAssignmentWithoutStaffRoleAndDoesNotNotify() throws Exception {
+        ready();
+        mvc.perform(put("/api/v1/staff/events/" + event + "/assignments/" + other).with(as(owner, "ORGANIZER")))
+            .andExpect(status().isBadRequest());
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=?", Integer.class, other));
+    }
+    @Test void notificationFailureRollsBackAssignment() throws Exception {
+        ready();
+        mvc.perform(delete("/api/v1/staff/events/" + event + "/assignments/" + staff).with(as(owner, "ORGANIZER")))
+            .andExpect(status().isNoContent());
+        jdbc.execute("ALTER TABLE notifications ADD CONSTRAINT test_reject_assignment CHECK (type <> 'STAFF_ASSIGNED') NOT VALID");
+        try {
+            assertThrows(Exception.class, () -> mvc.perform(put("/api/v1/staff/events/" + event + "/assignments/" + staff).with(as(owner, "ORGANIZER"))));
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM event_staff_assignments WHERE event_id=? AND staff_id=?", Integer.class, event, staff));
+        } finally {
+            jdbc.execute("ALTER TABLE notifications DROP CONSTRAINT test_reject_assignment");
+        }
     }
 }

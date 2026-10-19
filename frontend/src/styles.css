@@ -357,3 +357,9 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
   .event-title-copy { max-width: 100%; }
   .event-title-hero::before { background: linear-gradient(90deg, #e8f3f1f5, #e8f3f1c9); }
 }
+
+.staff-assignment-list { list-style: none; padding: 0; }
+.staff-assignment-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 0; border-bottom: 1px solid #dce5eb; }
+.staff-assignment-list strong { overflow-wrap: anywhere; }
+
+.ticket-code { overflow-wrap: anywhere; font-family: monospace; }

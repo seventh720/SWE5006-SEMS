@@ -30,18 +30,18 @@ public class IssuedTicket {
         return ticket;
     }
 
-    public void checkIn() {
+    public void checkIn(Instant now) {
         if (!"VALID".equals(status)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ticket has already been used or voided");
         }
         status = "CHECKED_IN";
-        checkedInAt = Instant.now();
+        checkedInAt = now;
     }
 
-    public void voidTicket() {
+    public void voidTicket(Instant now) {
         if (!"VOID".equals(status)) {
             status = "VOID";
-            voidedAt = Instant.now();
+            voidedAt = now;
         }
     }
 

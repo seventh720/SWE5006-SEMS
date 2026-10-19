@@ -32,5 +32,16 @@ public class BookingAccessService {
         return new ActiveBooking(bookingId, eventId, booking.quantity());
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public OwnedBooking lockOwned(UUID bookingId, UUID userId) {
+        UUID eventId = bookings.findOwnedEventId(bookingId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        var event = events.lockEvent(eventId);
+        var booking = bookings.findByIdAndUserId(bookingId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+        return new OwnedBooking(eventId, !booking.isCancelled() && "PUBLISHED".equals(event.status()));
+    }
+    public record OwnedBooking(UUID eventId, boolean active) { }
+
     public record ActiveBooking(UUID id, UUID eventId, int quantity) { }
 }

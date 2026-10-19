@@ -64,7 +64,7 @@ public class BookingService {
         var result = view(bookings.saveAndFlush(booking));
         preRegistrations.findByUserIdAndEventId(user, input.eventId())
                 .ifPresent(preRegistration -> preRegistration.markBooked(result.id()));
-        publisher.publishEvent(new com.team10.sems.booking.BookingConfirmed(result.id()));
+        publisher.publishEvent(new com.team10.sems.booking.BookingConfirmed(result.id(), booking.eventId()));
         return new Created(result, true);
     }
 

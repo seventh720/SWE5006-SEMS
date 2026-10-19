@@ -57,6 +57,8 @@ class BookingIntegrationTest {
     @BeforeEach
     void prepare() {
         org.mockito.Mockito.when(notificationClock.instant()).thenAnswer(invocation -> java.time.Instant.now());
+        jdbc.update("DELETE FROM ticket_check_in_records");
+        jdbc.update("DELETE FROM event_staff_assignments");
         jdbc.update("DELETE FROM notifications");
         jdbc.update("DELETE FROM issued_tickets");
         jdbc.update("DELETE FROM pre_registrations");
@@ -506,7 +508,7 @@ class BookingIntegrationTest {
         cancel(id.toString(), other).andExpect(status().isNotFound());
         mvc.perform(post("/api/v1/bookings/" + id + "/cancel").with(as(attendee, "STAFF")))
                 .andExpect(status().isForbidden());
-        assertEquals(1, ticketCount("VALID"));
+        assertEquals(2, ticketCount("VALID")); // Both confirmed orders now auto-issue.
         assertEquals(2, inventory());
     }
 
@@ -973,4 +975,85 @@ class BookingIntegrationTest {
         preRegister(attendee, 1, java.util.Map.of()).andExpect(status().isConflict());
     }
 
+
+    @Test void automaticTicketsAreOwnedIdempotentAndVoidAfterCancellation() throws Exception {
+        String id = json(book(attendee, "auto", 2).andExpect(status().isCreated())).get("id").asText();
+        assertEquals(2, ticketCount("VALID"));
+        String path = "/api/v1/bookings/" + id + "/tickets";
+        var first = json(mvc.perform(post(path).with(as(attendee, "ATTENDEE"))).andExpect(status().isOk()));
+        book(attendee, "auto", 2).andExpect(status().isOk());
+        assertEquals(first, json(mvc.perform(post(path).with(as(attendee, "ATTENDEE"))).andExpect(status().isOk())));
+        mvc.perform(post(path).with(as(other, "ATTENDEE"))).andExpect(status().isNotFound());
+        mvc.perform(post(path).with(as(owner, "ORGANIZER"))).andExpect(status().isForbidden());
+        cancel(id, attendee).andExpect(status().isOk());
+        mvc.perform(post(path).with(as(attendee, "ATTENDEE"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("VOID")).andExpect(jsonPath("$.length()").value(2));
+        assertEquals(0, ticketCount("VALID"));
+    }
+    @Test void legacyTicketBackfillIsIdempotentAndDoesNotReissueCancelledOrders() throws Exception {
+        String id = confirmed(2);
+        jdbc.update("DELETE FROM issued_tickets WHERE booking_id=?", UUID.fromString(id));
+        String path = "/api/v1/bookings/" + id + "/tickets";
+        mvc.perform(post(path).with(as(attendee, "ATTENDEE"))).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
+        assertEquals(2, ticketCount("VALID"));
+        cancel(id, attendee).andExpect(status().isOk());
+        jdbc.update("DELETE FROM issued_tickets WHERE booking_id=?", UUID.fromString(id));
+        mvc.perform(post(path).with(as(attendee, "ATTENDEE"))).andExpect(status().isOk()).andExpect(jsonPath("$").isEmpty());
+    }
+    @Test void issuanceFailureRollsBackOrderInventoryAndNotification() throws Exception {
+        jdbc.execute("ALTER TABLE issued_tickets ADD CONSTRAINT test_block_issue CHECK (ordinal < 1) NOT VALID");
+        try {
+            assertThrows(Exception.class, () -> book(attendee, "issue-fail", 2));
+            assertEquals(0, inventory()); assertEquals(0, count("CONFIRMED"));
+            assertEquals(0, notificationCount("BOOKING_CONFIRMED"));
+        } finally { jdbc.execute("ALTER TABLE issued_tickets DROP CONSTRAINT test_block_issue"); }
+    }
+    private void assignStaff(UUID user) {
+        jdbc.update("INSERT INTO user_roles(user_id,role_code) VALUES (?,'STAFF')", user);
+        jdbc.update("INSERT INTO event_staff_assignments(event_id,staff_id) VALUES (?,?)", event, user);
+    }
+    @Test void staffReceiveEventChangesOnceEvenWhenTheyAlsoHoldBookings() throws Exception {
+        assignStaff(attendee); assignStaff(other);
+        confirmed(1);
+        mvc.perform(put("/api/v1/organizer/events/" + event).with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                    {"title":"Updated workshop","description":"Description","location":"Singapore",
+                    "startsAt":"2030-01-01T10:00:00Z","endsAt":"2030-01-01T12:00:00Z","capacity":10,"version":0}
+                    """)).andExpect(status().isOk());
+        assertEquals(2, notificationCount("EVENT_UPDATED"));
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM notifications WHERE user_id=? AND type='EVENT_UPDATED'", Integer.class, attendee));
+        // Use current version after editing.
+        mvc.perform(post("/api/v1/organizer/events/" + event + "/cancel").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"version\":1}")).andExpect(status().isOk());
+        assertEquals(1, notificationCount("EVENT_CANCELLED"));
+        assertEquals(1, notificationCount("BOOKING_CANCELLED"));
+        assertEquals(0, ticketCount("VALID"));
+    }
+    @Test void freeBookingThroughStaffCheckInUpdatesStatisticsAndCancellation() throws Exception {
+        String id = confirmed(1);
+        UUID staff = other; assignStaff(staff);
+        String ticketId = json(mvc.perform(post("/api/v1/bookings/" + id + "/tickets").with(as(attendee, "ATTENDEE")))
+                .andExpect(status().isOk())).get(0).get("id").asText();
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(java.time.Instant.parse("2030-01-01T09:45:00Z"));
+        String path = "/api/v1/staff/events/" + event;
+        String code = "{\"code\":\"sems:ticket:" + ticketId + "\"}";
+        mvc.perform(post(path + "/verify").with(as(staff, "STAFF")).contentType(MediaType.APPLICATION_JSON).content(code))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("VALID"));
+        mvc.perform(post(path + "/check-ins").with(as(staff, "STAFF")).contentType(MediaType.APPLICATION_JSON).content(code))
+                .andExpect(status().isOk());
+        mvc.perform(post(path + "/check-ins").with(as(staff, "STAFF")).contentType(MediaType.APPLICATION_JSON).content(code))
+                .andExpect(status().isConflict());
+        mvc.perform(get("/api/v1/organizer/events/" + event + "/statistics").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.checkedInTickets").value(1));
+        cancel(id, attendee).andExpect(status().isConflict());
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(java.time.Instant.parse("2030-01-01T09:46:00Z"));
+        cancelEvent().andExpect(status().isOk());
+        assertEquals(java.time.Instant.parse("2030-01-01T09:46:00Z"), Objects.requireNonNull(jdbc.queryForObject(
+                "SELECT voided_at FROM issued_tickets WHERE id=?", java.sql.Timestamp.class, UUID.fromString(ticketId))).toInstant());
+        mvc.perform(post(path + "/check-ins").with(as(staff, "STAFF")).contentType(MediaType.APPLICATION_JSON).content(code))
+                .andExpect(status().isConflict());
+        mvc.perform(get("/api/v1/organizer/events/" + event + "/statistics").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.checkedInTickets").value(0))
+                .andExpect(jsonPath("$.cancelledTickets").value(1));
+    }
 }
