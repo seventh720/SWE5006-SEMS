@@ -1,3 +1,4 @@
+import { Select } from "../../shared/components/Select";
 import {useEffect, useRef, useState} from "react";
 
 
@@ -130,10 +131,10 @@ export function TicketCamera({onScan, onClose}: {onScan: (code: string) => void;
       style={{display: "block", height: "auto", maxWidth: "100%", objectFit: "contain", aspectRatio, width: `min(100%, ${420 * aspectRatio}px)`}}
       onResize={() => {const preview = video.current; if (preview?.videoWidth && preview.videoHeight) setAspectRatio(preview.videoWidth / preview.videoHeight);}} />
     {error ? <p role="alert">{error}</p> : <p role="status">{status}</p>}
-    {devices.length > 1 && <label>Camera<select value={device} onChange={e => setDevice(e.target.value)}>
-      <option value="">Automatic (prefer rear camera)</option>
-      {devices.map((item, index) => <option key={item.deviceId} value={item.deviceId}>{item.label || `Camera ${index + 1}`}</option>)}
-    </select></label>}
+    {devices.length > 1 && <Select label="Camera" value={device} onChange={setDevice}
+      options={[{ value: "", label: "Automatic (prefer rear camera)" }, ...devices.map((item, index) => ({
+        value: item.deviceId, label: item.label || `Camera ${index + 1}`,
+      }))]} />}
     <div className="camera-actions">
       {playbackBlocked && <button type="button" className="primary-button" onClick={() => resume.current?.()}>Start preview</button>}
       {error && <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry camera</button>}

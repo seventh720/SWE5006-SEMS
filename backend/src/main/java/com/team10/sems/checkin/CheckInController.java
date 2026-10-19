@@ -56,7 +56,7 @@ public class CheckInController {
     @GetMapping("/events/{eventId}/assignments")
     @PreAuthorize("hasAnyRole('ORGANIZER','ADMIN')")
     @Transactional(readOnly = true)
-    public Assignments assignments(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId) {
+    public Assignments assignments(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId) {
         var event = events.requireOwnedEvent(eventId, actor(jwt));
         List<StaffMember> staff = db.query("""
                 SELECT u.id, u.username,
@@ -76,7 +76,7 @@ public class CheckInController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAnyRole('ORGANIZER','ADMIN')")
     @Transactional
-    public void assign(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId, @PathVariable UUID staffId) {
+    public void assign(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId, @PathVariable("staffId") UUID staffId) {
         var event = events.lockOwnedEvent(eventId, actor(jwt));
         if (db.queryForObject("SELECT COUNT(*) FROM user_roles r JOIN users u ON u.id=r.user_id WHERE r.user_id = ? AND r.role_code = 'STAFF' AND u.status='ACTIVE'", Integer.class, staffId) == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not STAFF");
@@ -89,7 +89,7 @@ public class CheckInController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAnyRole('ORGANIZER','ADMIN')")
     @Transactional
-    public void unassign(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId, @PathVariable UUID staffId) {
+    public void unassign(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId, @PathVariable("staffId") UUID staffId) {
         var event = events.lockOwnedEvent(eventId, actor(jwt));
         int changed = db.update("DELETE FROM event_staff_assignments WHERE event_id=? AND staff_id=?", eventId, staffId);
         if (changed > 0) notifications.staffAssignment(staffId, eventId, event.title(), UUID.randomUUID().toString(), false);
@@ -98,7 +98,7 @@ public class CheckInController {
     @PostMapping("/events/{eventId}/verify")
     @PreAuthorize("hasRole('STAFF')")
     @Transactional
-    public Verification verify(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId, @RequestBody TicketCode code) {
+    public Verification verify(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId, @RequestBody TicketCode code) {
         var event = events.lockEvent(eventId);
         requireAssigned(eventId, actor(jwt));
         requireCheckInWindow(event.startsAt(), event.endsAt(), event.status());
@@ -108,7 +108,7 @@ public class CheckInController {
     @PostMapping("/events/{eventId}/check-ins")
     @PreAuthorize("hasRole('STAFF')")
     @Transactional
-    public TicketView checkIn(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId, @RequestBody TicketCode code) {
+    public TicketView checkIn(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId, @RequestBody TicketCode code) {
         // Lock event first, then verify assignment and ticket, matching cancellation lock order.
         var event = events.lockEvent(eventId);
         UUID operator = actor(jwt);
@@ -124,7 +124,7 @@ public class CheckInController {
     @GetMapping("/events/{eventId}/check-ins")
     @PreAuthorize("hasRole('STAFF')")
     @Transactional
-    public List<CheckInRecord> records(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID eventId) {
+    public List<CheckInRecord> records(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId) {
         events.lockEvent(eventId);
         requireAssigned(eventId, actor(jwt));
         return db.query("""

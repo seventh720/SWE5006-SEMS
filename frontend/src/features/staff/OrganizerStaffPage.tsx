@@ -1,3 +1,4 @@
+import { Select } from "../../shared/components/Select";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -37,7 +38,8 @@ function StaffAssignments({ eventId }: { eventId: string }) {
   return <main className="app-shell">
     <Link className="text-link" to={`/organizer/events/${eventId}`}>← Event details</Link>
     <header className="app-header organizer-header"><div><p className="eyebrow">Organizer workspace</p>
-      <h1>Manage staff</h1><p>{request.data?.eventTitle}</p>
+      <h1>Manage staff</h1>
+      {request.data && <div className="staff-event-context"><span>Event</span><h2>{request.data.eventTitle}</h2></div>}
       <p>Assign staff to verify tickets and check in attendees for this event.</p>
     </div></header>
     {message && <p role="status">{message}</p>}
@@ -45,14 +47,12 @@ function StaffAssignments({ eventId }: { eventId: string }) {
     {request.loading && <p role="status">Loading staff…</p>}
     {request.error != null && <section className="card"><ManagementError error={request.error} />
       <button className="secondary-button" onClick={request.reload}>Try again</button></section>}
-    {request.data && <>
+    {request.data && <div className="staff-management-sections">
       <section className="card">
         <h2>Assign staff</h2>
         {available.length ? <form onSubmit={e => { e.preventDefault(); const member = available.find(item => item.id === selected); if (member) void update(member, true); }}>
-          <label htmlFor="staff-member">Staff member<select id="staff-member" value={selected} disabled={busy} onChange={e => setSelected(e.target.value)}>
-            <option value="">Choose staff</option>
-            {available.map(member => <option key={member.id} value={member.id}>{member.username}</option>)}
-          </select></label>
+          <Select label="Staff member" value={selected} disabled={busy} onChange={setSelected}
+            options={[{ value: "", label: "Choose staff" }, ...available.map(member => ({ value: member.id, label: member.username }))]} />
           <button className="primary-button" disabled={!selected || busy} type="submit">Assign staff</button>
         </form> : <p>No unassigned staff are available. An administrator can grant the Staff role in user management.</p>}
         <p className="muted">Staff receive a notification when assigned or removed. Access applies only to this event.</p>
@@ -63,6 +63,6 @@ function StaffAssignments({ eventId }: { eventId: string }) {
           <button className="secondary-button" disabled={busy} onClick={() => void update(member, false)} aria-label={`Remove ${member.username}`}>Remove</button>
         </li>)}</ul>}
       </section>
-    </>}
+    </div>}
   </main>;
 }

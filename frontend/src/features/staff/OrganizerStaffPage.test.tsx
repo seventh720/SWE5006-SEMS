@@ -11,7 +11,8 @@ function mount() { render(<MemoryRouter initialEntries={["/organizer/events/even
 it("assigns and removes staff, reloading the confirmed server state", async () => {
  const fetch = vi.fn().mockResolvedValueOnce(response()).mockResolvedValueOnce(new Response(null,{status:204})).mockResolvedValueOnce(response(true)).mockResolvedValueOnce(new Response(null,{status:204})).mockResolvedValueOnce(response());
  vi.stubGlobal("fetch",fetch); mount();
- fireEvent.change(await screen.findByLabelText("Staff member"),{target:{value:"staff1"}});
+ fireEvent.click(await screen.findByRole("combobox",{name:"Staff member"}));
+ fireEvent.click(screen.getByRole("option",{name:"carrot"}));
  fireEvent.click(screen.getByRole("button",{name:"Assign staff"}));
  fireEvent.click(await screen.findByRole("button",{name:"Remove carrot"}));
  await screen.findByText("carrot removed. A notification has been sent.");
