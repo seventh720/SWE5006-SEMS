@@ -1,5 +1,6 @@
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { ManagementError, useManagementRequest } from "../events/OrganizerPages";
+import { ManagementError } from "../events/OrganizerPages";
+import { useManagementRequest } from "../events/useManagementRequest";
 import { formatEventTime } from "../events/events";
 import { AttendeeInfoSummary } from "./AttendeeInfoSummary";
 import { BookingStatusBadge } from "./BookingStatusBadge";

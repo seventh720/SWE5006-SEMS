@@ -19,7 +19,7 @@ class EventBrowseServiceTest {
     @Test
     void rejectsInvalidPagesBeforeQueryingDatabase() {
         for (int[] pair : new int[][] {{-1, 10}, {0, 0}, {0, 51}, {Integer.MAX_VALUE, 50}}) {
-            var error = assertThrows(ResponseStatusException.class, () -> service.browse(pair[0], pair[1], ""));
+            var error = assertThrows(ResponseStatusException.class, () -> service.browse(pair[0], pair[1], "", "", "ALL", null, null));
             assertEquals(400, error.getStatusCode().value());
         }
         verifyNoInteractions(repository);
@@ -28,12 +28,12 @@ class EventBrowseServiceTest {
     @Test
     void trimsSearchAndSortsByTimeThenId() {
         var pageable = PageRequest.of(2, 10, Sort.by("startsAt", "id"));
-        when(repository.findPublished("Open Day", pageable)).thenReturn(Page.empty(pageable));
-        var result = service.browse(2, 10, "  Open Day  ");
+        when(repository.findAll(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<com.team10.sems.event.internal.domain.Event>>any(), eq(pageable))).thenReturn(Page.empty(pageable));
+        var result = service.browse(2, 10, "  Open Day  ", "", "ALL", null, null);
         assertEquals(2, result.page());
         assertEquals(10, result.size());
         assertTrue(result.items().isEmpty());
-        verify(repository).findPublished("Open Day", pageable);
+        verify(repository).findAll(org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<com.team10.sems.event.internal.domain.Event>>any(), eq(pageable));
     }
 
     @Test

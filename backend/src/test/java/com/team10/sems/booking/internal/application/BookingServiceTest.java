@@ -14,13 +14,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class BookingServiceTest {
+    private static final jakarta.validation.ValidatorFactory FACTORY = jakarta.validation.Validation.buildDefaultValidatorFactory();
+    private final BookingInfoValidator infoValidator = new BookingInfoValidator(FACTORY.getValidator());
+    @org.junit.jupiter.api.AfterAll static void closeValidatorFactory() { FACTORY.close(); }
     private final BookingRepository bookings = mock(BookingRepository.class);
     private final BookingRequestLock locks = mock(BookingRequestLock.class);
     private final EventAccessService events = mock(EventAccessService.class);
     private final TicketReservationService tickets = mock(TicketReservationService.class);
     private final PreRegistrationRepository preRegistrations = mock(PreRegistrationRepository.class);
     private final BookingService service = new BookingService(bookings, locks, events, tickets, preRegistrations,
-            mock(org.springframework.context.ApplicationEventPublisher.class));
+            mock(org.springframework.context.ApplicationEventPublisher.class), infoValidator);
     private final UUID user = UUID.randomUUID();
     private final UUID eventId = UUID.randomUUID();
     private final UUID ticketId = UUID.randomUUID();
@@ -93,4 +96,15 @@ class BookingServiceTest {
         assertFalse(booking.isCancelled());
         verifyNoInteractions(tickets);
     }
+    @Test
+    void malformedEmailFromNonHttpCallerNeverReservesInventory() {
+        when(events.lockEvent(eventId)).thenReturn(event(Instant.now().plusSeconds(3600),
+                new BookingRequirements(false, true, false, false, false, null)));
+        var details = new AttendeeInfo(null, "invalid-email", null, null, null, null);
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.create(user, "key", new BookingInput(eventId, ticketId, 1, details))).getStatusCode().value());
+        verifyNoInteractions(tickets, preRegistrations);
+        verify(bookings, never()).saveAndFlush(any());
+    }
+
 }

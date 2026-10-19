@@ -23,3 +23,10 @@ The original 50 man-day planning assumption and the updated five-sprint schedule
 ## Sprint 3 clarification (2026-10-06)
 
 The project must finish after five sprints. Remaining person-days must be checked against actual team effort. Booking uses one database transaction across module public services. Event mutations, inventory and order cancellations serialize on the event row. Synchronous application events validate capacity changes and cancel bookings before the event transaction commits; any failure rolls back the entire operation. No message broker or distributed transaction is needed for this scope.
+
+
+## Implementation review 2026-10-19
+
+The implemented staff package is `checkin`; `attendance` remains a placeholder. The original API/event-only boundary is a design intention, not uniformly enforced: `CheckInController` reads identity, event and ticket tables and handles transactions through JDBC, while `ReportingService` uses cross-module read-only SQL projections. Reporting uses repeatable-read isolation for a consistent summary. No independent services or distributed transaction are implemented.
+
+Keep these exceptions visible in the presentation. Moving check-in orchestration into an application service and encapsulating its queries is a follow-up refactoring; this review does not claim that work is complete. Synchronous event listeners execute within the originating transaction, so listener failure rolls back the business operation. This is not asynchronous messaging.

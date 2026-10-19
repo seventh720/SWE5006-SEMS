@@ -11,3 +11,10 @@ sems:
       username: admin
       email: ""
       password: ""
+
+# Keep failures visible without dumping SQL or authentication request/response bodies.
+logging:
+  level:
+    root: WARN
+    org.springframework.web: INFO
+    org.hibernate: WARN

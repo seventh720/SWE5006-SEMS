@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { useManagementRequest } from "../events/OrganizerPages";
+import { useManagementRequest } from "../events/useManagementRequest";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError } from "../../shared/api/client";
 import { managementError } from "../events/drafts";
@@ -19,6 +19,7 @@ export function OrganizerStatisticsPage() {
     `/api/v1/organizer/events/${encodeURIComponent(id ?? "")}/statistics`);
   return <main className="app-shell">
     <nav className="event-nav" aria-label="Statistics navigation">
+      <Link className="text-link" to={`/organizer/reports?eventId=${id ?? ""}`}>Detailed ticket report →</Link>
       <Link className="text-link" to="/organizer/events">← My events</Link>
       <Link className="text-link" to={`/organizer/events/${id ?? ""}`}>← Event details</Link>
     </nav>
@@ -35,7 +36,7 @@ export function OrganizerStatisticsPage() {
   </main>;
 }
 
-function StatisticsError({ error, reload }: { error: unknown; reload: () => void }) {
+export function StatisticsError({ error, reload }: { error: unknown; reload: () => void }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

@@ -34,7 +34,7 @@ public class CheckInController {
         this.lifecycle = lifecycle;
     }
 
-    public record AssignedEvent(UUID id, String title, Instant startsAt, Instant endsAt) { }
+    public record AssignedEvent(UUID id, String title, Instant startsAt, Instant endsAt, String status) { }
     public record Verification(UUID ticketId, UUID bookingId, UUID eventId, String status, Instant checkedInAt) { }
     public record CheckInRecord(UUID ticketId, UUID bookingId, UUID operatorId, Instant checkedInAt) { }
     public record TicketCode(String code) { }
@@ -43,11 +43,11 @@ public class CheckInController {
     @PreAuthorize("hasRole('STAFF')")
     public List<AssignedEvent> assigned(@AuthenticationPrincipal Jwt jwt) {
         return db.query("""
-                SELECT e.id, e.title, e.starts_at, e.ends_at FROM events e
+                SELECT e.id, e.title, e.starts_at, e.ends_at, e.status FROM events e
                 JOIN event_staff_assignments a ON a.event_id = e.id
                 WHERE a.staff_id = ? ORDER BY e.starts_at DESC
                 """, (rs, n) -> new AssignedEvent(rs.getObject(1, UUID.class), rs.getString(2),
-                rs.getTimestamp(3).toInstant(), rs.getTimestamp(4).toInstant()), actor(jwt));
+                rs.getTimestamp(3).toInstant(), rs.getTimestamp(4).toInstant(), rs.getString(5)), actor(jwt));
     }
 
     public record StaffMember(UUID id, String username, boolean eligible, boolean assigned) { }
@@ -78,7 +78,10 @@ public class CheckInController {
     @Transactional
     public void assign(@AuthenticationPrincipal Jwt jwt, @PathVariable("eventId") UUID eventId, @PathVariable("staffId") UUID staffId) {
         var event = events.lockOwnedEvent(eventId, actor(jwt));
-        if (db.queryForObject("SELECT COUNT(*) FROM user_roles r JOIN users u ON u.id=r.user_id WHERE r.user_id = ? AND r.role_code = 'STAFF' AND u.status='ACTIVE'", Integer.class, staffId) == 0) {
+        Integer eligibleStaff = db.queryForObject(
+                "SELECT COUNT(*) FROM user_roles r JOIN users u ON u.id=r.user_id WHERE r.user_id = ? AND r.role_code = 'STAFF' AND u.status='ACTIVE'",
+                Integer.class, staffId);
+        if (eligibleStaff == null || eligibleStaff == 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is not STAFF");
         }
         int changed = db.update("INSERT INTO event_staff_assignments(event_id,staff_id) VALUES (?,?) ON CONFLICT DO NOTHING", eventId, staffId);

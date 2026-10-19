@@ -220,3 +220,30 @@ API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×
 - GET /api/v1/staff/events/{eventId}/assignments：活动所有者查询目录及当前分配；PUT/DELETE /api/v1/staff/events/{eventId}/assignments/{staffId} 返回204。
 - 验票与核销窗口：[startsAt−15min, min(startsAt+15min, endsAt))，后端为最终判断依据。
 - 业务验证与演示步骤见 [Sprint 4 演示脚本](sprint-4-demo.zh-CN.md)。
+
+
+## 2026-10-19 权限撤销与活动编辑边界修复
+
+- JWT仍检查签名、issuer和有效期；Bearer认证同时读取当前有效账号的角色，权限取token与数据库的交集。角色撤销对后续请求立即生效，新增角色仍需重新登录；保留角色不受影响。停用、锁定或不存在的账号返回401，被撤销角色的受保护操作返回403。
+- `PUT /api/v1/admin/users/{id}/roles`在数据库事务内串行检查角色变更，禁止移除最后一个有效ADMIN，返回409并提示先设置另一管理员。停用管理员不计入有效数量。
+- 已结束的PUBLISHED活动不能编辑，返回409并提示Copy to new draft；已开始但未结束的活动不能改start/end，仍可改地点等非时间信息；未开始活动不能改为当前或过去开始。判断基于修改前的安排和服务端时间，边界包含开始/结束时刻。
+- 复制操作保留配置、使用新活动ID和独立库存，不复制订单、已出票券、签到历史；原活动保留审计。不需要新迁移。
+
+
+## 2026-10-19：检索、用户分页与票种报表
+
+所有page从0开始，默认size=10，允许1–50；无效页码/大小或倒置日期返回400。from/to为YYYY-MM-DD，筛选SGT活动开始日，to含当天。
+
+| 接口 | 权限与查询 | 返回 |
+|---|---|---|
+| GET `/api/v1/events` | 匿名；keyword标题、location地点、status=ALL/UPCOMING/ONGOING/ENDED、from/to、page/size；仅PUBLISHED | 现有分页结构；阶段按查询时刻派生 |
+| GET `/api/v1/admin/users` | ADMIN；keyword匹配用户名或邮箱、page/size | **由数组改为** `{items,page,size,totalElements,totalPages}` |
+| GET `/api/v1/admin/users/summary` | ADMIN | `{total,organizers,staff}`；全局账号数，多角色可重复计入角色分项 |
+| GET `/api/v1/organizer/reports` | ORGANIZER/ADMIN；仅JWT主体创建的活动 | 分页票种行及全匹配集totals |
+| GET `/api/v1/admin/reports` | 仅ADMIN；全部组织者活动 | 同上 |
+
+报表查询参数：eventId（可选）、keyword（活动标题）、ticketType（票种名）、bookingStatus=ALL/CONFIRMED/CANCELLED、from/to、page/size。名字匹配忽略大小写、按字面包含，不将%或_作为通配符。
+
+报表每行含活动ID/标题/发布状态/时间、票种ID/名称、quota、available、confirmed、cancelled、checkedIn。totals为confirmed/cancelled/checkedIn，按所有匹配行统计，不局限当前页；库存数字不受订单状态筛选影响。已取消活动仍可报告；VOID和已取消订单不计当前有效签到。未配置票种的活动不进入此表，原单活动统计接口保留。
+
+Staff `/api/v1/staff/events`新增status字段；已取消活动保留分配和历史，但客户端禁用入场。前端每30秒、聚焦/恢复可见时刷新；验票、扫描、签到期间暂停自动刷新。后端仍在每次操作时校验权限和时间窗口。

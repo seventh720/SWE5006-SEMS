@@ -7,9 +7,11 @@ const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const pad = (value: number) => String(value).padStart(2, "0");
 
 /** App-rendered English calendar, independent of the browser's native picker locale. */
-export function DateTimeField({ name, label, value, onChange, error, required = true, after, before, atOrBefore }: {
-  name: string; label: string; value: string; onChange: (value: string) => void; error?: string; required?: boolean; after?: string; before?: string; atOrBefore?: string;
+export function DateTimeField({ name, label, value: inputValue, onChange, error, required = true, after, before, atOrBefore, dateOnly = false }: {
+  dateOnly?: boolean; name: string; label: string; value: string; onChange: (value: string) => void; error?: string; required?: boolean; after?: string; before?: string; atOrBefore?: string;
 }) {
+  const value = dateOnly && inputValue ? `${inputValue}T00:00` : inputValue;
+  const emitValue = (next: string) => onChange(dateOnly ? next.slice(0, 10) : next);
   const minimum = after && validSingaporeInput(after)
     ? new Date(new Date(`${after}:00Z`).getTime() + 60000).toISOString().slice(0, 16) : "";
   const maximum = before && validSingaporeInput(before)
@@ -59,13 +61,18 @@ export function DateTimeField({ name, label, value, onChange, error, required = 
   return <div ref={field} data-picker={name} className="date-time-field"
     onBlur={(event) => { if (event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <label htmlFor={name}>{label}</label>
-    <div className="date-time-controls">
-      <input id={name} type="text" placeholder="YYYY-MM-DD HH:mm" maxLength={16} required={required}
-        pattern="[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}"
-        value={value.replace("T", " ")} onChange={(event) => onChange(event.target.value.replace(" ", "T"))}
-        aria-invalid={!!fieldError} aria-describedby={`event-time-zone${fieldError ? ` ${name}-error` : ""}`} />
+    <div className={`date-time-controls${dateOnly ? " date-only-controls" : ""}`}>
+      <input id={name} type="text" placeholder={dateOnly ? "YYYY-MM-DD" : "YYYY-MM-DD HH:mm"} maxLength={dateOnly ? 10 : 16} required={required}
+        pattern={dateOnly ? "[0-9]{4}-[0-9]{2}-[0-9]{2}" : "[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}"}
+        value={dateOnly ? inputValue : value.replace("T", " ")} onChange={(event) => onChange(dateOnly ? event.target.value : event.target.value.replace(" ", "T"))}
+        aria-invalid={!!fieldError} aria-describedby={[!dateOnly && "event-time-zone", fieldError && `${name}-error`].filter(Boolean).join(" ") || undefined} />
       <button ref={trigger} type="button" className="secondary-button" aria-label={`Choose ${label.toLowerCase()}`}
-        aria-expanded={open} aria-controls={`${name}-calendar`} onClick={() => open ? close() : show()}>Calendar</button>
+        aria-expanded={open} aria-controls={`${name}-calendar`} onClick={() => open ? close() : show()}>
+        {dateOnly ? <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M16 3v4M8 3v4M3 11h18" />
+        </svg> : "Calendar"}
+      </button>
     </div>
     {open && <section id={`${name}-calendar`} className="english-calendar" aria-label={`${label} calendar`} lang="en"
       onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); } }}>
@@ -87,14 +94,14 @@ export function DateTimeField({ name, label, value, onChange, error, required = 
             || (!!maximum && format({ ...date, day }).slice(0, 10) > maximum.slice(0, 10))}
           onClick={() => selectDate({ ...date, day })}>{day}</button>)}
       </div>
-      <div className="calendar-time">
+      {!dateOnly && <div className="calendar-time">
         <Select label="Hour" value={String(date.hour)} options={Array.from({ length: 24 }, (_, value) => ({ value: String(value), label: pad(value) })).filter((option) => Number(option.value) >= minimumHour && Number(option.value) <= maximumHour)}
           onChange={(value) => selectDate({ ...date, hour: Number(value) })} />
         <Select label="Minute" value={String(date.minute)} options={Array.from({ length: 60 }, (_, value) => ({ value: String(value), label: pad(value) })).filter((option) => Number(option.value) >= minimumMinute && Number(option.value) <= maximumMinute)}
           onChange={(value) => selectDate({ ...date, minute: Number(value) })} /><span>SGT · 24-hour</span>
-      </div>
+      </div>}
       <div className="button-row"><button type="button" className="primary-button compact" disabled={!inRange(format(date))} onClick={() => {
-        onChange(format(date)); close();
+        emitValue(format(date)); close();
       }}>Apply</button><button type="button" className="secondary-button" onClick={close}>Cancel</button></div>
     </section>}
     {fieldError && <span className="field-error" id={`${name}-error`}>{fieldError}</span>}

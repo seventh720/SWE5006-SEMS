@@ -43,3 +43,42 @@ it('disables check-in exactly 15 minutes after the event starts', async () => {
  await act(async()=>vi.advanceTimersByTime(1000));
  expect((screen.getByLabelText('Or enter a ticket code') as HTMLInputElement).disabled).toBe(true);
 });
+
+it('refreshes removed assignments and discards the verified ticket', async () => {
+ const event = {id:'event',title:'Event',startsAt:new Date().toISOString(),endsAt:new Date(Date.now()+3600000).toISOString()};
+ let assigned = [event];
+ api.mockImplementation((path:string) => Promise.resolve(path.endsWith('/events') ? assigned : path.endsWith('/verify') ? {ticketId:'ticket', status:'VALID'} : []));
+ render(<MemoryRouter><StaffPage /></MemoryRouter>);
+ fireEvent.click(await screen.findByRole('combobox', {name:'Choose event'}));
+ fireEvent.click(screen.getByRole('option', {name:'Event'}));
+ await act(async()=>{});
+ fireEvent.change(screen.getByLabelText('Or enter a ticket code'),{target:{value:'ticket'}});
+ fireEvent.click(screen.getByRole('button',{name:'Verify ticket'}));
+ await screen.findByRole('button',{name:'Confirm check-in'});
+ assigned = [];
+ fireEvent.click(screen.getByRole('button',{name:'Refresh workspace'}));
+ await screen.findByText('Your assignment has been removed. Select another event.');
+ expect(screen.queryByRole('button',{name:'Confirm check-in'})).toBeNull();
+ expect((screen.getByRole('button',{name:'Open scanner'}) as HTMLButtonElement).disabled).toBe(true);
+});
+
+it('focus refresh detects cancelled events and disables admission', async () => {
+ const event = {id:'event',title:'Event',status:'PUBLISHED',startsAt:new Date().toISOString(),endsAt:new Date(Date.now()+3600000).toISOString()};
+ api.mockImplementation((path:string) => Promise.resolve(path.endsWith('/events') ? [{...event}] : []));
+ render(<MemoryRouter><StaffPage /></MemoryRouter>);
+ fireEvent.click(await screen.findByRole('combobox', {name:'Choose event'}));
+ fireEvent.click(screen.getByRole('option', {name:'Event'}));
+ await act(async()=>{});
+ event.status = 'CANCELLED';
+ fireEvent.focus(window);
+ await screen.findByText('CANCELLED');
+ expect((screen.getByRole('button',{name:'Open scanner'}) as HTMLButtonElement).disabled).toBe(true);
+});
+
+it('shows session recovery and stops admission after an expired refresh', async () => {
+ api.mockRejectedValue(Object.assign(new Error('Session expired'), {status:401}));
+ render(<MemoryRouter><StaffPage /></MemoryRouter>);
+ await screen.findByRole('button',{name:'Sign in again'});
+ expect(screen.getByRole('alert').textContent).toContain('Session expired');
+ expect((screen.getByRole('button',{name:'Open scanner'}) as HTMLButtonElement).disabled).toBe(true);
+});

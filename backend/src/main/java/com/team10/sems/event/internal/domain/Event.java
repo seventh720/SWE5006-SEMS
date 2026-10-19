@@ -118,10 +118,25 @@ public class Event {
     }
 
     public void editDetails(String title, String description, String location,
-            Instant startsAt, Instant endsAt, int capacity, long expectedVersion) {
+            Instant startsAt, Instant endsAt, int capacity, long expectedVersion, Instant now) {
         if ("CANCELLED".equals(status) || version != expectedVersion) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This event has changed or is cancelled. Reload before editing.");
+        }
+        if ("PUBLISHED".equals(status)) {
+            if (!this.endsAt.isAfter(now)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Ended events cannot be edited. Use Copy to new draft for a new event.");
+            }
+            if (!this.startsAt.isAfter(now)
+                    && (!this.startsAt.equals(startsAt) || !this.endsAt.equals(endsAt))) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "The schedule cannot change after this event has started. Use Copy to new draft for a new event.");
+            }
+            if (this.startsAt.isAfter(now) && !startsAt.isAfter(now)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "A future event must keep a future start time.");
+            }
         }
         assign(title, description, location, startsAt, endsAt, capacity);
     }

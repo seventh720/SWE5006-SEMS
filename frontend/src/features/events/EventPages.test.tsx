@@ -48,3 +48,17 @@ it("ignores a late old response after a new search", async () => {
   await act(async () => { resolveOld(response({ items: [event], totalElements: 1, totalPages: 1, page: 0, size: 10 })); });
   expect(screen.queryByRole("link", { name: "Open Day" })).toBeNull();
 });
+it("combines location, date and phase filters and retains them on the next page", async () => {
+  fetchMock.mockImplementation(async () => response({ items: [{ ...event, startsAt: "2020-01-01T02:00:00Z", endsAt: "2020-01-01T04:00:00Z" }], totalPages: 2, totalElements: 11 }));
+  mount(); await screen.findByRole("link", { name: "Open Day" });
+  fireEvent.change(screen.getByLabelText("Location"), { target: { value: "Singapore" } });
+  fireEvent.change(screen.getByLabelText("From date (SGT)"), { target: { value: "2020-01-01" } });
+  fireEvent.click(screen.getByRole("combobox", { name: "Event status" }));
+  fireEvent.click(screen.getByRole("option", { name: "Ended" }));
+  fireEvent.click(screen.getByRole("button", { name: "Search events" }));
+  await screen.findByRole("link", { name: "Open Day" });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("Page 2 of 2");
+  const query = new URL(String(fetchMock.mock.calls.at(-1)![0]), "http://test").searchParams;
+  expect(Object.fromEntries(query)).toMatchObject({ location: "Singapore", from: "2020-01-01", status: "ENDED", page: "1" });
+});

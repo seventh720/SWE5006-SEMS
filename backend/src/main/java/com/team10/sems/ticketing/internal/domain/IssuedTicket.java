@@ -4,8 +4,6 @@ import com.team10.sems.ticketing.TicketView;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 @Entity
 @Table(name = "issued_tickets")
@@ -26,23 +24,31 @@ public class IssuedTicket {
         ticket.bookingId = bookingId;
         ticket.eventId = eventId;
         ticket.ordinal = ordinal;
-        ticket.status = "VALID";
+        ticket.status = ValidTicketState.INSTANCE.code();
         return ticket;
     }
 
     public void checkIn(Instant now) {
-        if (!"VALID".equals(status)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ticket has already been used or voided");
-        }
-        status = "CHECKED_IN";
-        checkedInAt = now;
+        currentState().checkIn(this, now);
     }
 
     public void voidTicket(Instant now) {
-        if (!"VOID".equals(status)) {
-            status = "VOID";
-            voidedAt = now;
-        }
+        currentState().voidTicket(this, now);
+    }
+
+    private TicketState currentState() {
+        // Resolve from the persisted discriminator, including after a fresh JPA load.
+        return TicketState.fromCode(status);
+    }
+
+    void markCheckedIn(Instant now) {
+        status = CheckedInTicketState.INSTANCE.code();
+        checkedInAt = now;
+    }
+
+    void markVoided(Instant now) {
+        status = VoidTicketState.INSTANCE.code();
+        voidedAt = now;
     }
 
     public boolean hasBeenUsed() { return checkedInAt != null; }

@@ -1,5 +1,6 @@
 package com.team10.sems.ticketing;
 
+import java.time.Clock;
 import com.team10.sems.booking.BookingAccessService;
 import com.team10.sems.ticketing.internal.domain.IssuedTicket;
 import com.team10.sems.ticketing.internal.persistence.IssuedTicketRepository;
@@ -18,11 +19,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional
 public class TicketLifecycleService {
-    private final java.time.Clock clock;
+    private final Clock clock;
     private final BookingAccessService bookings;
     private final IssuedTicketRepository tickets;
 
-    public TicketLifecycleService(BookingAccessService bookings, IssuedTicketRepository tickets, java.time.Clock clock) {
+    public TicketLifecycleService(BookingAccessService bookings, IssuedTicketRepository tickets, Clock clock) {
         this.clock = clock;
         this.bookings = bookings;
         this.tickets = tickets;

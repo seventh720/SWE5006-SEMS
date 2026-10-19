@@ -43,6 +43,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class BookingIntegrationTest {
     @Container @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+    @Autowired com.team10.sems.ticketing.internal.persistence.IssuedTicketRepository issuedTickets;
+    @Autowired org.springframework.context.ApplicationEventPublisher publisher;
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper mapper;
@@ -272,6 +274,7 @@ class BookingIntegrationTest {
         String id = json(book(attendee, "notify-once", 1).andExpect(status().isCreated())).get("id").asText();
         book(attendee, "notify-once", 1).andExpect(status().isOk());
         assertEquals(1, notificationCount("BOOKING_CONFIRMED"));
+        assertEquals(1, ticketCount("VALID"));
         var list = json(mvc.perform(get("/api/v1/notifications").with(as(attendee, "ATTENDEE")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.unreadCount").value(1)));
         String notificationId = list.get("items").get(0).get("id").asText();
@@ -287,6 +290,7 @@ class BookingIntegrationTest {
         cancel(id, attendee).andExpect(status().isOk());
         cancel(id, attendee).andExpect(status().isOk());
         assertEquals(1, notificationCount("BOOKING_CANCELLED"));
+        assertEquals(1, ticketCount("VOID"));
         mvc.perform(get("/api/v1/notifications?page=0&size=1").with(as(attendee, "ATTENDEE")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalPages").value(2)).andExpect(jsonPath("$.unreadCount").value(1));
         mvc.perform(get("/api/v1/notifications?page=-1").with(as(attendee, "ATTENDEE"))).andExpect(status().isBadRequest());
@@ -856,6 +860,78 @@ class BookingIntegrationTest {
                 .content(mapper.writeValueAsString(input))).andExpect(status().isBadRequest());
     }
 
+    private UUID checkedInOrder() throws Exception {
+        UUID booking = UUID.fromString(confirmed(2));
+        UUID issued = lifecycle.issue(event, booking).getFirst().id();
+        jdbc.update("INSERT INTO user_roles(user_id,role_code) VALUES (?, 'STAFF')", other);
+        jdbc.update("INSERT INTO event_staff_assignments(event_id,staff_id) VALUES (?,?)", event, other);
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(java.time.Instant.parse("2030-01-01T10:00:00Z"));
+        mvc.perform(post("/api/v1/staff/events/" + event + "/check-ins").with(as(other, "STAFF"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of("code", issued))))
+                .andExpect(status().isOk());
+        return booking;
+    }
+
+    private java.util.Map<String, Object> eventEdit(String start, String end) {
+        return new java.util.HashMap<>(java.util.Map.of("title", "Workshop", "description", "Description",
+                "location", "New venue", "startsAt", start, "endsAt", end, "capacity", 10, "version", 0));
+    }
+
+    @Test
+    void endedEventCannotBeReopenedAndCopyHasIndependentInventoryAndHistory() throws Exception {
+        UUID booking = checkedInOrder();
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(java.time.Instant.parse("2030-01-01T12:00:00Z"));
+        var input = eventEdit("2031-01-01T10:00:00Z", "2031-01-01T12:00:00Z");
+        mvc.perform(put("/api/v1/organizer/events/" + event).with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.detail").value(
+                        "Ended events cannot be edited. Use Copy to new draft for a new event."));
+        assertEquals(0, notificationCount("EVENT_UPDATED"));
+        assertEquals(2, inventory());
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM ticket_check_in_records WHERE booking_id=?", Integer.class, booking));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM issued_tickets WHERE booking_id=? AND status='CHECKED_IN'", Integer.class, booking));
+        assertEquals("CONFIRMED", jdbc.queryForObject("SELECT status FROM bookings WHERE id=?", String.class, booking));
+        assertEquals(0L, jdbc.queryForObject("SELECT version FROM events WHERE id=?", Long.class, event));
+        JsonNode copy = json(mvc.perform(post("/api/v1/organizer/events/" + event + "/copy").with(as(owner, "ORGANIZER")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.status").value("DRAFT")));
+        UUID copyId = UUID.fromString(copy.get("id").asText());
+        assertNotEquals(event, copyId);
+        assertEquals(0, jdbc.queryForObject("SELECT sum(booked_quantity) FROM ticket_types WHERE event_id=?", Integer.class, copyId));
+        assertEquals(10, jdbc.queryForObject("SELECT sum(quota) FROM ticket_types WHERE event_id=?", Integer.class, copyId));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM bookings WHERE event_id=?", Integer.class, copyId));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM issued_tickets WHERE event_id=?", Integer.class, copyId));
+        input.put("version", copy.get("version").asLong());
+        JsonNode edited = json(mvc.perform(put("/api/v1/organizer/events/" + copyId).with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input))).andExpect(status().isOk()));
+        mvc.perform(post("/api/v1/organizer/events/" + copyId + "/publish").with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of("version", edited.get("version").asLong()))))
+                .andExpect(status().isOk());
+        assertEquals(java.time.Instant.parse("2030-01-01T10:00:00Z"),
+                Objects.requireNonNull(
+                        jdbc.queryForObject("SELECT starts_at FROM events WHERE id=?", java.sql.Timestamp.class, event),
+                        "The original event must retain its start time").toInstant());
+        assertEquals(2, inventory());
+    }
+
+    @Test
+    void startedEventWithCheckInRejectsScheduleChangesButAllowsVenueUpdate() throws Exception {
+        checkedInOrder();
+        for (var input : java.util.List.of(
+                eventEdit("2031-01-01T10:00:00Z", "2031-01-01T12:00:00Z"),
+                eventEdit("2030-01-01T10:00:00Z", "2030-01-01T13:00:00Z"))) {
+            mvc.perform(put("/api/v1/organizer/events/" + event).with(as(owner, "ORGANIZER"))
+                    .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(input)))
+                    .andExpect(status().isConflict());
+        }
+        assertEquals(0, notificationCount("EVENT_UPDATED"));
+        mvc.perform(put("/api/v1/organizer/events/" + event).with(as(owner, "ORGANIZER"))
+                .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(
+                        eventEdit("2030-01-01T10:00:00Z", "2030-01-01T12:00:00Z"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.location").value("New venue"));
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM ticket_check_in_records WHERE event_id=?", Integer.class, event));
+        assertEquals(2, inventory());
+    }
+
     private ResultActions preRegister(UUID user, int quantity, java.util.Map<String, String> info) throws Exception {
         return mvc.perform(put("/api/v1/pre-registrations/" + event).with(as(user, "ATTENDEE"))
                 .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of(
@@ -1056,4 +1132,69 @@ class BookingIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.checkedInTickets").value(0))
                 .andExpect(jsonPath("$.cancelledTickets").value(1));
     }
+    @Test
+    void notificationFailureRollsBackConfirmationAndAllowsSameKeyRetry() throws Exception {
+        jdbc.execute("ALTER TABLE notifications ADD CONSTRAINT test_block_notification CHECK (type <> 'BOOKING_CONFIRMED') NOT VALID");
+        try {
+            assertThrows(Exception.class, () -> book(attendee, "observer-retry", 2));
+            assertEquals(0, count("CONFIRMED"));
+            assertEquals(0, inventory());
+            assertEquals(0, ticketCount("VALID"));
+            assertEquals(0, notificationCount("BOOKING_CONFIRMED"));
+        } finally { jdbc.execute("ALTER TABLE notifications DROP CONSTRAINT test_block_notification"); }
+        book(attendee, "observer-retry", 2).andExpect(status().isCreated());
+        book(attendee, "observer-retry", 2).andExpect(status().isOk());
+        assertEquals(1, count("CONFIRMED"));
+        assertEquals(2, inventory());
+        assertEquals(2, ticketCount("VALID"));
+        assertEquals(1, notificationCount("BOOKING_CONFIRMED"));
+    }
+
+    @Test
+    void notificationFailureRollsBackCancellationIncludingTicketStates() throws Exception {
+        String bookingId = confirmed(2);
+        jdbc.execute("ALTER TABLE notifications ADD CONSTRAINT test_block_cancel_notification CHECK (type <> 'BOOKING_CANCELLED') NOT VALID");
+        try {
+            assertThrows(Exception.class, () -> cancel(bookingId, attendee));
+            assertEquals(1, count("CONFIRMED"));
+            assertEquals(2, inventory());
+            assertEquals(2, ticketCount("VALID"));
+            assertEquals(0, ticketCount("VOID"));
+            assertEquals(0, notificationCount("BOOKING_CANCELLED"));
+        } finally { jdbc.execute("ALTER TABLE notifications DROP CONSTRAINT test_block_cancel_notification"); }
+        cancel(bookingId, attendee).andExpect(status().isOk());
+        assertEquals(2, ticketCount("VOID"));
+        assertEquals(0, inventory());
+        assertEquals(1, notificationCount("BOOKING_CANCELLED"));
+    }
+
+    @Test
+    void bookingObserversRequireThePublishersTransaction() {
+        assertThrows(org.springframework.transaction.IllegalTransactionStateException.class,
+                () -> publisher.publishEvent(new com.team10.sems.booking.BookingConfirmed(UUID.randomUUID(), event)));
+        assertEquals(0, ticketCount("VALID"));
+        assertEquals(0, notificationCount("BOOKING_CONFIRMED"));
+    }
+
+    @Test
+    void persistedTicketStateRestoresBehaviourAndRetainsHistoryAcrossTransactions() throws Exception {
+        UUID bookingId = UUID.fromString(confirmed(1));
+        UUID ticketId = lifecycle.ownedTickets(bookingId, attendee).getFirst().id();
+        org.mockito.Mockito.when(notificationClock.instant()).thenReturn(java.time.Instant.parse("2026-10-27T02:30:00Z"));
+        var checked = lifecycle.checkIn(event, bookingId, ticketId);
+        // Each execute uses a fresh persistence context: no in-memory state object is retained.
+        var tx = new TransactionTemplate(transactions);
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> tx.executeWithoutResult(status ->
+                issuedTickets.findById(ticketId).orElseThrow().checkIn(java.time.Instant.now())));
+        cancelEvent().andExpect(status().isOk());
+        var voided = Objects.requireNonNull(tx.execute(status -> issuedTickets.findById(ticketId).orElseThrow().toView()));
+        assertEquals("VOID", voided.status());
+        assertEquals(checked.checkedInAt(), voided.checkedInAt());
+        assertNotNull(voided.voidedAt());
+        tx.executeWithoutResult(status -> issuedTickets.findById(ticketId).orElseThrow().voidTicket(voided.voidedAt().plusSeconds(60)));
+        assertEquals(voided, tx.execute(status -> issuedTickets.findById(ticketId).orElseThrow().toView()));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> tx.executeWithoutResult(status ->
+                issuedTickets.findById(ticketId).orElseThrow().checkIn(java.time.Instant.now())));
+    }
+
 }

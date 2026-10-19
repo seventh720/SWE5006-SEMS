@@ -1,5 +1,68 @@
 # 测试与覆盖情况
 
+## 2026-10-19 报名资料校验Strategy
+
+完整后端`clean verify`通过：**208项，0失败、0错误、0跳过**；真实PostgreSQL/Testcontainers，日志`/tmp/sems-strategy-backend.log`。本轮无前端或数据库迁移。
+
+- 新增8组非法格式/长度用例，验证文本、邮箱、电话策略与HTTP Bean Validation一致。
+- 新增国际姓名、带标签邮箱、电话和文本最大长度接受用例，以及直接调用BookingService时错误邮箱不会占库存/写订单的用例。
+- 原必填与禁止额外个人资料测试保留；普通预订、预登记、Observer、State及并发回归全部通过。
+- `getReason()`可空警告通过`Objects.requireNonNull`断言错误原因必须存在后再检查内容解决；未屏蔽编译器警告。
+- 策略结构及准确演示方式见[准备评审第12节](presentation-readiness-2026-10-19.zh-CN.md)。
+
+
+## 2026-10-19 Observer与State保障
+
+执行 `env -u DEBUG RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml clean verify -q`，后端 **198项通过，0失败、0错误、0跳过**，构建成功；真实PostgreSQL/Testcontainers。日志：`/tmp/sems-patterns-backend.log`。本轮无前端修改，未重复前端回归。
+
+- 新增6项票券领域测试：VALID签到、VALID/已签到票作废、重复作废保留首次时间、已使用/作废票拒绝签到且不改历史。
+- 新增4项集成测试：确认通知失败整体回滚且同键可重试；取消通知失败保持原订单/库存/票状态；Observer必须加入发布者事务；新事务中重新加载CHECKED_IN/VOID后行为正确。
+- 加强既有幂等通知用例，同时检查自动出票和作废结果；原有出票失败回滚、个人取消已签到订单拒绝、并发签到、取消竞态、HTTP授权/时段/审计用例全部通过。
+- State重构不新增数据库状态、不改API；Observer保持进程内同步、事务内监听。代码、类图与演示脚本见[准备评审第11节](presentation-readiness-2026-10-19.zh-CN.md)。
+
+
+## 2026-10-19 搜索、分页、Staff刷新与报表
+
+- 后端完整188项，0失败、0错误、0跳过：真实PostgreSQL/Testcontainers；`RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml verify -q`。日志`/tmp/sems-report-backend.log`。
+- 前端235项通过，类型检查与生产构建通过。日志`/tmp/sems-report-frontend.log`、`/tmp/sems-report-build.log`。
+- 新增用例验证用户姓名/邮箱大小写和字面检索、分页/全局账号计数、活动阶段/地点/SGT日期、报表所有者和ADMIN权限、状态过滤、跨页总计、签到聚合不放大订单数量；组件测试覆盖筛选翻页和Staff失效资料处理。
+- Chrome独立测试环境实测：13用户分页/邮箱检索；全平台14票种/42确认票，本人12票种/36确认票；翻页汇总一致；地点与Ended组合筛选；Staff手动刷新。浏览器验收为人工操作，不冒称自动化E2E。
+- 用户列表响应由数组变为分页对象，Dashboard改用独立summary接口；部署需同步前后端。无需新增数据库迁移。
+
+
+## 2026-10-19 优先缺陷修复回归
+
+用户要求的F1–F3已修复。执行 `env -u DEBUG RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml clean verify -q`，后端 **183项通过，0失败、0错误、0跳过**。真实PostgreSQL/Testcontainers，新增11项（管理员并发用例重复3次计3项）。日志：`/tmp/sems-priority-fixes-1019/backend.log`。
+
+- 真实签名JWT：撤销ADMIN后旧token的查询和提权写入均403；保留ATTENDEE继续访问本人订单；ORGANIZER/STAFF降权同样生效；新增角色仍需新token；停用/锁定/删除账号和非法subject返回401。
+- 最后有效管理员：移除返回409；停用管理员不计入保底数量；保留ADMIN并增添角色仍成功。两名管理员持各自真实token并发自降权，均一项成功、一项409，最终1名有效管理员。
+- 活动：精确开始/结束边界；未来活动正常改期但禁止倒填到当前/过去；开始后冻结start/end，地点更新仍允许；结束后拒绝修改。
+- 历史完整性：真实HTTP签到后再尝试改期，订单/库存/票券/签到记录不变、无错误通知；复制已结束活动可设新时间并发布，新活动库存独立且无原订单/票券。
+
+本轮业务修改仅在后端，未改前端行为，也未重复前端测试。前端224项及构建结果见上一轮记录。无新增数据库迁移，尚未提交/推送/部署；当前运行服务需更新构建后生效。
+
+
+## 2026-10-19 presentation准备评审
+
+基线：victor的d922107加本轮请求Hook/import及日志整理；未查询远端CI或部署。
+
+| 最终检查 | 本轮结果 |
+|---|---|
+| 后端 `env -u DEBUG RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml clean verify -q` | 172项，0失败、0错误、0跳过；真实PostgreSQL/Testcontainers |
+| 后端完整行覆盖率 | 1185/1260，94.05% |
+| 后端完整分支覆盖率 | 361/452，79.87% |
+| 前端 `npm --prefix frontend run test:coverage` | 224项，30文件，全部通过 |
+| 前端行/分支覆盖率 | 92.37% / 82.28% |
+| 前端 `npm --prefix frontend run build` | TypeScript与生产构建通过 |
+| `git diff --check` | 通过 |
+
+测试日志在`/tmp/sems-pre-review-1019/`。最初后端执行被沙箱限制访问Docker，授权后通过；提取Hook时遗漏页面仍用到的useEffect import，检查发现后已修正，最终全部重跑通过。最终测试去除继承的DEBUG环境变量，配合测试日志级别使输出从21099行降至109行，DEBUG行从7108降为0，保留警告及错误。
+
+临时源码副本另执行2项真实数据库探针，复现：角色撤销后旧JWT仍有ADMIN权限、最后ADMIN可移除自身角色、已结束活动可改到未来。探针成功只代表复现，不代表修复；未把这些观察断言加入正常产品测试。修复验收要求见[演示准备评审](presentation-readiness-2026-10-19.zh-CN.md)。
+
+本轮浏览器实际检查了Staff活动选择和时段禁用、组织者编辑入口及401提示、公开标题搜索和已结束活动详情。未再次执行完整出票核销链、真机摄像头或线上部署；完整链路历史记录见下文。
+
+
 ## 2026-10-19 Sprint 4 功能收尾
 
 - 后端完整回归：172项通过，0失败、0错误、0跳过，真实PostgreSQL/Testcontainers。最终执行于 /tmp/sems-s4-final-backend 的当前源码副本，避免 IDE 增量编译干扰仓库 target。
@@ -75,7 +138,7 @@
 4. **身份与初始化**：启用 bootstrap 时新建管理员、给已有用户授予 ADMIN、重复启动不重复创建；并发相同邮箱冲突、停用账号登录拒绝。当前 bootstrap 有8行未覆盖，identity 分支覆盖低于订单模块。
 5. **持续集成可重复性**：前端覆盖率报告已接入CI；真实浏览器验收脚本目前位于本地临时目录，未纳入仓库或 CI。后续应将核心端到端流程转成可重复执行的测试。
 
-并发功能测试不是压力测试。跨浏览器、实体手机、大规模负载、数据库备份恢复仍留在 Sprint 5 验收。支付、出票、签到、通知和报表尚未实现，不能算作已覆盖。
+并发功能测试不是压力测试。跨浏览器、实体手机、大规模负载、数据库备份恢复仍留在 Sprint 5 验收。该段为10月9日历史缺口：当时支付、出票、签到、通知和报表尚未实现。出票、签到、通知和基础统计的最新状态见本文顶部；支付仍不在当前范围。
 
 ## 如何运行
 

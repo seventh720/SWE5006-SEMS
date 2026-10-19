@@ -1,3 +1,4 @@
+import { EventPhase } from "./EventPhase";
 import { Select } from "../../shared/components/Select";
 import { EventArtwork, illustrations } from "./EventArtwork";
 import { type FormEvent, useEffect, useState } from "react";
@@ -5,6 +6,7 @@ import { Link, Navigate, Outlet, useLocation, useNavigate, useParams, useSearchP
 import { apiRequest, ApiError } from "../../shared/api/client";
 import { useAuth } from "../auth/AuthContext";
 import { formatEventTime, readEventQuery } from "./events";
+import { useManagementRequest } from "./useManagementRequest";
 import { DateTimeField } from "./DateTimeField";
 import { validSingaporeInput, fromSingaporeInput, managementError, toSingaporeInput, type ManagedEvent, type ManagedPage } from "./drafts";
 
@@ -16,23 +18,6 @@ export function OrganizerRoute() {
   const { user } = useAuth();
   return user?.roles.some((role) => role === "ORGANIZER" || role === "ADMIN")
     ? <Outlet /> : <Navigate to="/" replace />;
-}
-
-export function useManagementRequest<T>(path: string) {
-  const { token } = useAuth();
-  const [attempt, setAttempt] = useState(0);
-  const [result, setResult] = useState<{ path: string; token: string; data?: T; error?: unknown } | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    setResult(null);
-    if (token) apiRequest<T>(path, { signal: controller.signal }, token)
-      .then((data) => { if (!controller.signal.aborted) setResult({ path, token, data }); })
-      .catch((error: unknown) => { if (!controller.signal.aborted) setResult({ path, token, error }); });
-    return () => controller.abort();
-  }, [path, token, attempt]);
-  const current = result?.path === path && result.token === token ? result : null;
-  return { data: current?.data, error: current?.error, loading: !current,
-    reload: () => { setResult(null); setAttempt((value) => value + 1); } };
 }
 
 export function ManagementError({ error }: { error: unknown }) {
@@ -62,7 +47,7 @@ export function MyEventsPage() {
       {request.data.items.length === 0 ? <section className="card event-feedback"><h2>{page ? "No events on this page" : "Your first event starts here"}</h2><p>Create a draft to start planning. Drafts are visible only to you.</p>
         {page > 0 && <button className="secondary-button" onClick={() => setParams({ page: "0" })}>Back to first page</button>}</section>
         : <div className="event-grid">{request.data.items.map((event) => <article className="card event-card" key={event.id}>
-          <span className={`event-status status-${event.status.toLowerCase()}`}>{event.status}</span>
+          <EventPhase startsAt={event.startsAt} endsAt={event.endsAt} status={event.status} />
           <h2><Link className="text-link" to={`/organizer/events/${event.id}`}>{event.title}</Link></h2>
           <p>{formatEventTime(event.startsAt)} · SGT</p><p>{event.location}</p>
           <Link className="text-link" to={`/organizer/events/${event.id}`}>{event.status === "DRAFT" ? "Edit draft →" : "View event →"}</Link>
