@@ -2,7 +2,7 @@
 
 [English README](../README.md) | [中文 README](../README.zh-CN.md) | [Delivery checklist](remaining-work.zh-CN.md)
 
-Verified business baseline on 20 October 2026 (SGT): `71082b8`, deployed successfully by [run 39295381246](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39295381246). Public URL: <https://swe5006.seventh720.com>. The running backend uses `SEMS_JWT_TTL=PT1H`.
+Verified business baseline on 20 October 2026 (SGT): `fce7f1f`, deployed successfully by [run 39301559757](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39301559757). Public URL: <https://swe5006.seventh720.com>. The running backend uses `SEMS_JWT_TTL=PT1H`.
 
 ## Release flow
 
@@ -12,6 +12,7 @@ Verified business baseline on 20 October 2026 (SGT): `71082b8`, deployed success
 4. `Deploy · Staging` consumes the same run's manifest, verifies the commit and image names, and sends committed deployment files to the host over SSH.
 5. The host serializes deployments, pulls images, creates and checks a PostgreSQL backup, runs Compose health checks, restarts frontend Nginx to refresh backend DNS, and checks public HTTPS endpoints.
 6. Only a successful deployment updates `current` and `deployed-sha`. Superseded main runs are skipped before deployment begins.
+7. After deployment, `Security · DAST Baseline` passively scans public HTTPS pages/APIs and uploads `dast-report`. High/Medium findings or scanner errors fail the workflow; Low/Informational findings remain visible. This post-deployment check does not automatically roll back containers or data. See the [DAST scope and results](dast.zh-CN.md).
 
 Implementation: [workflow](../.github/workflows/ci.yml), [runner script](../scripts/cd/remote-deploy.sh), [host script](../scripts/cd/deploy.sh), [manifest validation](../scripts/cd/validate-release.py).
 
@@ -33,7 +34,7 @@ Images currently allow anonymous pull from GHCR. If package visibility becomes p
 
 ### Reports and image verification
 
-Actions uploads lint, coverage, SAST, dependency/secret, and image scan/smoke reports. Release manifests are retained for 30 days; image security reports for 7 days. Preserve evidence needed for the presentation before artifacts expire.
+Actions uploads lint, coverage, SAST, dependency/secret, image scan/smoke, and post-deployment DAST reports. Release manifests are retained for 30 days; image security and DAST reports for 7 days. Preserve evidence needed for the presentation before artifacts expire.
 
 [Scoped Trivy exceptions](../scripts/security/trivyignore.yaml) have documented applicability checks and expiry dates. A passing scan does not mean every finding was absent. Image smoke tests verify registration, login, `expiresIn=3600`, public APIs and proxy headers; they are not DAST or a full browser acceptance test.
 
@@ -100,4 +101,4 @@ A failed update retains the backup and last successful version marker. Container
 4. Validate a backup by restoring it into a separate temporary database before planning a live restore. Listing the archive is only a readability check, not a recovery rehearsal.
 5. Recheck HTTPS, login and the affected business flow after recovery. Never use `down -v` on the real environment to upgrade or recover it.
 
-An actual isolated restore exercise, DAST, device testing and performance measurement remain on the [acceptance checklist](remaining-work.zh-CN.md). Do not label them complete based on the CI/CD success alone.
+Phone QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](acceptance/sprint4-2026-10-20/README.md). DAST header fixes passed an isolated HTTPS rescan and await deployment/cloud rescan through this change. An actual isolated restore exercise and performance measurement remain on the [acceptance checklist](remaining-work.zh-CN.md). Do not label them complete based on the CI/CD success alone.

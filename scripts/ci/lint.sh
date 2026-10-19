@@ -25,12 +25,13 @@ check actionlint docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
 # shellcheck disable=SC2317
 shell_syntax() {
     local script
-    for script in scripts/ci/lint.sh scripts/security/scan.sh scripts/cd/*.sh; do
+    for script in scripts/ci/lint.sh scripts/security/*.sh scripts/cd/*.sh; do
         bash -n "$script" || return
     done
 }
 check shell-syntax shell_syntax
 check release-validation python3 scripts/cd/test-release.py
+check dast-gate python3 -B scripts/security/test-dast-summary.py
 cat "$summary"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     cat "$summary" >> "$GITHUB_STEP_SUMMARY"

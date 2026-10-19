@@ -41,3 +41,6 @@ lint-reports/
 
 # Container scan and smoke-test artifacts
 image-reports/
+
+# Dynamic security scan reports
+dast-reports/

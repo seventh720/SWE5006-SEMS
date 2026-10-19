@@ -6,9 +6,9 @@ SWE5006 Team 10's event management and free-ticketing application, built with Re
 
 ## Delivery status
 
-Verified on **20 October 2026 (SGT)**: business baseline [`71082b8`](https://github.com/seventh720/SWE5006-SEMS/commit/71082b840ece4401515c1db9e3ac68d9a6f32e9e) passed [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39295381246) and is deployed over HTTPS. The backend's runtime JWT lifetime is `PT1H`.
+Verified on **20 October 2026 (SGT)**: business baseline [`fce7f1f`](https://github.com/seventh720/SWE5006-SEMS/commit/fce7f1f266fd2d7a13804a4d27f9f59eecbe2328) passed [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39301559757) and is deployed over HTTPS. The backend's runtime JWT lifetime is `PT1H`.
 
-The application is ready for **feature freeze**. Final presentation acceptance still needs cloud multi-role walkthroughs, DAST, an isolated backup-restore exercise, a performance baseline and real-device QR scanning. These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
+The application is ready for **feature freeze**. Final presentation acceptance still needs cloud multi-role walkthroughs, deployment of the DAST header fixes followed by a cloud rescan, an isolated backup-restore exercise and a performance baseline. Real-device QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](docs/acceptance/sprint4-2026-10-20/README.md). These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
 
 ## Features and roles
 
@@ -127,9 +127,10 @@ Docker must be running for the lint script's actionlint container and PostgreSQL
 | Security | SAST, dependency and secret scans |
 | Images | Build from tested artifacts, scan three runtime images, run isolated registration/login smoke tests |
 | Deploy · Staging | Main only: publish/pull pinned digests, back up PostgreSQL, deploy and check public HTTPS |
+| Security · DAST Baseline | Main only, after deployment: passive public HTTPS scan; High/Medium or scan errors fail the workflow |
 | Notify · Telegram | Report results; notification failure does not invalidate the quality checks |
 
-PRs run checks without deployment. Main publishes tested images and deploys through the GitHub `staging` environment. Reports are uploaded as Actions artifacts. Scoped security exceptions are tracked in [trivyignore.yaml](scripts/security/trivyignore.yaml); DAST remains an acceptance task. See the [deployment and recovery guide](docs/deployment.md) for secrets, server layout and rollback limitations.
+PRs run checks without deployment. Main publishes tested images and deploys through the GitHub `staging` environment. Reports are uploaded as Actions artifacts. Scoped security exceptions are tracked in [trivyignore.yaml](scripts/security/trivyignore.yaml); ZAP DAST baseline scripts and post-deployment workflow are included; see the [scan results and scope](docs/dast.zh-CN.md). Header fixes passed an isolated HTTPS rescan; their cloud deployment/rescan remains pending until this change is merged. See the [deployment and recovery guide](docs/deployment.md) for secrets, server layout and rollback limitations.
 
 ## Database access
 

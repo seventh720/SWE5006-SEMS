@@ -2,9 +2,11 @@
 
 ## 2026-10-20 当前状态
 
-main `71082b8` 的 [CI/CD 运行 39295381246](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39295381246)
+main `fce7f1f` 的 [CI/CD 运行 39301559757](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39301559757)
 已完成测试、静态安全、镜像扫描、隔离冒烟和云端自动部署。下文旧章节中的“尚无镜像扫描/CD”属于历史状态。
-本次会话/密码/Clock 修缮本地验证：后端完整回归 **211 项**，0失败、0错误、0跳过，使用真实 PostgreSQL/Testcontainers；前端 **244 项**通过，类型检查、构建、ESLint、Checkstyle 均通过。对应 PR #35 已合并并通过上述 main CI/CD 上线；2026年10月20日核验容器健康、JWT TTL 为 `PT1H`。
+本次会话/密码/Clock 修缮本地验证：后端完整回归 **211 项**，0失败、0错误、0跳过，使用真实 PostgreSQL/Testcontainers；前端 **244 项**通过，类型检查、构建、ESLint、Checkstyle 均通过。会话修缮 PR #35、文档整理 PR #36 和摄像头选择 PR #37 均已合并；最新 main 已通过上述 CI/CD 上线；2026年10月20日核验容器健康、JWT TTL 为 `PT1H`。
+
+本次再次执行前端244项测试、类型检查、生产构建及ESLint，全部通过。手机扫码由维护者确认正常，见[10月20日验收记录](acceptance/sprint4-2026-10-20/README.md)。历史章节的真机未验收结论仅表示当时范围，不覆盖本次反馈。
 
 新增覆盖包含密码 ASCII/长度限制及旧密码登录、JWT 到1小时边界返回401、固定 Clock 下的 JPA 审计、角色通知收件人/去重/事务回滚，以及前端定时过期、后台恢复、角色轮询、普通403、网络异常和旧响应隔离。
 
@@ -12,6 +14,11 @@ main `71082b8` 的 [CI/CD 运行 39295381246](https://github.com/seventh720/SWE5
 密码字符/长度限制与旧密码登录兼容、固定 Clock 下的业务边界和审计时间。
 
 
+## 2026-10-20 DAST Baseline
+
+云端公开HTTPS初扫22个URL，高危0、中危2、低危7、信息5；缺少CSP与防嵌入头的两项中危已修复。独立PostgreSQL/后端/前端与临时HTTPS代理首次复扫剩余COOP/COEP两项低危；补齐这两个响应头后最终复扫22个URL，高危0、中危0、低危0、信息5，66项规则通过、0警告、0忽略。以上为按来源站点计数的报告条目，不是完整渗透测试结论。
+
+安全头、静态入口、公开API、HTTPS Origin注册/登录冒烟通过；Chrome活动页与日历应用通过，应用error日志为空。门槛测试5项通过。云端修复版本需本次PR合并部署后再扫描；详见[DAST实施与结果](dast.zh-CN.md)。
 
 ## 2026-10-19 报名资料校验Strategy
 
@@ -190,7 +197,7 @@ CI 运行 `test:coverage`，在摘要和 Telegram 通知显示行/分支覆盖�
 
 本轮170项测试和生产构建通过。低覆盖项包括路由入口、ProtectedRoute、AttendeeInfoSummary和头像部分逻辑；应优先补权限跳转、资料展示及头像错误路径。当前先记录基线，没有新增覆盖率阻断门槛。组件测试主要使用模拟API，不能代替真实浏览器和服务端联调。
 
-流水线仍是CI：PR及main推送触发三个并行检查任务，再汇总通知。核心浏览器端到端测试与自动部署尚未接入；CD需在部署环境确定后配置。新配置将在创建或更新 PR、或推送 main 后执行。
+历史状态：当时流水线只有CI，尚未接入CD。当前main已包含镜像扫描、隔离冒烟与云端自动部署；完整浏览器端到端测试仍未进入CI。
 
 
 ## Lint 与静态安全检查（2026-10-19）
@@ -220,18 +227,18 @@ Spring MVC 6.2.19 的两条记录保留为**当前功能范围不适用的限时
 
 依据：[Spring XSLT 公告](https://spring.io/security/cve-2026-47884/)、[Spring SSE 公告](https://spring.io/security/cve-2026-47890/)、[Jackson 2.21.7](https://github.com/FasterXML/jackson/wiki/Jackson-Release-2.21.7)、[Tomcat 安全公告](https://tomcat.apache.org/security-10.html)。
 
-本阶段不包含 DAST、容器镜像扫描或自动部署；业务权限和并发正确性仍由专项测试验证。
+本节记录静态扫描初次接入时的范围。当前已接入容器镜像扫描和自动部署；DAST状态见本文顶部及下文专节。业务权限和并发正确性仍由专项测试验证。
 
 本地验证：ESLint、Checkstyle、actionlint、shell 语法检查通过；后端 208 项测试（含 PostgreSQL 集成）全部通过、零跳过；前端 235 项测试及构建通过，通知测试类型写法调整后额外复验 4 项通知测试和类型检查。最终 Semgrep 零 findings / 解析错误；Trivy 无未豁免 HIGH/CRITICAL 发现，Java 报告保留上述两条限时例外。远端 CI 尚待推送后验证。
 
 ### CI 报告展示
 
-Actions 的 Artifacts 分别提供 `lint-report`（摘要和各工具文本输出）、`sast-report`（Semgrep JSON）、`dependency-secret-reports`（Trivy JSON）。检查失败时仍上传已有报告；lint 会继续收集各工具结果，最终以非零状态阻断。报告保留 7 天，可用于演示，但应在到期前保存所需课程证据。DAST 尚未实施，因此没有 `dast-report`；后续运行 ZAP 后再增加实际 HTML/JSON 报告。
+Actions 的 Artifacts 分别提供 `lint-report`（摘要和各工具文本输出）、`sast-report`（Semgrep JSON）、`dependency-secret-reports`（Trivy JSON）。检查失败时仍上传已有报告；lint 会继续收集各工具结果，最终以非零状态阻断。报告保留 7 天，可用于演示，但应在到期前保存所需课程证据。本次已加入 ZAP Baseline：main部署后上传 `dast-report`，包含HTML/JSON/Markdown、种子访问结果和扫描日志。云端初扫与隔离修复复扫结果见[DAST记录](dast.zh-CN.md)；首次远端DAST作业在本次PR合并部署后执行。
 
 Artifact Actions 升级为 upload-artifact 7.0.2 / download-artifact 8.0.2，替换引发 Node.js 20 弃用提示的 v4。此处是 Action 自身运行时，与前端项目使用的 Node.js 22 独立。IDE 自动生成的 backend/.settings 等文件不再跟踪，本地文件保留，Java 版本和构建检查仍由 pom.xml 管理。
 
 ### 运行镜像检查
 
-后续流水线加入 `Images · Scan & Smoke Test` 和 `image-security-reports`。检查实际已测试 JAR/dist 所构建镜像，以及修补后的 PostgreSQL 镜像；隔离数据库验证初始化、Flyway、健康检查和 HTTPS Origin 代理认证链路。main 成功后才发布 GHCR 并保存 digest 锁定文件。部署步骤见根目录 README.zh-CN.md 的“镜像与共享服务器部署”；DAST 与真实服务器上线仍待执行。
+后续流水线加入 `Images · Scan & Smoke Test` 和 `image-security-reports`。检查实际已测试 JAR/dist 所构建镜像，以及修补后的 PostgreSQL 镜像；隔离数据库验证初始化、Flyway、健康检查和 HTTPS Origin 代理认证链路。main 成功后才发布 GHCR 并保存 digest 锁定文件。部署步骤见[部署维护说明](deployment.md)。真实服务器已由最新main CI/CD成功部署；DAST状态见当前测试记录。
 
 本地镜像验证结果：三个运行镜像扫描通过（保留已记录的两条 Spring 适用性例外）；隔离 PostgreSQL 初始化与 Flyway 迁移完成；所有服务达到 healthy，页面深链接、API、HTTPS Origin 注册/登录及本人资料读取通过；cloud 配置确认无宿主机端口发布且数据库/后端不接入共享入口网络。

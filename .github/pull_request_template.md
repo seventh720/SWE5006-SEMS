@@ -23,8 +23,8 @@ List new migrations, environment variables or teammate setup steps; use N/A if n
 - [ ] 已完成相关测试、文档更新；未提交 `.env` 或密钥。 / Relevant tests and docs are complete; no `.env` or secrets committed.
 - [ ] 已邀请 1 名其他组员 review。 / Requested 1 other team member as reviewer.
 - [ ] 已有 1 名其他组员批准，且批准覆盖最新代码。 / 1 approval from another team member, covering the latest code.
-- [ ] `backend`、`backend-integration`、`frontend` CI 全部通过。 / All three CI checks pass.
+- [ ] Lint、后端单元/集成、前端构建、安全扫描和镜像冒烟六项质量检查全部通过。 / All six PR quality checks pass.
 - [ ] 审查意见已处理，讨论已解决，无合并冲突。 / Feedback addressed, conversations resolved and no merge conflicts.
 
-满足以上条件后使用 Squash and merge，并删除远端任务分支。
-Use Squash and merge once these conditions are met, then delete the remote task branch.
+满足以上条件后使用 Create a merge commit，并删除远端任务分支；main部署后另执行DAST Baseline。
+Use Create a merge commit once these conditions are met, then delete the remote task branch. Main runs DAST Baseline after deployment.

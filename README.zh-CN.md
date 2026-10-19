@@ -6,9 +6,9 @@ SWE5006 第 10 组课程项目，使用 React、TypeScript、Spring Boot 和 Pos
 
 ## 当前交付状态
 
-**2026年10月20日（SGT）已核验**：业务基线 [`71082b8`](https://github.com/seventh720/SWE5006-SEMS/commit/71082b840ece4401515c1db9e3ac68d9a6f32e9e) 的 [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39295381246) 全部通过，已部署到 HTTPS 云端，后端实际 JWT 配置为 `PT1H`。
+**2026年10月20日（SGT）已核验**：业务基线 [`fce7f1f`](https://github.com/seventh720/SWE5006-SEMS/commit/fce7f1f266fd2d7a13804a4d27f9f59eecbe2328) 的 [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39301559757) 全部通过，已部署到 HTTPS 云端，后端实际 JWT 配置为 `PT1H`。
 
-当前可进入**功能冻结**。演示版本最终封板前，还需完成云端多角色验收、DAST、隔离数据库恢复演练、性能基线和手机扫码验证，详见[交付清单](docs/remaining-work.zh-CN.md)。正式 presentation：**2026年10月27日 10:30 SGT**。
+当前可进入**功能冻结**。演示版本最终封板前，还需完成云端多角色验收、DAST安全头修复上线后复扫、隔离数据库恢复演练、性能基线。手机扫码已由维护者于10月20日确认通过，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余项目详见[交付清单](docs/remaining-work.zh-CN.md)。正式 presentation：**2026年10月27日 10:30 SGT**。
 
 ## 功能与角色
 
@@ -137,9 +137,10 @@ Lint 中的 actionlint 容器和 PostgreSQL 集成测试需要 Docker 运行。�
 | Security | SAST、依赖和密钥扫描 |
 | Images | 用已测试产物构建，扫描三个运行镜像，隔离环境注册/登录冒烟 |
 | Deploy · Staging | 仅main：发布及拉取digest镜像、备份数据库、部署、检查公网HTTPS |
+| Security · DAST Baseline | 仅main部署后：公开HTTPS被动扫描；中高危或扫描错误使流水线失败 |
 | Notify · Telegram | 汇总结果；通知失败不改变质量检查结论 |
 
-PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部署。检查报告保存为 Actions artifacts。受控安全例外记录在 [trivyignore.yaml](scripts/security/trivyignore.yaml)；DAST 仍是待验收项。凭据配置、服务器目录和恢复边界见[部署维护说明](docs/deployment.md)。
+PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部署。检查报告保存为 Actions artifacts。受控安全例外记录在 [trivyignore.yaml](scripts/security/trivyignore.yaml)；ZAP DAST Baseline及部署后任务已加入，见[扫描结果与范围](docs/dast.zh-CN.md)。安全头修复已通过隔离HTTPS复扫，合并本次变更后再部署并进行云端复扫。凭据配置、服务器目录和恢复边界见[部署维护说明](docs/deployment.md)。
 
 ## 数据库查看与变更
 
