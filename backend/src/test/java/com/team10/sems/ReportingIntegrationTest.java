@@ -229,4 +229,54 @@ class ReportingIntegrationTest {
                 .andExpect(jsonPath("$.validReservedTickets").value(0))
                 .andExpect(jsonPath("$.cancelledTickets").value(2));
     }
+    @Test
+    void reportTotalsDoNotMultiplyQuantitiesAndIgnorePagination() throws Exception {
+        UUID booking = insertBooking(attendee, 5, "CONFIRMED", null);
+        insertTicket(booking, "CHECKED_IN", false);
+        insertTicket(booking, "CHECKED_IN", false);
+        insertBooking(other, 3, "CANCELLED", "ATTENDEE_CANCELLED");
+        jdbc.update("INSERT INTO ticket_types(id,event_id,name,price_minor,currency,quota) VALUES (?,?,'VIP',0,'SGD',1)", UUID.randomUUID(), event);
+        for (String page : new String[] {"0", "1"}) {
+            mvc.perform(get("/api/v1/organizer/reports").with(as(owner, "ORGANIZER")).param("size", "1").param("page", page))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(1))
+                    .andExpect(jsonPath("$.totalElements").value(2)).andExpect(jsonPath("$.totalPages").value(2))
+                    .andExpect(jsonPath("$.totals.confirmed").value(5)).andExpect(jsonPath("$.totals.cancelled").value(3))
+                    .andExpect(jsonPath("$.totals.checkedIn").value(2));
+        }
+        mvc.perform(get("/api/v1/organizer/reports").with(as(owner, "ORGANIZER")).param("bookingStatus", "CANCELLED"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totals.confirmed").value(0))
+                .andExpect(jsonPath("$.totals.cancelled").value(3)).andExpect(jsonPath("$.totals.checkedIn").value(0));
+    }
+
+    @Test
+    void reportScopeIsOwnerOnlyUnlessAdministratorUsesGlobalEndpoint() throws Exception {
+        mvc.perform(get("/api/v1/organizer/reports").with(as(other, "ORGANIZER")).param("eventId", event.toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
+        mvc.perform(get("/api/v1/organizer/reports").with(as(other, "ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
+        mvc.perform(get("/api/v1/organizer/reports").with(as(owner, "ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/v1/admin/reports").with(as(other, "ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/v1/admin/reports").with(as(owner, "ORGANIZER"))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/organizer/reports").with(as(attendee, "ATTENDEE"))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/admin/reports")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void reportFiltersUseSingaporeDateAndLiteralNames() throws Exception {
+        jdbc.update("UPDATE events SET title='Workshop 100%_', starts_at='2030-01-01T16:00:00Z', ends_at='2030-01-01T18:00:00Z' WHERE id=?", event);
+        mvc.perform(get("/api/v1/organizer/reports").with(as(owner, "ORGANIZER"))
+                        .param("keyword", " %_ ").param("ticketType", " gEn ").param("from", "2030-01-02").param("to", "2030-01-02"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/v1/organizer/reports").with(as(owner, "ORGANIZER")).param("to", "2030-01-01"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        for (String[] pair : new String[][] {{"bookingStatus", "UNKNOWN"}, {"size", "51"}, {"page", "-1"}}) {
+            mvc.perform(get("/api/v1/organizer/reports").with(as(owner, "ORGANIZER")).param(pair[0], pair[1]))
+                    .andExpect(status().isBadRequest());
+        }
+        mvc.perform(get("/api/v1/organizer/reports").with(as(owner, "ORGANIZER")).param("from", "2030-01-02").param("to", "2030-01-01"))
+                .andExpect(status().isBadRequest());
+    }
+
 }

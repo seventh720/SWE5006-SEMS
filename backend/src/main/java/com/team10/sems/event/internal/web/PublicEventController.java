@@ -1,5 +1,6 @@
 package com.team10.sems.event.internal.web;
 
+import java.time.LocalDate;
 import com.team10.sems.event.EventView;
 import com.team10.sems.event.internal.application.EventBrowseService;
 import com.team10.sems.event.internal.application.EventBrowseService.EventPage;
@@ -18,8 +19,12 @@ public class PublicEventController {
     @GetMapping
     public EventPage browse(@RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
-            @RequestParam(name = "keyword", defaultValue = "") String keyword) {
-        return events.browse(page, size, keyword);
+            @RequestParam(name = "keyword", defaultValue = "") String keyword,
+            @RequestParam(name = "location", defaultValue = "") String location,
+            @RequestParam(name = "status", defaultValue = "ALL") String status,
+            @RequestParam(name = "from", required = false) LocalDate from,
+            @RequestParam(name = "to", required = false) LocalDate to) {
+        return events.browse(page, size, keyword, location, status, from, to);
     }
 
     @GetMapping("/{id}")

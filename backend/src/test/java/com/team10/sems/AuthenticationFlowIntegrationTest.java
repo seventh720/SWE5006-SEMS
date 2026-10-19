@@ -147,7 +147,7 @@ class AuthenticationFlowIntegrationTest {
         mvc.perform(get("/api/v1/admin/users")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].roles[0]").value("ADMIN"));
+                .andExpect(jsonPath("$.items[0].roles[0]").value("ADMIN"));
     }
 
     @Test
@@ -276,6 +276,109 @@ class AuthenticationFlowIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.dataUrl").isEmpty());
     }
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Test
+    void revokedAdminPermissionIsRemovedFromExistingTokenWhileRetainedRolesStillWork() throws Exception {
+        users.saveAndFlush(UserAccount.bootstrapAdmin("keeper", "keeper@example.test", passwordEncoder.encode("Password123")));
+        var target = UserAccount.bootstrapAdmin("revoked", "revoked@example.test", passwordEncoder.encode("Password123"));
+        target.addRole(com.team10.sems.identity.Role.ATTENDEE);
+        users.saveAndFlush(target);
+        String oldToken = login("revoked@example.test", "Password123");
+        String keeper = login("keeper@example.test", "Password123");
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + oldToken)).andExpect(status().isOk());
+        mvc.perform(put("/api/v1/admin/users/" + target.getId() + "/roles").header("Authorization", "Bearer " + keeper)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roles\":[\"ATTENDEE\"]}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + oldToken)).andExpect(status().isForbidden());
+        mvc.perform(put("/api/v1/admin/users/" + target.getId() + "/roles").header("Authorization", "Bearer " + oldToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roles\":[\"ADMIN\"]}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/bookings").header("Authorization", "Bearer " + oldToken)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + oldToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.roles.length()").value(1))
+                .andExpect(jsonPath("$.roles[0]").value("ATTENDEE"));
+    }
+
+    @Test
+    void revokedOrganizerAndStaffRolesCannotBeUsedByExistingToken() throws Exception {
+        users.saveAndFlush(UserAccount.bootstrapAdmin("keeper", "keeper@example.test", passwordEncoder.encode("Password123")));
+        var target = UserAccount.register("worker", "worker@example.test", passwordEncoder.encode("Password123"));
+        target.addRole(com.team10.sems.identity.Role.ORGANIZER);
+        target.addRole(com.team10.sems.identity.Role.STAFF);
+        users.saveAndFlush(target);
+        String oldToken = login("worker@example.test", "Password123");
+        for (String path : java.util.List.of("/api/v1/organizer/events", "/api/v1/staff/events")) {
+            mvc.perform(get(path).header("Authorization", "Bearer " + oldToken)).andExpect(status().isOk());
+        }
+        mvc.perform(put("/api/v1/admin/users/" + target.getId() + "/roles")
+                .header("Authorization", "Bearer " + login("keeper@example.test", "Password123"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roles\":[\"ATTENDEE\"]}"))
+                .andExpect(status().isOk());
+        for (String path : java.util.List.of("/api/v1/organizer/events", "/api/v1/staff/events")) {
+            mvc.perform(get(path).header("Authorization", "Bearer " + oldToken)).andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void unavailableAccountsAndInvalidSubjectsRejectOtherwiseValidTokens() throws Exception {
+        var user = users.saveAndFlush(UserAccount.register("closed", "closed@example.test", passwordEncoder.encode("Password123")));
+        String token = login("closed@example.test", "Password123");
+        for (String state : java.util.List.of("LOCKED", "DISABLED")) {
+            jdbc.update("UPDATE users SET status=? WHERE id=?", state, user.getId());
+            mvc.perform(get("/api/v1/bookings").header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+        }
+        users.deleteById(user.getId());
+        mvc.perform(get("/api/v1/bookings").header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+        String malformedSubject = signedToken("not-a-uuid", "sems-test", java.time.Instant.now().plusSeconds(300));
+        mvc.perform(get("/api/v1/bookings").header("Authorization", "Bearer " + malformedSubject)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void lastActiveAdminCannotBeRemovedEvenWhenDisabledAdminsExist() throws Exception {
+        var admin = users.saveAndFlush(UserAccount.bootstrapAdmin("lastadmin", "last@example.test", passwordEncoder.encode("Password123")));
+        var disabled = users.saveAndFlush(UserAccount.bootstrapAdmin("disabledadmin", "disabled@example.test", "unused"));
+        jdbc.update("UPDATE users SET status='DISABLED' WHERE id=?", disabled.getId());
+        String token = login("last@example.test", "Password123");
+        String path = "/api/v1/admin/users/" + admin.getId() + "/roles";
+        mvc.perform(put(path).header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roles\":[\"ATTENDEE\"]}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("At least one active administrator must remain. Assign another administrator first."));
+        org.junit.jupiter.api.Assertions.assertTrue(users.findById(admin.getId()).orElseThrow().getRoles().contains(com.team10.sems.identity.Role.ADMIN));
+        mvc.perform(put(path).header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roles\":[\"ADMIN\",\"ATTENDEE\"]}"))
+                .andExpect(status().isOk());
+    }
+
+    @org.junit.jupiter.api.RepeatedTest(3)
+    void concurrentSelfDemotionsLeaveOneActiveAdministrator() throws Exception {
+        var first = users.saveAndFlush(UserAccount.bootstrapAdmin("firstadmin", "first@example.test", passwordEncoder.encode("Password123")));
+        var second = users.saveAndFlush(UserAccount.bootstrapAdmin("secondadmin", "second@example.test", passwordEncoder.encode("Password123")));
+        var tokens = java.util.Map.of(first.getId(), login("first@example.test", "Password123"),
+                second.getId(), login("second@example.test", "Password123"));
+        var ready = new java.util.concurrent.CountDownLatch(2);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var futures = tokens.entrySet().stream().map(entry -> pool.submit(() -> {
+                ready.countDown();
+                start.await();
+                return mvc.perform(put("/api/v1/admin/users/" + entry.getKey() + "/roles")
+                        .header("Authorization", "Bearer " + entry.getValue()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"roles\":[\"ATTENDEE\"]}"))
+                        .andReturn().getResponse().getStatus();
+            })).toList();
+            org.junit.jupiter.api.Assertions.assertTrue(ready.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            start.countDown();
+            var statuses = java.util.List.of(futures.get(0).get(15, java.util.concurrent.TimeUnit.SECONDS),
+                    futures.get(1).get(15, java.util.concurrent.TimeUnit.SECONDS));
+            org.junit.jupiter.api.Assertions.assertTrue(statuses.containsAll(java.util.List.of(200, 409)), statuses.toString());
+        }
+        org.junit.jupiter.api.Assertions.assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM users u JOIN user_roles r ON r.user_id=u.id WHERE u.status='ACTIVE' AND r.role_code='ADMIN'", Integer.class));
+    }
+
     private String signedToken(String subject, String issuer, java.time.Instant expiresAt) {
         var claims = org.springframework.security.oauth2.jwt.JwtClaimsSet.builder().issuer(issuer).subject(subject)
                 .issuedAt(expiresAt.minusSeconds(300)).expiresAt(expiresAt).claim("roles", java.util.List.of("ATTENDEE")).build();
@@ -296,4 +399,24 @@ class AuthenticationFlowIntegrationTest {
         JsonNode json = objectMapper.readTree(response);
         return json.get("accessToken").asText();
     }
+    @Test
+    void userSearchPaginatesAndSummaryCountsAllAccounts() throws Exception {
+        users.saveAndFlush(UserAccount.bootstrapAdmin("admin", "admin@example.com", passwordEncoder.encode("Password123")));
+        users.saveAndFlush(UserAccount.register("Alice", "alice@example.com", "unused"));
+        users.saveAndFlush(UserAccount.register("Bob", "bob@example.com", "unused"));
+        String token = login("admin@example.com", "Password123");
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + token).param("keyword", " EXAMPLE ").param("size", "1").param("page", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.totalElements").value(3)).andExpect(jsonPath("$.totalPages").value(3))
+                .andExpect(jsonPath("$.items[0].passwordHash").doesNotExist());
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + token).param("keyword", "ALICE"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + token).param("keyword", "%"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/v1/admin/users/summary").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(3));
+        mvc.perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + token).param("size", "51"))
+                .andExpect(status().isBadRequest());
+    }
+
 }

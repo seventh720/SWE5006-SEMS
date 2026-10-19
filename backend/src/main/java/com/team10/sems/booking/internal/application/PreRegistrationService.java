@@ -19,13 +19,15 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 @PreAuthorize("hasRole('ATTENDEE')")
 public class PreRegistrationService {
+    private final BookingInfoValidator infoValidator;
     private final PreRegistrationRepository registrations;
     private final EventAccessService events;
     private final TicketReservationService tickets;
     private final RegistrationReminderService reminders;
 
     public PreRegistrationService(PreRegistrationRepository registrations, EventAccessService events,
-            TicketReservationService tickets, RegistrationReminderService reminders) {
+            TicketReservationService tickets, RegistrationReminderService reminders, BookingInfoValidator infoValidator) {
+        this.infoValidator = infoValidator;
         this.reminders = reminders;
         this.registrations = registrations;
         this.events = events;
@@ -50,7 +52,7 @@ public class PreRegistrationService {
         if (input.quantity() > ticket.quota()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantity exceeds the ticket quota");
         }
-        BookingInfoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
+        infoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
         var registration = registrations.findByUserIdAndEventId(user, eventId)
                 .orElseGet(() -> PreRegistration.create(user, eventId));
         registration.update(input.ticketTypeId(), input.quantity(), input.attendeeInfo());

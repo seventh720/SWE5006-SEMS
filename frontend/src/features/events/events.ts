@@ -32,9 +32,10 @@ export function readEventQuery(params: URLSearchParams) {
   };
 }
 
-export function eventListPath(page: number, keyword: string) {
+export function eventListPath(page: number, keyword: string, filters: Record<string, string> = {}) {
   const params = new URLSearchParams({ page: String(page), size: "10" });
   if (keyword.trim()) params.set("keyword", keyword.trim());
+  for (const [key, value] of Object.entries(filters)) if (value && value !== "ALL") params.set(key, value);
   return `/api/v1/events?${params}`;
 }
 

@@ -1,5 +1,8 @@
 package com.team10.sems.event.internal.application;
 
+import java.time.Clock;
+import com.team10.sems.event.EventPublishing;
+import com.team10.sems.event.EventUpdated;
 import com.team10.sems.event.EventManagementView;
 import com.team10.sems.event.EventCapacityChanging;
 import com.team10.sems.event.EventCancelled;
@@ -21,11 +24,13 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
 public class EventManagementService {
+    private final Clock clock;
     private final EventRepository events;
     private final ApplicationEventPublisher publisher;
 
     public EventManagementService(EventRepository events,
-            ApplicationEventPublisher publisher) {
+            ApplicationEventPublisher publisher, Clock clock) {
+        this.clock = clock;
         this.events = events;
         this.publisher = publisher;
     }
@@ -64,18 +69,15 @@ public class EventManagementService {
         if (input.version() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The current event version is required");
         }
-        if ("PUBLISHED".equals(event.toAccessView().status()) && !input.endsAt().isAfter(java.time.Instant.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A published event must end in the future");
-        }
         publisher.publishEvent(new EventCapacityChanging(id, input.capacity()));
         event.editDetails(input.title().strip(), input.description().strip(), input.location().strip(),
-                input.startsAt(), input.endsAt(), input.capacity(), input.version());
+                input.startsAt(), input.endsAt(), input.capacity(), input.version(), clock.instant());
         event.configureBooking(input.bookingRequirements());
         event.configureIllustration(input.illustration());
         event.configureRegistrationDeadline(input.registrationClosesAt());
         event.configureRegistrationOpening(input.registrationOpensAt());
         events.flush(); // Trigger optimistic-lock conflicts before constructing the response.
-        publisher.publishEvent(new com.team10.sems.event.EventUpdated(before, event.toManagementView()));
+        publisher.publishEvent(new EventUpdated(before, event.toManagementView()));
         return event.toManagementView();
     }
 
@@ -94,8 +96,8 @@ public class EventManagementService {
 
     public EventManagementView publish(UUID owner, UUID id, long version) {
         Event event = lockedOwned(owner, id);
-        event.publish(version, java.time.Instant.now());
-        publisher.publishEvent(new com.team10.sems.event.EventPublishing(id));
+        event.publish(version, clock.instant());
+        publisher.publishEvent(new EventPublishing(id));
         events.flush();
         return event.toManagementView();
     }
@@ -115,7 +117,7 @@ public class EventManagementService {
                 events.countByOrganizerIdAndStatus(owner, "PUBLISHED"),
                 events.countByOrganizerIdAndStatus(owner, "CANCELLED"),
                 events.findTop4ByOrganizerIdAndStatusAndStartsAtAfterOrderByStartsAtAscIdAsc(
-                        owner, "PUBLISHED", java.time.Instant.now()).stream().map(Event::toManagementView).toList());
+                        owner, "PUBLISHED", clock.instant()).stream().map(Event::toManagementView).toList());
     }
 
     public record DashboardSummary(long drafts, long published, long cancelled,

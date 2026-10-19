@@ -2,9 +2,11 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [文档导航](docs/README.md) | [测试覆盖](docs/testing.zh-CN.md)
 
-SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 模块化单体和 PostgreSQL。当前已实现身份与权限、活动生命周期、票种配置、免费预订、个人订单、组织者订单，以及取消活动时的订单和库存联动。
+SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 模块化单体和 PostgreSQL。当前已实现身份与权限、活动生命周期、票种配置、免费预订、个人订单、组织者订单，电子票与二维码、Staff 分配与核销、站内通知、组织者统计，以及取消活动时的订单、库存和票券联动。
 
-项目共5个Sprint。Sprint 4继续实现支付、电子票、签到、通知和报表；Sprint 5用于系统验收与交付。
+当前计划共5个Sprint；原 proposal 的4轮迭代与现行计划的调整应在项目管理材料中说明。Sprint 4核心业务已实现，Sprint 5用于缺陷修复、验收与交付。支付不在当前范围。
+
+10月27日10:30（SGT）presentation 的要求映射、已验证问题和行动清单见[演示准备评审](docs/presentation-readiness-2026-10-19.zh-CN.md)。
 
 当前待办与建议分工见[项目剩余工作](docs/remaining-work.zh-CN.md)。后续开发使用 `victor` 分支。
 
@@ -14,7 +16,7 @@ SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 
 
 点击 Dashboard 头像进入个人资料页，可上传 PNG/JPEG（最大5 MB），自动居中裁成256×256并保存；**Use default avatar** 恢复默认头像。头像仅通过本人登录接口读取，未上传或图片加载失败时显示默认图。
 
-## Sprint 3 票种与预订
+## 票种与预订
 
 - 组织者：从“My events”进入活动，选择“Manage ticket types”设置票种；“View event orders”查看本人活动订单。
 - 参与者：从活动详情预订免费票，通过Dashboard的“My orders”查看和取消订单。
@@ -26,7 +28,7 @@ SEMS（Smart Event Management and Ticketing System）采用 React、Spring Boot 
 - 活动可设置报名截止时间（默认开始时间），截止后停止新预订。时间输入固定为英文 `YYYY-MM-DD HH:mm` 格式，采用SGT、精确到分钟；英文日历以浮层显示，不挤动表单。
 - 活动草稿可分别要求姓名、邮箱、电话、学生证号、护照号，并添加一个自定义问题。选中的内容在预订时必填。
 - Dashboard的“Saved booking details”可提前保存常用资料；预订时点击“Apply saved details”应用，仍可改填。资料页和预订页均有隐私说明。
-- 本轮免费订单无需支付，不发行二维码。付费票显示价格但不能下单。
+- 免费订单无需支付，确认后自动为每张票生成独立票码。订单详情可查看二维码；已核销或作废的票不再显示可入场二维码。付费票不能下单。
 
 启动新版后端会自动执行新增Flyway迁移，无需手工改库。已有用户、角色、活动和票种保留。沿用下方启动和测试命令。
 
@@ -63,11 +65,12 @@ docs/                     架构与数据库设计说明
 |---|---|
 | `identity` | 身份认证、用户与角色管理（Sprint 1 已实现） |
 | `event` | 活动管理（已实现） |
-| `ticketing` | 票种、价格和库存（已实现；出票待Sprint 4） |
+| `ticketing` | 票种、库存、电子票、核销与作废状态 |
 | `booking` | 免费预订、订单查询和取消（已实现） |
-| `attendance` | 验票与签到（预留） |
-| `notification` | 通知（预留） |
-| `reporting` | 报表（预留） |
+| `checkin` | 工作人员分配、验票、签到与审计（已实现） |
+| `attendance` | 预留包；实际签到实现在 `checkin` |
+| `notification` | 站内通知和已读状态（已实现） |
+| `reporting` | 本人活动统计及跨活动报表；管理员可查看全部活动，支持筛选和分页 |
 
 后续开发时，模块之间应通过公开的应用接口协作，避免直接共享或访问其他模块的 Repository（数据访问层）和 JPA Entity（数据库映射实体）。
 
@@ -233,9 +236,9 @@ curl -i 'http://localhost:8080/api/v1/events?page=0&size=10'
 
 ### 按身份显示的首页
 
-个人视图显示真实的已发布活动；组织者视图显示本人草稿／已发布／已取消总数，以及最多 4 个未来开始的已发布活动；管理员视图提供用户与角色管理入口和账号概况；工作人员视图明确说明任务分配、签到和验票尚未开放。
+个人视图显示真实的已发布活动；组织者视图显示本人草稿／已发布／已取消总数，以及最多 4 个未来开始的已发布活动；管理员视图提供用户与角色管理入口和账号概况；工作人员视图提供已分配活动、扫码或手输验票、核销和签到记录。
 
-多角色账号可以切换视图，默认优先级为管理员、组织者、工作人员、个人。所有账号均可浏览个人视图，管理员也可进入组织者视图管理自己的活动。右上角 **My account** 查看账号资料并退出登录，尚未提供账号资料编辑。
+多角色账号可以切换视图，默认优先级为管理员、组织者、工作人员、个人。所有账号均可浏览个人视图，管理员也可进入组织者视图管理自己的活动。右上角 **My account** 可查看账号资料、修改用户名和头像并退出登录；暂不支持修改邮箱和密码。
 
 组织者统计通过 `GET /api/v1/organizer/events/summary` 获取，需 `ORGANIZER` 或 `ADMIN`，只统计 JWT 当前用户的数据，不受列表分页影响。响应包含 `drafts`、`published`、`cancelled`、`upcoming`。管理员账号概况复用现有用户列表接口，角色统计可能重叠，因为账号支持多角色。
 
@@ -265,7 +268,10 @@ curl -i 'http://localhost:8080/api/v1/events?page=0&size=10'
 | `POST` | `/api/v1/auth/register` | 注册账号 | 无需登录 |
 | `POST` | `/api/v1/auth/login` | 登录并获取令牌 | 无需登录 |
 | `GET` | `/api/v1/auth/me` | 查询当前用户 | 已登录 |
-| `GET` | `/api/v1/admin/users` | 查询用户列表 | `ADMIN` |
+| `GET` | `/api/v1/admin/users` | 分页用户列表，支持用户名/邮箱keyword检索 | `ADMIN` |
+| `GET` | `/api/v1/admin/users/summary` | 全局用户及角色计数 | `ADMIN` |
+| `GET` | `/api/v1/organizer/reports` | 本人活动票种报表、筛选及分页汇总 | `ORGANIZER`/`ADMIN` |
+| `GET` | `/api/v1/admin/reports` | 全平台活动票种报表 | `ADMIN` |
 | `PUT` | `/api/v1/admin/users/{userId}/roles` | 管理用户角色 | `ADMIN` |
 | `GET` | `/api/v1/demo/organizer` | 组织者权限演示 | `ORGANIZER` 或 `ADMIN` |
 | `GET` | `/api/v1/demo/staff` | 工作人员权限演示 | `STAFF` 或 `ADMIN` |

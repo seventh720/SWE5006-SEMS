@@ -1,5 +1,6 @@
 package com.team10.sems.booking.internal.application;
 
+import com.team10.sems.booking.BookingConfirmed;
 import com.team10.sems.booking.BookingView;
 import com.team10.sems.booking.BookingCancelled;
 import org.springframework.context.ApplicationEventPublisher;
@@ -25,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional
 public class BookingService {
+    private final BookingInfoValidator infoValidator;
     private final BookingRepository bookings;
     private final BookingRequestLock requestLocks;
     private final PreRegistrationRepository preRegistrations;
@@ -34,7 +36,8 @@ public class BookingService {
 
     public BookingService(BookingRepository bookings, BookingRequestLock requestLocks,
             EventAccessService events, TicketReservationService tickets,
-            PreRegistrationRepository preRegistrations, ApplicationEventPublisher publisher) {
+            PreRegistrationRepository preRegistrations, ApplicationEventPublisher publisher, BookingInfoValidator infoValidator) {
+        this.infoValidator = infoValidator;
         this.publisher = publisher;
         this.preRegistrations = preRegistrations;
         this.bookings = bookings;
@@ -58,13 +61,13 @@ public class BookingService {
             return new Created(view(booking), false);
         }
         var event = events.lockEvent(input.eventId());
-        BookingInfoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
+        infoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
         var ticket = tickets.reserve(input.eventId(), input.ticketTypeId(), input.quantity());
         Booking booking = Booking.confirmed(user, key, event, ticket, input.quantity(), input.attendeeInfo());
         var result = view(bookings.saveAndFlush(booking));
         preRegistrations.findByUserIdAndEventId(user, input.eventId())
                 .ifPresent(preRegistration -> preRegistration.markBooked(result.id()));
-        publisher.publishEvent(new com.team10.sems.booking.BookingConfirmed(result.id(), booking.eventId()));
+        publisher.publishEvent(new BookingConfirmed(result.id(), booking.eventId()));
         return new Created(result, true);
     }
 

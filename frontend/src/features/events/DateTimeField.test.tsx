@@ -85,3 +85,18 @@ it("positions registration opening before a midnight deadline in the previous mo
   fireEvent.click(screen.getByRole("button", { name: "Apply" }));
   expect(onChange).toHaveBeenCalledWith("2030-10-31T23:59");
 });
+
+it("reuses the English calendar for optional date filters without time controls", () => {
+  const onChange = vi.fn();
+  const { container } = render(<DateTimeField dateOnly required={false} name="from" label="From date (SGT)" value="2026-10-19" onChange={onChange} />);
+  expect((screen.getByLabelText("From date (SGT)") as HTMLInputElement).value).toBe("2026-10-19");
+  expect(container.querySelector('input[type="date"]')).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Choose from date (sgt)" }));
+  expect(screen.queryByRole("combobox", { name: "Hour" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Minute" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "October 27, 2026" }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+  expect(onChange).toHaveBeenCalledWith("2026-10-27");
+  fireEvent.change(screen.getByLabelText("From date (SGT)"), { target: { value: "" } });
+  expect(onChange).toHaveBeenLastCalledWith("");
+});

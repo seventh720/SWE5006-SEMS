@@ -1,5 +1,6 @@
 package com.team10.sems.booking.internal.application;
 
+import com.team10.sems.checkin.StaffAssignmentService;
 import com.team10.sems.booking.BookingCancelled;
 import com.team10.sems.booking.BookingConfirmed;
 import com.team10.sems.booking.internal.persistence.BookingRepository;
@@ -22,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @Transactional(propagation = Propagation.MANDATORY)
 public class BookingNotificationListener {
-    private final com.team10.sems.checkin.StaffAssignmentService staff;
+    private final StaffAssignmentService staff;
     private final BookingRepository bookings;
     private final PreRegistrationRepository registrations;
     private final NotificationDeliveryService notifications;
@@ -31,7 +32,7 @@ public class BookingNotificationListener {
             .withZone(ZoneId.of("Asia/Singapore"));
 
     public BookingNotificationListener(BookingRepository bookings, PreRegistrationRepository registrations,
-            NotificationDeliveryService notifications, EventAccessService events, com.team10.sems.checkin.StaffAssignmentService staff) {
+            NotificationDeliveryService notifications, EventAccessService events, StaffAssignmentService staff) {
         this.staff = staff;
         this.bookings = bookings; this.registrations = registrations; this.notifications = notifications; this.events = events;
     }

@@ -12,7 +12,7 @@ function mount() { render(<MemoryRouter initialEntries={["/admin/users"]}><Route
 beforeEach(() => { auth.user.roles = ["ADMIN"]; fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("prevents removing the last role and saves additional roles with authentication", async () => {
-  fetchMock.mockResolvedValueOnce(response([user])).mockResolvedValueOnce(response({ ...user, roles: ["ATTENDEE", "ORGANIZER"] }));
+  fetchMock.mockResolvedValueOnce(response({ items: [user], totalElements: 1, totalPages: 1 })).mockResolvedValueOnce(response({ ...user, roles: ["ATTENDEE", "ORGANIZER"] }));
   mount(); const attendee = await screen.findByLabelText("Attendee"); fireEvent.click(attendee);
   expect((attendee as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByLabelText("Event Organizer")); fireEvent.click(screen.getByRole("button", { name: "Save roles" }));
@@ -23,7 +23,7 @@ it("prevents removing the last role and saves additional roles with authenticati
   await screen.findByRole("button", { name: "Save roles" });
 });
 it("retains selected roles after a failed save and permits retry", async () => {
-  fetchMock.mockResolvedValueOnce(response([user])).mockResolvedValueOnce(response({ detail: "Unable to save roles" }, 500)).mockResolvedValueOnce(response({ ...user, roles: ["ATTENDEE", "STAFF"] }));
+  fetchMock.mockResolvedValueOnce(response({ items: [user], totalElements: 1, totalPages: 1 })).mockResolvedValueOnce(response({ detail: "Unable to save roles" }, 500)).mockResolvedValueOnce(response({ ...user, roles: ["ATTENDEE", "STAFF"] }));
   mount(); fireEvent.click(await screen.findByLabelText("Event Staff")); fireEvent.click(screen.getByRole("button", { name: "Save roles" }));
   await screen.findByText("Unable to save roles"); expect((screen.getByLabelText("Event Staff") as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Save roles" })); await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
@@ -31,4 +31,15 @@ it("retains selected roles after a failed save and permits retry", async () => {
 });
 it("redirects non-admin users without requesting user data", () => {
   auth.user.roles = ["ATTENDEE"]; mount(); expect(screen.getByText("Dashboard")).toBeTruthy(); expect(fetchMock).not.toHaveBeenCalled();
+});
+it("searches from page zero and keeps the query while paging", async () => {
+  fetchMock.mockImplementation(async () => response({ items: [user], totalElements: 12, totalPages: 2 }));
+  mount(); await screen.findByText("12 accounts found");
+  fireEvent.change(screen.getByLabelText("Search username or email"), { target: { value: " Alice " } });
+  fireEvent.click(screen.getByRole("button", { name: "Search users" }));
+  await waitFor(() => expect(String(fetchMock.mock.calls.at(-1)![0])).toContain("keyword=Alice"));
+  await screen.findByText("12 accounts found");
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("Page 2 of 2");
+  expect(String(fetchMock.mock.calls.at(-1)![0])).toContain("page=1&size=10&keyword=Alice");
 });

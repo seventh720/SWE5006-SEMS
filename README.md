@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Tests and coverage](docs/testing.zh-CN.md)
 
-SEMS is a React, Spring Boot modular-monolith and PostgreSQL application. It now supports authentication, roles, event management, ticket types, free bookings, attendee and organizer orders, and transactional event cancellation with inventory release.
+SEMS is a React, Spring Boot modular-monolith and PostgreSQL application. It now supports authentication, roles, event management, ticket types, free bookings, attendee and organizer orders, electronic tickets and QR codes, assigned staff check-in, in-app notifications, organizer statistics, and transactional cancellation with inventory release.
 
 ## Illustrations and avatars
 
@@ -14,7 +14,7 @@ Open your profile from the dashboard avatar to upload a PNG/JPEG (up to 5 MB). I
 
 Organizers configure tickets from an event's **Manage ticket types** link and inspect **View event orders**. Attendees reserve free tickets on event details and manage them through **My orders**. Future published events can also receive ticket types. Total quota cannot exceed event capacity; ticket configuration freezes after its first booking, including after cancellation.
 
-Bookings contain one ticket type and 1–10 tickets. `POST /api/v1/bookings` requires an `Idempotency-Key`; retries reuse it. Event cancellation cancels active bookings and releases inventory in the same transaction. Historical orders retain event and ticket snapshots. Paid bookings and electronic ticket issuance remain Sprint 4 work; Sprint 5 is reserved for acceptance and delivery.
+Bookings contain one ticket type and 1–10 tickets. `POST /api/v1/bookings` requires an `Idempotency-Key`; retries reuse it. Event cancellation cancels active bookings and releases inventory in the same transaction. Historical orders retain event and ticket snapshots. Confirmed free bookings automatically receive individual electronic tickets. Paid bookings are outside the current scope; Sprint 5 is reserved for acceptance and delivery.
 
 Organizers can **Copy to new draft** from any of their events, including cancelled events. Saved event details, booking requirements and ticket configuration are copied; orders and sold inventory stay with the original event. Review dates before publishing the copy.
 
@@ -34,7 +34,7 @@ The system has **four roles**, not only user and administrator:
 
 | Code | Identity | Intended access |
 |---|---|---|
-| `ATTENDEE` | Attendee | Browse events, pre-register, book free tickets and view own orders; electronic tickets are planned |
+| `ATTENDEE` | Attendee | Browse events, pre-register, book free tickets and view own orders and QR tickets |
 | `ORGANIZER` | Event Organizer | Create and manage authorized events |
 | `STAFF` | Event Staff | Verify tickets and perform event check-in |
 | `ADMIN` | System Administrator | Manage users, roles and system-wide administration |
@@ -53,7 +53,9 @@ docs/                     Architecture and database decisions
 .github/workflows/        Continuous integration
 ```
 
-The backend implements `identity`, `event`, ticket configuration/inventory in `ticketing`, and free orders in `booking`. Ticket issuance, `attendance`, `notification` and `reporting` remain Sprint 4 work. Modules collaborate through public application APIs or synchronous application events, without sharing repositories or JPA entities.
+The backend implements `identity`, `event`, `ticketing`, `booking`, `checkin`, `notification` and `reporting`. `attendance` is a reserved package; the implemented staff workflow is in `checkin`. Most business collaboration uses public application APIs and synchronous application events. Check-in and reporting also read shared tables through JDBC; see the [architecture decision](docs/adr/0001-modular-monolith.md) for this current boundary exception.
+
+See the [presentation readiness review](docs/presentation-readiness-2026-10-19.zh-CN.md) for requirement gaps, verified defects and the plan for 27 October at 10:30 SGT.
 
 ## Programming environment
 
@@ -180,7 +182,10 @@ The account is created on backend startup if the email does not exist. If it alr
 | `POST` | `/api/v1/auth/register` | Public |
 | `POST` | `/api/v1/auth/login` | Public |
 | `GET` | `/api/v1/auth/me` | Authenticated |
-| `GET` | `/api/v1/admin/users` | `ADMIN` |
+| `GET` | `/api/v1/admin/users` (page/size/keyword) | `ADMIN` |
+| `GET` | `/api/v1/admin/users/summary` | `ADMIN` |
+| `GET` | `/api/v1/organizer/reports` | `ORGANIZER`/`ADMIN`, owned events |
+| `GET` | `/api/v1/admin/reports` | `ADMIN`, all organizers |
 | `PUT` | `/api/v1/admin/users/{userId}/roles` | `ADMIN` |
 | `GET` | `/api/v1/demo/organizer` | `ORGANIZER` or `ADMIN` |
 | `GET` | `/api/v1/demo/staff` | `STAFF` or `ADMIN` |

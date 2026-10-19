@@ -320,8 +320,8 @@ class EventBrowseIntegrationTest {
             var one = first.find(com.team10.sems.event.internal.domain.Event.class, id);
             var two = second.find(com.team10.sems.event.internal.domain.Event.class, id);
             var start = java.time.Instant.parse("2030-01-01T10:00:00Z");
-            one.editDetails("Winner", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
-            two.editDetails("Loser", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
+            one.editDetails("Winner", "Description", "Location", start, start.plusSeconds(3600), 10, 0, java.time.Instant.now());
+            two.editDetails("Loser", "Description", "Location", start, start.plusSeconds(3600), 10, 0, java.time.Instant.now());
             first.getTransaction().commit();
             assertThrows(jakarta.persistence.RollbackException.class, () -> second.getTransaction().commit());
         }
@@ -405,7 +405,7 @@ class EventBrowseIntegrationTest {
             var draft = editing.find(com.team10.sems.event.internal.domain.Event.class, id);
             var transition = changing.find(com.team10.sems.event.internal.domain.Event.class, id);
             var start = java.time.Instant.parse("2030-01-01T10:00:00Z");
-            draft.editDetails("Stale edit", "Description", "Location", start, start.plusSeconds(3600), 10, 0);
+            draft.editDetails("Stale edit", "Description", "Location", start, start.plusSeconds(3600), 10, 0, java.time.Instant.now());
             if (action.equals("publish")) transition.publish(0, java.time.Instant.now()); else transition.cancel(0);
             changing.getTransaction().commit();
             assertThrows(jakarta.persistence.RollbackException.class, () -> editing.getTransaction().commit());
@@ -433,6 +433,26 @@ class EventBrowseIntegrationTest {
             mvc.perform(get("/api/v1/organizer/events/summary").with(asUser(organizer, role)))
                     .andExpect(status().isForbidden());
         }
+    }
+
+    @Test
+    void filtersEventPhaseLocationAndSingaporeDate() throws Exception {
+        UUID ended = event("Past", "PUBLISHED", "2020-01-01T00:00:00Z");
+        jdbc.update("UPDATE events SET ends_at='2020-01-01T02:00:00Z' WHERE id=?", ended);
+        UUID ongoing = event("Now", "PUBLISHED", java.time.Instant.now().minusSeconds(600).toString());
+        jdbc.update("UPDATE events SET ends_at=? WHERE id=?", java.sql.Timestamp.from(java.time.Instant.now().plusSeconds(600)), ongoing);
+        event("Future", "PUBLISHED", "2030-01-01T16:00:00Z");
+        for (String[] pair : new String[][] {{"ENDED", "Past"}, {"ONGOING", "Now"}, {"UPCOMING", "Future"}}) {
+            mvc.perform(get("/api/v1/events").param("status", pair[0]))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+                    .andExpect(jsonPath("$.items[0].title").value(pair[1]));
+        }
+        mvc.perform(get("/api/v1/events").param("from", "2030-01-02").param("to", "2030-01-02").param("location", " sInGa "))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/v1/events").param("location", "%"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/v1/events").param("status", "DRAFT")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/events").param("from", "2030-01-03").param("to", "2030-01-02")).andExpect(status().isBadRequest());
     }
 
 }

@@ -3,7 +3,7 @@ package com.team10.sems.identity.internal.web;
 import com.team10.sems.identity.UserView;
 import com.team10.sems.identity.internal.application.UserAdministrationService;
 import jakarta.validation.Valid;
-import java.util.List;
+import org.springframework.web.bind.annotation.RequestParam;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +25,15 @@ public class UserAdminController {
     }
 
     @GetMapping
-    public List<UserView> listUsers() {
-        return administrationService.listUsers();
+    public UserAdministrationService.UserPage listUsers(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "keyword", defaultValue = "") String keyword) {
+        return administrationService.listUsers(page, size, keyword);
     }
+
+    @GetMapping("/summary")
+    public UserAdministrationService.UserSummary summary() { return administrationService.summary(); }
 
     @PutMapping("/{userId}/roles")
     public UserView replaceRoles(

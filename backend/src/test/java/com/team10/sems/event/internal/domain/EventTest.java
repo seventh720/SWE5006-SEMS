@@ -70,10 +70,46 @@ class EventTest {
         assertThrows(ResponseStatusException.class, () -> event.publish(0, now));
         event.cancel(0);
         assertThrows(ResponseStatusException.class, () -> event.cancel(0));
-        assertThrows(ResponseStatusException.class, () -> event.editDetails("New", "Details", "Venue", now, now.plusSeconds(3600), 10, 0));
+        assertThrows(ResponseStatusException.class, () -> event.editDetails("New", "Details", "Venue", now, now.plusSeconds(3600), 10, 0, now));
         assertThrows(ResponseStatusException.class, () -> event.configureRegistrationOpening(null));
         assertThrows(ResponseStatusException.class, () -> event.configureRegistrationDeadline(now));
         assertEquals("CANCELLED", event.toView().status());
+    }
+
+    @Test
+    void publishedScheduleLocksAtOriginalStartAndAllEditsLockAtOriginalEnd() {
+        Instant start = Instant.parse("2030-01-01T10:00:00Z");
+        Instant end = start.plusSeconds(3600);
+        Event event = Event.draft(UUID.randomUUID(), "Title", "Details", "Venue", start, end, 10);
+        event.publish(0, start.minusSeconds(60));
+        // At the exact start, ordinary details remain editable but both time fields are fixed.
+        event.editDetails("Title", "Details", "New venue", start, end, 10, 0, start);
+        for (Instant changedStart : new Instant[] {start.minusSeconds(60), start.plusSeconds(60)}) {
+            assertEquals(409, assertThrows(ResponseStatusException.class, () -> event.editDetails(
+                    "Title", "Details", "Venue", changedStart, end, 10, 0, start)).getStatusCode().value());
+        }
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> event.editDetails(
+                "Title", "Details", "Venue", start, end.plusSeconds(60), 10, 0, start)).getStatusCode().value());
+        // The old end is decisive, even when the proposed schedule is in the future.
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> event.editDetails(
+                "Reopened", "Details", "Venue", end.plusSeconds(60), end.plusSeconds(3600), 10, 0, end)).getStatusCode().value());
+        assertEquals(409, assertThrows(ResponseStatusException.class, () -> event.editDetails(
+                "Changed", "Details", "Venue", start, end, 10, 0, end)).getStatusCode().value());
+        assertEquals("Title", event.toView().title());
+        assertEquals("New venue", event.toView().location());
+        assertEquals(start, event.toView().startsAt());
+    }
+
+    @Test
+    void futurePublishedEventCanBeRescheduledButCannotBeMovedIntoThePast() {
+        Instant now = Instant.parse("2030-01-01T09:00:00Z");
+        Instant start = now.plusSeconds(3600);
+        Event event = Event.draft(UUID.randomUUID(), "Title", "Details", "Venue", start, start.plusSeconds(3600), 10);
+        event.publish(0, now);
+        event.editDetails("Rescheduled", "Details", "Venue", start.plusSeconds(60), start.plusSeconds(7200), 10, 0, now);
+        assertEquals(start.plusSeconds(60), event.toView().startsAt());
+        assertEquals(400, assertThrows(ResponseStatusException.class, () -> event.editDetails(
+                "Backdated", "Details", "Venue", now, start.plusSeconds(7200), 10, 0, now)).getStatusCode().value());
     }
 
 }

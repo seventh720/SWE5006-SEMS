@@ -1,9 +1,11 @@
 package com.team10.sems.platform.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.team10.sems.identity.UserAccessService;
 import com.team10.sems.platform.config.JwtProperties;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +22,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -76,13 +79,28 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    JwtAuthenticationConverter jwtAuthenticationConverter() {
+    JwtAuthenticationConverter jwtAuthenticationConverter(UserAccessService users) {
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthoritiesClaimName("roles");
         authoritiesConverter.setAuthorityPrefix("ROLE_");
 
         JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
-        authenticationConverter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            UUID userId;
+            try {
+                userId = UUID.fromString(jwt.getSubject());
+            } catch (IllegalArgumentException | NullPointerException exception) {
+                throw new InvalidBearerTokenException("Invalid account");
+            }
+            var currentRoles = users.activeRoles(userId)
+                    .orElseThrow(() -> new InvalidBearerTokenException("Account is unavailable"));
+            // A token may retain fewer permissions after revocation, never gain new ones.
+            // Newly granted roles still require a fresh login/token.
+            var allowed = currentRoles.stream().map(role -> "ROLE_" + role.name())
+                    .collect(java.util.stream.Collectors.toSet());
+            return authoritiesConverter.convert(jwt).stream()
+                    .filter(authority -> allowed.contains(authority.getAuthority())).toList();
+        });
         return authenticationConverter;
     }
 

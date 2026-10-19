@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { apiRequest, ApiError } from "../../shared/api/client";
 import { roleLabel } from "../../shared/auth/roles";
-import type { User } from "../../shared/types/auth";
+import { EventPhase } from "../events/EventPhase";
 import { formatEventTime, type EventPage, type PublishedEvent } from "../events/events";
 import type { ManagedEvent } from "../events/drafts";
 
@@ -42,6 +42,7 @@ function DataPanel<T>({ path, authenticated = false, children }: { path: string;
 function EventCards({ events, manage = false }: { events: (PublishedEvent | ManagedEvent)[]; manage?: boolean }) {
   return <div className="event-grid">{events.map((event) => <article className="card event-card" key={event.id}>
     <EventArtwork illustration={event.illustration} />
+    <EventPhase startsAt={event.startsAt} endsAt={event.endsAt} status={event.status} />
     <p className="section-label">{formatEventTime(event.startsAt)} · SGT</p>
     <h3><Link className="text-link" to={`${manage ? "/organizer" : ""}/events/${event.id}`}>{event.title}</Link></h3>
     <p>{event.location}</p><Link className="text-link" to={`${manage ? "/organizer" : ""}/events/${event.id}`}>{manage ? "Manage event →" : "View details →"}</Link>
@@ -71,7 +72,7 @@ function PersonalDashboard() {
 interface OrganizerSummary { drafts: number; published: number; cancelled: number; upcoming: ManagedEvent[] }
 function OrganizerDashboard() {
   return <>
-    <section className="event-hero"><p className="eyebrow">Your organizer workspace</p><h2>Bring your next event to life</h2><p>Prepare drafts, publish your events, and keep track of what is coming up.</p><div className="button-row"><Link className="primary-button compact button-link" to="/organizer/events/new">Create event</Link><Link className="secondary-button button-link" to="/organizer/events">My events →</Link></div></section>
+    <section className="event-hero"><p className="eyebrow">Your organizer workspace</p><h2>Bring your next event to life</h2><p>Prepare drafts, publish your events, and keep track of what is coming up.</p><div className="button-row"><Link className="primary-button compact button-link" to="/organizer/events/new">Create event</Link><Link className="secondary-button button-link" to="/organizer/events">My events →</Link><Link className="secondary-button button-link" to="/organizer/reports">My event reports →</Link></div></section>
     <DataPanel<OrganizerSummary> path="/api/v1/organizer/events/summary" authenticated>{(data) => <>
       <Stats items={[{ label: "Drafts", value: data.drafts }, { label: "Published", value: data.published }, { label: "Cancelled", value: data.cancelled }]} />
       <section className="card" aria-label="Event statistics">
@@ -88,10 +89,10 @@ function OrganizerDashboard() {
 
 function AdminDashboard() {
   return <>
-    <section className="event-hero"><p className="eyebrow">Administration</p><h2>Manage your community</h2><p>Review accounts and assign the roles people need.</p><div className="button-row"><Link className="primary-button compact button-link" to="/admin/users">Manage users and roles →</Link></div></section>
-    <DataPanel<User[]> path="/api/v1/admin/users" authenticated>{(users) => <>
-      <Stats items={[{ label: "Registered accounts", value: users.length }, { label: "Organizer accounts", value: users.filter((user) => user.roles.includes("ORGANIZER")).length }, { label: "Staff accounts", value: users.filter((user) => user.roles.includes("STAFF")).length }]} />
-      <section className="card"><h2>Role management</h2><p>Accounts can hold multiple roles. After a role change, ask the user to sign in again.</p><p>Use the Organizer view to manage your own events.</p></section>
+    <section className="event-hero"><p className="eyebrow">Administration</p><h2>Manage your community</h2><p>Review accounts and assign the roles people need.</p><div className="button-row"><Link className="primary-button compact button-link" to="/admin/users">Manage users and roles →</Link><Link className="secondary-button button-link" to="/admin/reports">All event reports →</Link></div></section>
+    <DataPanel<{ total: number; organizers: number; staff: number }> path="/api/v1/admin/users/summary" authenticated>{(users) => <>
+      <Stats items={[{ label: "Registered accounts", value: users.total }, { label: "Organizer accounts", value: users.organizers }, { label: "Staff accounts", value: users.staff }]} />
+      <section className="card"><h2>Role management</h2><p>Accounts can hold multiple roles. Removed permissions take effect immediately. Sign in again to use newly granted roles.</p><p>Use the Organizer view to manage your own events.</p></section>
     </>}</DataPanel>
   </>;
 }

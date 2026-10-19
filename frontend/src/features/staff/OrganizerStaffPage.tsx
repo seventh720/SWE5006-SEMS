@@ -2,7 +2,8 @@ import { Select } from "../../shared/components/Select";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { ManagementError, useManagementRequest } from "../events/OrganizerPages";
+import { ManagementError } from "../events/OrganizerPages";
+import { useManagementRequest } from "../events/useManagementRequest";
 import { apiRequest } from "../../shared/api/client";
 
 interface StaffMember { id: string; username: string; eligible: boolean; assigned: boolean }

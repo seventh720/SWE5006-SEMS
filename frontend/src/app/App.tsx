@@ -11,6 +11,7 @@ import { EventDetailPage, EventListPage } from "../features/events/EventPages";
 import { EditEventPage, MyEventsPage, NewEventPage, OrganizerRoute } from "../features/events/OrganizerPages";
 import { MyTicketsPage } from "../features/ticketing/MyTicketsPage";
 import { OrganizerStaffPage } from "../features/staff/OrganizerStaffPage";
+import { EventReportsPage } from "../features/reporting/EventReportsPage";
 import { OrganizerStatisticsPage } from "../features/reporting/OrganizerStatisticsPage";
 import { OrganizerTicketTypesPage } from "../features/ticketing/OrganizerTicketTypesPage";
 
@@ -28,6 +29,8 @@ export function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/admin/reports" element={<EventReportsPage admin />} />
+        <Route path="/organizer/reports" element={<EventReportsPage />} />
         <Route path="/admin/users" element={<AdminUsersPage />} />
         <Route element={<StaffRoute />}>
           <Route path="/staff" element={<StaffPage />} />

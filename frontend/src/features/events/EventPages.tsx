@@ -1,3 +1,6 @@
+import { Select } from "../../shared/components/Select";
+import { DateTimeField } from "./DateTimeField";
+import { EventPhase } from "./EventPhase";
 import { EventArtwork, illustrationPath } from "./EventArtwork";
 import { type FormEvent, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -27,15 +30,22 @@ export function EventListPage() {
   const [params, setParams] = useSearchParams();
   const { page, keyword } = readEventQuery(params);
   const [search, setSearch] = useState(keyword);
-  const request = useEventRequest<EventPage>(eventListPath(page, keyword));
+  const filters = { location: params.get("location") ?? "", from: params.get("from") ?? "", to: params.get("to") ?? "", status: params.get("status") ?? "ALL" };
+  const hasFilters = !!keyword || Object.values(filters).some(value => value && value !== "ALL");
+  const [draftFilters, setDraftFilters] = useState(filters);
+  const [filterError, setFilterError] = useState("");
+  const request = useEventRequest<EventPage>(eventListPath(page, keyword, filters));
+  useEffect(() => setDraftFilters({ location: params.get("location") ?? "", from: params.get("from") ?? "", to: params.get("to") ?? "", status: params.get("status") ?? "ALL" }), [params]);
   useEffect(() => setSearch(keyword), [keyword]);
 
-  function navigate(nextPage: number, nextKeyword = keyword) {
-    setParams({ ...(nextKeyword ? { keyword: nextKeyword } : {}), page: String(nextPage) });
+  function navigate(nextPage: number, nextKeyword = keyword, nextFilters = filters) {
+    setParams({ ...Object.fromEntries(Object.entries(nextFilters).filter(([, value]) => value && value !== "ALL")), ...(nextKeyword ? { keyword: nextKeyword } : {}), page: String(nextPage) });
   }
   function submit(event: FormEvent) {
     event.preventDefault();
-    navigate(0, search.trim());
+    if (draftFilters.from && draftFilters.to && draftFilters.from > draftFilters.to) { setFilterError("From date must not be after to date."); return; }
+    setFilterError("");
+    navigate(0, search.trim(), draftFilters);
   }
 
   return <main className="app-shell events-shell">
@@ -43,14 +53,20 @@ export function EventListPage() {
     <header className="event-hero">
       <p className="eyebrow">Discover · Connect · Experience</p>
       <h1>Find your next event</h1>
-      <p>Explore upcoming experiences and find a reason to come together.</p>
+      <p>Explore upcoming events and revisit past experiences.</p>
     </header>
-    <form className="card event-search" onSubmit={submit} role="search">
+    <form className="card filter-form" onSubmit={submit} role="search">
       <label htmlFor="event-keyword">Search by event title
         <input id="event-keyword" type="search" placeholder="What would you like to explore?" value={search} onChange={(event) => setSearch(event.target.value)} />
       </label>
+      <label>Location<input value={draftFilters.location} onChange={e => setDraftFilters({ ...draftFilters, location: e.target.value })} placeholder="Venue or city" /></label>
+      <DateTimeField dateOnly required={false} name="event-filter-from" label="From date (SGT)" value={draftFilters.from} onChange={from => setDraftFilters({ ...draftFilters, from })} />
+      <DateTimeField dateOnly required={false} name="event-filter-to" label="To date (SGT)" value={draftFilters.to} onChange={to => setDraftFilters({ ...draftFilters, to })} />
+      <Select label="Event status" value={draftFilters.status} onChange={status => setDraftFilters({ ...draftFilters, status })}
+        options={[{ value: "ALL", label: "All published events" }, { value: "UPCOMING", label: "Upcoming" }, { value: "ONGOING", label: "Ongoing" }, { value: "ENDED", label: "Ended" }]} />
       <button className="primary-button compact" type="submit">Search events</button>
-      {keyword && <button className="secondary-button" type="button" onClick={() => { setSearch(""); navigate(0, ""); }}>Clear search</button>}
+      {filterError && <p role="alert">{filterError}</p>}
+      {hasFilters && <button className="secondary-button" type="button" onClick={() => { setSearch(""); setFilterError(""); navigate(0, "", { location: "", from: "", to: "", status: "ALL" }); }}>Clear search</button>}
     </form>
     <section aria-label="Published events" aria-busy={request.loading}>
       <div className="event-results-heading"><h2>{keyword ? `Results for “${keyword}”` : "Published events"}</h2>
@@ -59,11 +75,11 @@ export function EventListPage() {
       <RequestState {...request} />
       {request.data && <>
         {request.data.items.length === 0 ? <div className="card event-feedback">
-          <h2>{page > 0 ? "No events on this page" : keyword ? "No matching events" : "More experiences are on the way"}</h2>
-          <p>{keyword ? "Try a different title or clear your search." : "Check back soon for published events."}</p>
+          <h2>{page > 0 ? "No events on this page" : hasFilters ? "No matching events" : "More experiences are on the way"}</h2>
+          <p>{hasFilters ? "Try different filters or clear your search." : "Check back soon for published events."}</p>
           {page > 0 && <button className="secondary-button" onClick={() => navigate(0)}>Back to first page</button>}
         </div> : <div className="event-grid">{request.data.items.map((item) => <article className="card event-card" key={item.id}>
-          <EventArtwork illustration={item.illustration} />
+          <EventArtwork illustration={item.illustration} /><EventPhase startsAt={item.startsAt} endsAt={item.endsAt} />
           <p className="section-label">{formatEventTime(item.startsAt)} · SGT</p>
           <h2><Link to={`/events/${encodeURIComponent(item.id)}?${params}`} className="text-link">{item.title}</Link></h2>
           <p className="event-location">{item.location}</p>
@@ -91,7 +107,7 @@ export function EventDetailPage() {
     <RequestState {...request} />
     {item && <>
       <header className="event-hero event-title-hero" style={{ backgroundImage: `url("${illustrationPath(item.illustration)}")` }}>
-        <div className="event-title-copy"><p className="eyebrow">Published event</p><h1>{item.title}</h1><p>{item.location}</p></div>
+        <div className="event-title-copy"><p className="eyebrow">Published event</p><EventPhase startsAt={item.startsAt} endsAt={item.endsAt} /><h1>{item.title}</h1><p>{item.location}</p></div>
       </header>
       <div className="event-detail-grid">
         <div className="event-detail-main">

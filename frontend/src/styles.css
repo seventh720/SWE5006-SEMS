@@ -369,3 +369,28 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .staff-event-context > span { color: #526774; font-size: 0.85rem; font-weight: 600; }
 .staff-event-context h2 { margin: 0.25rem 0 0; font-size: clamp(1.4rem, 2.5vw, 2rem); color: #176d76; overflow-wrap: anywhere; }
 .staff-management-sections { display: grid; gap: 1.5rem; }
+
+.filter-form { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1.5rem; }
+.filter-form > label, .filter-form > .custom-select { flex: 1 1 150px; min-width: 150px; margin: 0; }
+.filter-form input { width: 100%; }
+.filter-actions { flex: 0 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.filter-actions > button { width: auto; margin: 0; }
+.report-scroll { overflow-x: auto; }
+.report-table { width: 100%; border-collapse: collapse; text-align: left; }
+.report-table th, .report-table td { padding: .8rem; border-bottom: 1px solid #dbe5e8; white-space: nowrap; }
+.report-table caption { text-align: left; font-weight: 700; padding: .8rem; }
+.status-ended { background: #edf0f2; color: #52616b; }
+.status-ongoing { background: #e0f3ed; color: #176649; }
+.status-upcoming { background: #e6f2f4; color: #17676f; }
+@media (max-width: 600px) { .filter-form { align-items: stretch; } .filter-form > label, .filter-form > .custom-select { flex-basis: 100%; min-width: 0; } }
+
+.filter-form > .date-time-field { flex: 1 1 180px; min-width: 180px; align-self: auto; }
+.filter-form > .date-time-field > label { margin: 0 0 .45rem; }
+.filter-form > label > input, .filter-form > .custom-select > .select-trigger,
+.filter-form > .date-time-field > .date-time-controls > input,
+.filter-form > .date-time-field > .date-time-controls > button { height: 46px; box-sizing: border-box; }
+.filter-form .english-calendar { width: min(340px, calc(100vw - 48px)); }
+.date-only-controls > input[type="text"] { padding-right: 48px; }
+.filter-form > .date-time-field > .date-only-controls > button { position: absolute; right: 4px; top: 4px; width: 38px; height: 38px; padding: 0; display: grid; place-items: center; border: 0; background: transparent; }
+.date-only-controls > button:hover { background: #eff8f7; }
+@media (max-width: 600px) { .filter-form > .date-time-field { flex-basis: 100%; min-width: 0; } }

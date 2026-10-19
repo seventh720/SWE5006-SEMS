@@ -38,11 +38,11 @@ it("shows honest staff availability without pretending assignments have been que
 });
 it("defaults administrators to account management", async () => {
   auth.user.roles = ["ADMIN"];
-  fetchMock.mockResolvedValue(response([{ roles: ["ORGANIZER", "STAFF"] }, { roles: ["ATTENDEE"] }]));
+  fetchMock.mockResolvedValue(response({ total: 2, organizers: 1, staff: 1 }));
   mount(); await screen.findByText("Registered accounts");
   expect(screen.getByText("2")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Manage users and roles →" }).getAttribute("href")).toBe("/admin/users");
-  expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/admin/users");
+  expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/admin/users/summary");
 });
 it("retries failures instead of showing fake empty results", async () => {
   fetchMock.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(response({ items: [] }));
@@ -114,7 +114,7 @@ it("offers staff and personal views to staff+attendee users", async () => {
 it("keeps organizer navigation available to administrators", async () => {
   auth.user.roles = ["ADMIN"];
   fetchMock.mockImplementation(async (url) => {
-    if (String(url).endsWith("/api/v1/admin/users")) return response([{ roles: ["ORGANIZER"] }]);
+    if (String(url).endsWith("/api/v1/admin/users/summary")) return response({ total: 1, organizers: 1, staff: 0 });
     if (String(url).endsWith("summary")) return response({ drafts: 1, published: 0, cancelled: 0, upcoming: [] });
     return response({ items: [] });
   });
