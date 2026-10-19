@@ -37,3 +37,6 @@ backend/.factorypath
 
 # Generated lint reports
 lint-reports/
+
+# Container scan and smoke-test artifacts
+image-reports/
