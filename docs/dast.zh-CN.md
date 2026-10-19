@@ -15,6 +15,8 @@
 | 云端 `https://swe5006.seventh720.com`，已部署基线 `fce7f1f` | 22 | 0 | 2 | 7 | 5 | 按门槛失败，发现缺少CSP和防嵌入头 |
 | 首次安全头修复，隔离HTTPS `https://dast.local` | 22 | 0 | 0 | 2 | 5 | 通过中高危门槛，继续修复COOP/COEP低危 |
 | 补齐COOP/COEP后的最终镜像，隔离PostgreSQL/后端/前端及临时Caddy HTTPS | 22 | 0 | 0 | 0 | 5 | 66项规则通过，0失败、0警告、0忽略 |
+| PR #38合并部署后的云端，main `cdd0c66`，Actions运行39307641504 | 22 | 0 | 0 | 0 | 4 | 扫描通过；清理Python缓存权限错误导致作业失败 |
+| 禁止字节码缓存后的脚本，重新扫描同一云端 | 22 | 0 | 0 | 0 | 5 | 66项规则通过，报告保存及清理成功，退出0 |
 
 计数为ZAP JSON中按来源站点划分的告警条目；同一规则可有多个实例或跨HTTP/HTTPS站点出现。没有将规则标为IGNORE，也没有将所有警告统一当作通过。
 
@@ -24,7 +26,9 @@
 
 修复后的响应头、公开入口、API和HTTPS Origin注册/登录冒烟通过；Chrome活动页和日历选择/应用正常，应用error日志为空。DAST门槛测试5项通过，覆盖中高危失败、低危保留、缺失报告/站点和种子访问不完整不能误报通过。
 
-**云端修复尚待本次PR合并与部署。隔离通过不等于线上已修复。** 部署后的自动扫描会产生新的云端报告；确认其通过后再完成该验收项。
+PR #38已合并并部署到云端。首次[main运行39307641504](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39307641504)的六项质量检查、部署均成功，云端DAST扫描也无高/中/低危；作业最后清理`__pycache__/hooks.cpython-311.pyc`时因容器用户与runner用户不同而失败。
+
+修复在ZAP容器设置`PYTHONDONTWRITEBYTECODE=1`，避免生成由容器用户持有的缓存目录；保留原有退出码与失败门槛。Linux不同UID复现实验验证旧方式会发生PermissionError，禁用字节码后可由runner正常清理。修复脚本已实际重新扫描云端并以0退出；合并该修复后仍需核对main作业整体成功。
 
 ## 运行与报告
 
@@ -36,7 +40,7 @@ bash scripts/security/dast.sh https://swe5006.seventh720.com
 
 报告默认保存到被Git忽略的`dast-reports/`：`zap.html`、`zap.json`、`zap.md`、`summary.md`、`coverage.json`、`scan.log`、`run.json`和镜像digest。`run.json`记录目标、时间、配置提交及工作树是否有未提交改动。报告不保存登录凭据。
 
-本次云端初扫位于该目录顶层，隔离复扫位于`dast-reports/isolated/`。补齐COOP/COEP后的最终复扫位于`dast-reports/isolated-final/`，三份报告均为实际运行产物。隔离环境使用自签临时证书，只验证应用响应；它不证明云端证书或TLS配置质量。
+本次云端初扫位于该目录顶层，隔离复扫位于`dast-reports/isolated/`。补齐COOP/COEP后的最终复扫位于`dast-reports/isolated-final/`，这些均为实际运行产物。失败Actions作业的报告另存于`dast-reports/github-39307641504/`；清理修复后的云端复扫报告位于`dast-reports/cloud-cleanup-fix/`。隔离环境使用自签临时证书，只验证应用响应；它不证明云端证书或TLS配置质量。
 
 可用`DAST_REPORT_DIR`指定其他报告目录；`DAST_DOCKER_NETWORK`用于连接已有隔离Docker网络。不要将隔离环境目标写入云端验收结果。
 
