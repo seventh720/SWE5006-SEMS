@@ -39,10 +39,13 @@ class StaffCheckInIntegrationTest {
     @Autowired ObjectMapper mapper;
     @Autowired com.team10.sems.ticketing.TicketLifecycleService lifecycle;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean java.time.Clock clock;
+    private static final Instant START = Instant.parse("2030-01-01T10:00:00Z");
     UUID owner, attendee, other, event, ticket;
 
     @BeforeEach
     void prepare() {
+        org.mockito.Mockito.when(clock.instant()).thenReturn(START);
         jdbc.update("DELETE FROM ticket_check_in_records");
         jdbc.update("DELETE FROM event_staff_assignments");
         jdbc.update("DELETE FROM notifications");
@@ -106,7 +109,7 @@ class StaffCheckInIntegrationTest {
         jdbc.update("INSERT INTO user_roles(user_id,role_code) VALUES (?,'STAFF')", staff);
         mvc.perform(put("/api/v1/staff/events/" + event + "/assignments/" + staff).with(as(owner, "ORGANIZER")))
                 .andExpect(status().isOk());
-        jdbc.update("UPDATE events SET starts_at = CURRENT_TIMESTAMP - INTERVAL '1 hour', ends_at = CURRENT_TIMESTAMP + INTERVAL '1 hour' WHERE id=?", event);
+
         issued = insertTicket(insertBooking(attendee, 1, "CONFIRMED", null), "VALID", false);
     }
     private ResultActions submit(UUID actor, UUID eventId, String operation) throws Exception {
@@ -152,9 +155,25 @@ class StaffCheckInIntegrationTest {
         ready();
         mvc.perform(put("/api/v1/staff/events/" + event + "/assignments/" + other).with(as(other, "ORGANIZER")))
                 .andExpect(status().isNotFound());
-        jdbc.update("UPDATE events SET starts_at=CURRENT_TIMESTAMP + INTERVAL '10 minutes' WHERE id=?", event);
+        jdbc.update("UPDATE events SET starts_at='2030-01-01T10:16:00Z' WHERE id=?", event);
         submit(staff, event, "check-ins").andExpect(status().isConflict());
         jdbc.update("UPDATE events SET status='CANCELLED' WHERE id=?", event);
         submit(staff, event, "verify").andExpect(status().isConflict());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"-901,409", "-900,200", "0,200", "899,200", "900,409", "901,409"})
+    void enforcesExactFifteenMinuteBoundaries(long seconds, int expected) throws Exception {
+        ready();
+        org.mockito.Mockito.when(clock.instant()).thenReturn(START.plusSeconds(seconds));
+        submit(staff, event, "verify").andExpect(status().is(expected));
+        submit(staff, event, "check-ins").andExpect(status().is(expected));
+    }
+    @Test void closesAtEventEndWhenTheEventIsShorterThanFifteenMinutes() throws Exception {
+        ready();
+        jdbc.update("UPDATE events SET ends_at='2030-01-01T10:05:00Z' WHERE id=?", event);
+        org.mockito.Mockito.when(clock.instant()).thenReturn(START.plusSeconds(300));
+        submit(staff, event, "verify").andExpect(status().isConflict());
+        submit(staff, event, "check-ins").andExpect(status().isConflict());
     }
 }

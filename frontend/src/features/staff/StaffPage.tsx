@@ -36,7 +36,7 @@ export function StaffPage() {
   const generation = useRef(0);
   const [now, setNow] = useState(Date.now);
   const selected = events.find(e => e.id === eventId);
-  const inWindow = selected ? now >= Date.parse(selected.startsAt) && now < Date.parse(selected.endsAt) : false;
+  const inWindow = selected ? now >= Date.parse(selected.startsAt) - 15 * 60_000 && now < Math.min(Date.parse(selected.startsAt) + 15 * 60_000, Date.parse(selected.endsAt)) : false;
   const stopScan = useCallback(() => setScanning(false), []);
   function changeCode(value: string) {
     generation.current++;
@@ -92,7 +92,7 @@ export function StaffPage() {
     <nav className="staff-navigation" aria-label="Staff workspace sections"><a className="text-link" href="#assigned-events">My events</a><a className="text-link" href="#ticket-verification">Ticket verification</a><a className="text-link" href="#check-in-records">Check-in records</a></nav>
     <section className="card staff-assignments" id="assigned-events"><h2>My assigned events</h2>
       {events.length === 0 ? <p>No event assignments yet. Ask an organizer to assign you to an event.</p> : <label htmlFor="staff-event">Choose event <select id="staff-event" value={eventId} disabled={busy || checkingIn} onChange={e => { generation.current++; stopScan(); setEventId(e.target.value); setMessage(""); }}><option value="">Select an event</option>{events.map(e => <option key={e.id} value={e.id}>{e.title}</option>)}</select></label>}
-      {selected && <p className="muted">{new Date(selected.startsAt).toLocaleString()} – {new Date(selected.endsAt).toLocaleString()}{!inWindow && " · Check-in is available only during the event."}</p>}
+      {selected && <p className="muted">{new Date(selected.startsAt).toLocaleString()} – {new Date(selected.endsAt).toLocaleString()}{!inWindow && " · Check-in opens 15 minutes before the event and closes 15 minutes after it starts (or at its end, if earlier)."}</p>}
     </section>
     <div className="staff-workspace-grid"><section className="card" id="ticket-verification"><p className="section-label">Arrival desk</p><h2>Ticket verification</h2>
       {scanning && <TicketCamera onClose={stopScan} onScan={value => { changeCode(value); stopScan(); setMessage("QR code detected. Select Verify ticket."); }} />}

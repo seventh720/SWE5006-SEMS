@@ -4,8 +4,8 @@ import com.team10.sems.event.EventAccessService;
 import com.team10.sems.ticketing.TicketLifecycleService;
 import com.team10.sems.ticketing.TicketView;
 import java.time.Instant;
+import java.time.Clock;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,11 +19,13 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/v1/staff")
 public class CheckInController {
+    private final Clock clock;
     private final JdbcTemplate db;
     private final EventAccessService events;
     private final TicketLifecycleService lifecycle;
 
-    public CheckInController(JdbcTemplate db, EventAccessService events, TicketLifecycleService lifecycle) {
+    public CheckInController(JdbcTemplate db, EventAccessService events, TicketLifecycleService lifecycle, Clock clock) {
+        this.clock = clock;
         this.db = db;
         this.events = events;
         this.lifecycle = lifecycle;
@@ -121,10 +123,10 @@ public class CheckInController {
         if (count == null || count == 0) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not assigned to this event");
     }
 
-    private static void requireCheckInWindow(Instant start, Instant end, String status) {
-        Instant now = Instant.now();
-        if (!"PUBLISHED".equals(status) || now.isBefore(start) || !now.isBefore(end)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Check-in is only available during the event");
+    private void requireCheckInWindow(Instant start, Instant end, String status) {
+        Instant now = clock.instant();
+        if (!"PUBLISHED".equals(status) || now.isBefore(start.minusSeconds(900)) || !now.isBefore(start.plusSeconds(900)) || !now.isBefore(end)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Check-in opens 15 minutes before the event and closes 15 minutes after it starts (or when it ends, if earlier)");
         }
     }
 
