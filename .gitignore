@@ -28,3 +28,12 @@ database-exports/
 
 # Static security reports (may contain sensitive findings)
 security-reports/
+
+# IDE-generated Maven/Java settings (build configuration lives in pom.xml)
+backend/.settings/
+backend/.classpath
+backend/.project
+backend/.factorypath
+
+# Generated lint reports
+lint-reports/
