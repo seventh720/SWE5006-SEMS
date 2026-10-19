@@ -25,3 +25,6 @@ database-exports/
 
 # Logs
 *.log
+
+# Static security reports (may contain sensitive findings)
+security-reports/

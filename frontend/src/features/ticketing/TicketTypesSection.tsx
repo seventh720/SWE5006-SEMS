@@ -22,7 +22,7 @@ export function usePublicTicketTypes(eventId: string) {
     const controller = new AbortController();
     readPublicTicketTypes(eventId, controller.signal)
       .then((data) => { if (!controller.signal.aborted) setResult({ path, data }); })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (controller.signal.aborted) return;
         setResult({ path, error: "We couldn't load ticket types right now. Please try again." });
       });

@@ -1,0 +1,13 @@
+# Reviewed against this project's REST-only backend on 2026-10-19.
+# These are applicability exceptions, NOT patched dependencies. See docs/testing.zh-CN.md.
+vulnerabilities:
+  - id: CVE-2026-47884
+    purls:
+      - pkg:maven/org.springframework/spring-webmvc@6.2.19
+    expired_at: 2026-11-17
+    statement: No XsltView, server-side MVC views or implicit view rendering; frontend is a separate React application. Reassess on architecture changes.
+  - id: CVE-2026-47890
+    purls:
+      - pkg:maven/org.springframework/spring-webmvc@6.2.19
+    expired_at: 2026-11-17
+    statement: No SSE or view fragments; notifications use JSON polling. Reassess before adding SSE or server-rendered fragments.

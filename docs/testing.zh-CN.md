@@ -178,3 +178,35 @@ CI 运行 `test:coverage`，在摘要和 Telegram 通知显示行/分支覆盖�
 本轮170项测试和生产构建通过。低覆盖项包括路由入口、ProtectedRoute、AttendeeInfoSummary和头像部分逻辑；应优先补权限跳转、资料展示及头像错误路径。当前先记录基线，没有新增覆盖率阻断门槛。组件测试主要使用模拟API，不能代替真实浏览器和服务端联调。
 
 流水线仍是CI：PR及main推送触发三个并行检查任务，再汇总通知。核心浏览器端到端测试与自动部署尚未接入；CD需在部署环境确定后配置。新配置将在创建或更新 PR、或推送 main 后执行。
+
+
+## Lint 与静态安全检查（2026-10-19）
+
+CI 新增 `Source and workflow lint` 和 `SAST, dependency and secret scans` 两个作业。
+
+- 前端：ESLint 10 / TypeScript recommended 规则，`npm --prefix frontend run lint`，零 warning 门槛；类型检查仍在 build 中执行。
+- 后端：Checkstyle 在 Maven validate 阶段检查主源码及测试源码的空语句、equals/hashCode 配对、switch 穿透、修饰符顺序与 long 字面量。执行 `mvn -f backend/pom.xml validate`。这是基础规则集，不是全面格式化检查。
+- 流水线：actionlint 校验 GitHub Actions，`bash -n` 检查扫描脚本。
+- SAST：Semgrep 1.181.0，Java / TypeScript registry 规则，发现或解析失败使检查失败。规则集会随 registry 更新；不能声称永久固定扫描结果。
+- SCA/密钥：Trivy 0.75.0 扫描 npm 锁文件与源码密钥；另扫描本轮构建的 Spring Boot JAR 内嵌 Java 依赖。HIGH/CRITICAL 阻断，没有全局 ignore-unfixed。不是只扫描无法完整解析父 BOM 的 pom.xml。
+- 本地执行：先 `RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml clean verify`，再 `bash scripts/security/scan.sh`。需要 Docker 和联网下载规则、漏洞库。
+- 扫描器只挂载 Git 纳入范围的文件副本及明确选择的 JAR；本机被忽略的 `.env`、node_modules 等不被挂载。未提交但未被忽略的新文件也会扫描；Git 历史不在范围内。
+- 所有扫描完成后统一返回状态，报告存放在被 Git 忽略的 `security-reports/`，CI 无论成功失败均上传报告，保留 7 天。报告可能含命中片段，应限制 artifact 访问。
+- 仓库管理员仍需在分支保护中将两个新作业设为 required checks；添加 workflow 本身不会改变分支保护。
+
+初次扫描发现 Jackson、Tomcat、pgJDBC 的漏洞，分别升级至 Jackson BOM 2.21.7、Tomcat 10.1.60、pgJDBC 42.7.12。后续升级 Spring Boot BOM 时复核这些版本覆盖。
+
+Spring MVC 6.2.19 的两条记录保留为**当前功能范围不适用的限时例外**，不是已修复：
+
+| CVE | 本项目适用性判断 | 复核条件 |
+| --- | --- | --- |
+| CVE-2026-47884 | 后端仅提供 REST JSON API，没有 XsltView 或隐式服务端视图渲染 | 引入 MVC 视图或 XSLT 时撤销例外 |
+| CVE-2026-47890 | 没有 SSE 视图片段；通知使用 JSON 轮询 | 引入 SSE / 视图片段时撤销例外 |
+
+例外仅匹配指定 CVE 和 `spring-webmvc@6.2.19`，2026-11-17 到期，报告保留 suppressed findings。`check-spring-scope.py` 在扫描前检测相关源码/配置变化；关键词检查不能替代架构复核，也不能证明第三方或反射配置安全。应规划受支持 Spring 版本升级，而非无限延期。
+
+依据：[Spring XSLT 公告](https://spring.io/security/cve-2026-47884/)、[Spring SSE 公告](https://spring.io/security/cve-2026-47890/)、[Jackson 2.21.7](https://github.com/FasterXML/jackson/wiki/Jackson-Release-2.21.7)、[Tomcat 安全公告](https://tomcat.apache.org/security-10.html)。
+
+本阶段不包含 DAST、容器镜像扫描或自动部署；业务权限和并发正确性仍由专项测试验证。
+
+本地验证：ESLint、Checkstyle、actionlint、shell 语法检查通过；后端 208 项测试（含 PostgreSQL 集成）全部通过、零跳过；前端 235 项测试及构建通过，通知测试类型写法调整后额外复验 4 项通知测试和类型检查。最终 Semgrep 零 findings / 解析错误；Trivy 无未豁免 HIGH/CRITICAL 发现，Java 报告保留上述两条限时例外。远端 CI 尚待推送后验证。
