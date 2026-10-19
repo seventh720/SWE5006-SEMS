@@ -2,9 +2,9 @@
 
 ## 2026-10-20 当前状态
 
-main `4e96b35` 的 [CI/CD 运行 39289225506](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39289225506)
+main `71082b8` 的 [CI/CD 运行 39295381246](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39295381246)
 已完成测试、静态安全、镜像扫描、隔离冒烟和云端自动部署。下文旧章节中的“尚无镜像扫描/CD”属于历史状态。
-本次会话/密码/Clock 修缮本地验证：后端完整回归 **211 项**，0失败、0错误、0跳过，使用真实 PostgreSQL/Testcontainers；前端 **244 项**通过，类型检查、构建、ESLint、Checkstyle 均通过。尚不代表已经合并上线。
+本次会话/密码/Clock 修缮本地验证：后端完整回归 **211 项**，0失败、0错误、0跳过，使用真实 PostgreSQL/Testcontainers；前端 **244 项**通过，类型检查、构建、ESLint、Checkstyle 均通过。对应 PR #35 已合并并通过上述 main CI/CD 上线；2026年10月20日核验容器健康、JWT TTL 为 `PT1H`。
 
 新增覆盖包含密码 ASCII/长度限制及旧密码登录、JWT 到1小时边界返回401、固定 Clock 下的 JPA 审计、角色通知收件人/去重/事务回滚，以及前端定时过期、后台恢复、角色轮询、普通403、网络异常和旧响应隔离。
 

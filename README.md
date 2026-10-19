@@ -1,387 +1,148 @@
-# Smart Event Management and Ticketing System
+# Smart Event Management and Ticketing System · SEMS
 
-[English](README.md) | [简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Tests and coverage](docs/testing.zh-CN.md)
+[English](README.md) | [简体中文](README.zh-CN.md) | [Documentation](docs/README.md) | [Live system](https://swe5006.seventh720.com)
 
-SEMS is a React, Spring Boot modular-monolith and PostgreSQL application. It now supports authentication, roles, event management, ticket types, free bookings, attendee and organizer orders, electronic tickets and QR codes, assigned staff check-in, in-app notifications, organizer statistics, and transactional cancellation with inventory release.
+SWE5006 Team 10's event management and free-ticketing application, built with React, TypeScript, Spring Boot and PostgreSQL. It covers event publication, registration, electronic tickets, staff check-in, cancellation, notifications and reporting.
 
-## Illustrations and avatars
+## Delivery status
 
-Choose **Card illustration** in an event draft to use a built-in gathering, technology, music, sports, arts or community illustration. Lists, dashboards and event details share the selection; copied events retain it. Subtle card and button motion respects reduced-motion preferences.
+Verified on **20 October 2026 (SGT)**: business baseline [`71082b8`](https://github.com/seventh720/SWE5006-SEMS/commit/71082b840ece4401515c1db9e3ac68d9a6f32e9e) passed [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39295381246) and is deployed over HTTPS. The backend's runtime JWT lifetime is `PT1H`.
 
-Open your profile from the dashboard avatar to upload a PNG/JPEG (up to 5 MB). Images are center-cropped to 256×256 and saved to your account. **Use default avatar** removes the upload. Missing or failed images use the default illustration.
+The application is ready for **feature freeze**. Final presentation acceptance still needs cloud multi-role walkthroughs, DAST, an isolated backup-restore exercise, a performance baseline and real-device QR scanning. These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
 
-## Booking workflow
+## Features and roles
 
-Organizers configure tickets from an event's **Manage ticket types** link and inspect **View event orders**. Attendees reserve free tickets on event details and manage them through **My orders**. Future published events can also receive ticket types. Total quota cannot exceed event capacity; ticket configuration freezes after its first booking, including after cancellation.
+| Role | Implemented workflow |
+|---|---|
+| Guest | Search published events by title, location, SGT dates and event phase |
+| `ATTENDEE` | Save booking details, pre-register, book free tickets, view orders and QR tickets, cancel eligible bookings |
+| `ORGANIZER` | Manage owned events, ticket quotas, registration windows, staff assignments, orders and reports |
+| `STAFF` | Verify and check in tickets only for assigned events; view check-in records |
+| `ADMIN` | Search/paginate users, manage roles, view system-wide reports and manage personally owned events |
 
-Bookings contain one ticket type and 1–10 tickets. `POST /api/v1/bookings` requires an `Idempotency-Key`; retries reuse it. Event cancellation cancels active bookings and releases inventory in the same transaction. Historical orders retain event and ticket snapshots. Confirmed free bookings automatically receive individual electronic tickets. Paid bookings are outside the current scope; Sprint 5 is reserved for acceptance and delivery.
+Accounts may hold multiple roles. Public registration grants `ATTENDEE`; staff access also requires an event assignment. Other features include profile avatars, event illustrations and in-app notifications.
 
-Organizers can **Copy to new draft** from any of their events, including cancelled events. Saved event details, booking requirements and ticket configuration are copied; orders and sold inventory stay with the original event. Review dates before publishing the copy.
+**Scope:** tickets are free. Payments, refunds, seat maps, coupons, email/SMS delivery and self-service password/email changes are outside the current delivery scope.
 
-Events can set a registration deadline on or before their start time; omitted deadlines default to the start. Booking closes automatically at the deadline, with server enforcement. Date fields use the explicit English format `YYYY-MM-DD HH:mm` in SGT, with an English calendar overlay that does not shift the form.
+### Business rules
 
-Drafts can require a real name, email, phone, student ID number and passport number independently, plus one custom text question. Users can save optional defaults through **Saved booking details**, then **Apply saved details** during booking and edit them for that order. Privacy notices explain access: saved defaults are private to the account, and submitted order details are visible to the attendee and that event's organizer. See the [reuse and profile acceptance results](docs/acceptance/README.md).
+- Each booking contains one ticket type and 1–10 tickets. Idempotency keys prevent duplicate orders; event locks and quota checks protect inventory. Confirmation issues one electronic ticket per admission.
+- Pre-registration saves information without reserving inventory or automatically placing an order. Registration closes no later than the event start.
+- Check-in is allowed from 15 minutes before the start until 15 minutes after it, or the event end if earlier. Duplicate check-in is rejected.
+- Cancellation updates bookings, inventory, tickets and notifications transactionally. Checked-in bookings cannot be individually cancelled; event cancellation preserves check-in history while voiding tickets.
+- Ended published events cannot be reopened by changing their dates. Use **Copy to new draft**; historical orders and check-ins stay with the original event.
+- JWTs last one hour. The frontend handles expiry/401 and checks changed roles on focus, every 30 seconds and after 403. Backend role revocation takes effect on subsequent requests; new permissions require a fresh login. Actual role changes create inbox notifications.
+- New registration/bootstrap passwords contain **8–16 ASCII letters or digits**. Existing passwords remain usable at login. The last active administrator is protected against concurrent removal.
 
-New Flyway migrations run on startup and preserve existing records. No new environment variables are required. See the [API and transaction contract](docs/sprint-3-api.zh-CN.md), [database schema](docs/database/README.md), and [acceptance evidence](docs/acceptance/sprint3-2026-10-06/README.md).
-
-## Event browsing
-
-Event pages at `/events` and `/events/:id` now use anonymous `GET /api/v1/events?page=0&size=10&keyword=...` and `GET /api/v1/events/{id}`. Only published events are exposed. Pagination is zero-based (size 1–50); title search is case-insensitive and treats wildcard characters literally. Restart the updated backend to apply the new Flyway migration. An empty database returns an empty list; no sample events are seeded. Organizers and administrators can now create and edit their own private drafts at `/organizer/events`, using authenticated GET/POST `/api/v1/organizer/events` and GET/PUT `/api/v1/organizer/events/{id}`. Updates require the current `version`; stale edits or edits to cancelled events return 409. Ownership comes from the JWT and applies to administrators too. Publish and cancel use POST `/api/v1/organizer/events/{id}/publish` and `/cancel`, with a JSON `version`. Publication requires a future start time. Published event details remain editable; booking requirements stay fixed, and an updated end time must be in the future. Cancellation is irreversible and hides the event from public lists and detail lookup. Newly saved drafts will not appear in public browsing. See the [database schema](docs/database/README.md).
-
-## Current roles and accounts
-
-The system has **four roles**, not only user and administrator:
-
-| Code | Identity | Intended access |
-|---|---|---|
-| `ATTENDEE` | Attendee | Browse events, pre-register, book free tickets and view own orders and QR tickets |
-| `ORGANIZER` | Event Organizer | Create and manage authorized events |
-| `STAFF` | Event Staff | Verify tickets and perform event check-in |
-| `ADMIN` | System Administrator | Manage users, roles and system-wide administration |
-
-A user account can have more than one role. Every public registration receives `ATTENDEE`. An administrator account is created only when `SEMS_BOOTSTRAP_ADMIN_EMAIL` and `SEMS_BOOTSTRAP_ADMIN_PASSWORD` are configured. No real user or default administrator password is committed to Git.
-
-At repository initialization there are therefore four role definitions, but zero persistent accounts until somebody registers or the optional bootstrap administrator is enabled.
-
-## Project structure
+## Architecture
 
 ```text
-backend/                  Spring Boot API and Flyway migrations
-frontend/                 React and TypeScript web application
-deployment/compose.yaml   PostgreSQL and full application runtime
-docs/                     Architecture and database decisions
-.github/workflows/        Continuous integration
+backend/             Spring Boot API, domain modules, Flyway migrations and tests
+frontend/            React/TypeScript application and component tests
+deployment/          Local/cloud Compose, PostgreSQL image and proxy examples
+scripts/             Lint, security, image verification and deployment automation
+.github/workflows/   CI quality checks and staging CD
+docs/                Design decisions, API contracts, testing and presentation evidence
 ```
 
-The backend implements `identity`, `event`, `ticketing`, `booking`, `checkin`, `notification` and `reporting`. `attendance` is a reserved package; the implemented staff workflow is in `checkin`. Most business collaboration uses public application APIs and synchronous application events. Check-in and reporting also read shared tables through JDBC; see the [architecture decision](docs/adr/0001-modular-monolith.md) for this current boundary exception.
+The backend is a modular monolith with `identity`, `event`, `ticketing`, `booking`, `checkin`, `notification` and `reporting`. Check-in and reporting have documented JDBC access to shared tables. See the [architecture decision](docs/adr/0001-modular-monolith.md).
 
-See the [presentation readiness review](docs/presentation-readiness-2026-10-19.zh-CN.md) for requirement gaps, verified defects and the plan for 27 October at 10:30 SGT.
+Design patterns map to concrete code: **Observer** for synchronous transactional business events, **State** for ticket lifecycle transitions, and **Strategy** for booking-information validation. Pricing Strategy is deferred with paid tickets; booking-information validation provides the current Strategy demonstration. A shared injected `Clock` supplies business boundaries, JWT validation, notifications and JPA audit timestamps. See the [pattern and presentation evidence](docs/presentation-readiness-2026-10-19.zh-CN.md).
 
-## Programming environment
+## Quick start
 
-Use these versions as the team development baseline:
+Use JDK **21**, Maven **3.9+**, Node.js **22**, npm **10+**, Docker and Compose v2. Cloud overlays require Compose **2.24.4+**. PostgreSQL **17** runs in Docker.
 
-| Tool | Required/recommended version | Purpose |
-|---|---:|---|
-| Git | 2.40 or newer | Version control and pull requests |
-| Java JDK | 21 LTS | Backend compilation and runtime |
-| Maven | 3.9 or newer | Backend build and tests |
-| Node.js | 22 LTS | Frontend toolchain |
-| npm | 10 or newer | Frontend dependency management |
-| Docker Desktop/Engine | 24 or newer | PostgreSQL and container execution |
-| Docker Compose | v2 or newer | Local multi-container environment |
-| PostgreSQL | 17 container image | Relational database |
-| Navicat | Optional | Database inspection and SQL development |
-
-The Maven compiler targets Java 21. A newer local JDK may compile the project, but all members and CI should use JDK 21 to prevent environment differences.
-
-Default development ports:
-
-| Service | Port |
-|---|---:|
-| React development server | 5173 |
-| Docker frontend | 3000 |
-| Spring Boot API | 8080 |
-| PostgreSQL | 5432 |
-
-## First-time setup
-
-Clone the repository and create a private environment file:
+Run commands from the repository root. On first setup, create `.env`; if it already exists, edit it instead of overwriting it:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` before starting. `POSTGRES_PASSWORD`, `DB_PASSWORD` and `SEMS_JWT_SECRET` must be changed. The JWT secret must contain at least 32 characters. `.env` is ignored by Git.
+Set your own `POSTGRES_PASSWORD`, matching `DB_PASSWORD`, and a random `SEMS_JWT_SECRET` of at least 32 characters. Keep `DB_URL`/`DB_USERNAME` aligned with `POSTGRES_DB`/`POSTGRES_USER`. Default JWT TTL is `PT1H`. `.env` and `.secrets/` are ignored by Git.
 
-### Option A Run the whole system with Docker
+### Run everything with Docker
 
 ```bash
 docker compose --env-file .env -f deployment/compose.yaml up --build
 ```
 
-Open:
-
-- Frontend: `http://localhost:3000`
-- Backend health: `http://localhost:8080/actuator/health`
-
-Stop containers without deleting local database data:
+Open [localhost:3000](http://localhost:3000). Backend health: [localhost:8080/actuator/health](http://localhost:8080/actuator/health). Stop while retaining the database:
 
 ```bash
 docker compose --env-file .env -f deployment/compose.yaml down
 ```
 
-### Option B Run services during development
+### Local development
 
-Start only PostgreSQL:
+Use this instead of the full Docker application to avoid port conflicts. Start Docker and the database:
 
 ```bash
 docker compose --env-file .env -f deployment/compose.yaml up -d postgres
 ```
 
-Load the local environment and start the backend:
+Start the backend in Bash/Zsh (or WSL):
 
 ```bash
 set -a
 source .env
 set +a
-cd backend
-mvn spring-boot:run
+mvn -f backend/pom.xml spring-boot:run
 ```
 
-In another terminal, start the frontend:
+In another terminal:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+npm --prefix frontend ci
+npm --prefix frontend run dev
 ```
 
-Vite proxies `/api` and `/actuator` to `http://localhost:8080`.
+Open [localhost:5173](http://localhost:5173). Vite proxies `/api` and `/actuator` to port `8080`; local PostgreSQL uses `5432`. A fresh database contains role definitions but no demo events or accounts.
 
-## Navicat connection
+### First administrator
 
-After PostgreSQL is running, create a PostgreSQL connection in Navicat:
+Before backend startup, set `SEMS_BOOTSTRAP_ADMIN_USERNAME`, `SEMS_BOOTSTRAP_ADMIN_EMAIL` and your own **8–16 character alphanumeric** `SEMS_BOOTSTRAP_ADMIN_PASSWORD` in private `.env`. Blank email/password disables initialization. An existing account with that email receives `ADMIN`; otherwise a new account is created. Clear the bootstrap password after initialization.
 
-```text
-Host: localhost
-Port: 5432
-Database: value of POSTGRES_DB, normally sems
-Username: value of POSTGRES_USER, normally sems_user
-Password: value of POSTGRES_PASSWORD in your local .env
-```
+The account-password rule does not limit database passwords or JWT signing secrets.
 
-Navicat is used to inspect tables, review data and test queries. Database structure must be changed through a new file in `backend/src/main/resources/db/migration`, not only through the Navicat interface.
+## Tests and CI/CD
 
-Flyway runs automatically when the backend starts. Hibernate uses `ddl-auto: validate`, so Java mappings are checked against the migrations but do not silently alter the database.
-
-Migration file convention:
-
-```text
-VyyyyMMddHHmm__short_description.sql
-```
-
-Never modify an applied migration. Add a forward migration instead and commit it in the same pull request as the corresponding Java entity, test and ERD update.
-
-## Optional bootstrap administrator
-
-To create the first administrator, set these values only in the local `.env` or deployment secret store:
-
-```dotenv
-SEMS_BOOTSTRAP_ADMIN_USERNAME=admin
-SEMS_BOOTSTRAP_ADMIN_EMAIL=admin@example.com
-SEMS_BOOTSTRAP_ADMIN_PASSWORD=replace-with-a-strong-password
-```
-
-The account is created on backend startup if the email does not exist. If it already exists, the bootstrap configuration grants it the `ADMIN` role. Clear the bootstrap password after the first controlled deployment.
-
-## API implemented in Sprint 1
-
-| Method | Endpoint | Access |
-|---|---|---|
-| `POST` | `/api/v1/auth/register` | Public |
-| `POST` | `/api/v1/auth/login` | Public |
-| `GET` | `/api/v1/auth/me` | Authenticated |
-| `GET` | `/api/v1/admin/users` (page/size/keyword) | `ADMIN` |
-| `GET` | `/api/v1/admin/users/summary` | `ADMIN` |
-| `GET` | `/api/v1/organizer/reports` | `ORGANIZER`/`ADMIN`, owned events |
-| `GET` | `/api/v1/admin/reports` | `ADMIN`, all organizers |
-| `PUT` | `/api/v1/admin/users/{userId}/roles` | `ADMIN` |
-| `GET` | `/api/v1/demo/organizer` | `ORGANIZER` or `ADMIN` |
-| `GET` | `/api/v1/demo/staff` | `STAFF` or `ADMIN` |
-
-Example registration:
+Run the checks relevant to a change from the repository root:
 
 ```bash
-curl -i http://localhost:8080/api/v1/auth/register \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"alice","email":"alice@example.com","password":"Password123"}'
+npm --prefix frontend ci
+bash scripts/ci/lint.sh
+mvn -f backend/pom.xml verify
+RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml verify
+npm --prefix frontend run test:coverage
+npm --prefix frontend run build
 ```
 
-Example login:
+Docker must be running for the lint script's actionlint container and PostgreSQL integration tests. Without `RUN_CONTAINER_TESTS=true`, container tests are skipped. `build` includes frontend type checking. Coverage reports: `backend/target/site/jacoco/index.html` and `frontend/coverage/index.html`; percentages are reported without a minimum coverage gate. Latest regression results: **211 backend / 244 frontend tests** ([details](docs/testing.zh-CN.md)).
 
-```bash
-curl -s http://localhost:8080/api/v1/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"alice@example.com","password":"Password123"}'
-```
+| Stage | Purpose |
+|---|---|
+| Lint | ESLint, Checkstyle, workflow/shell checks and release-manifest validation |
+| Backend / Frontend | Unit tests, PostgreSQL integration tests, coverage and frontend build |
+| Security | SAST, dependency and secret scans |
+| Images | Build from tested artifacts, scan three runtime images, run isolated registration/login smoke tests |
+| Deploy · Staging | Main only: publish/pull pinned digests, back up PostgreSQL, deploy and check public HTTPS |
+| Notify · Telegram | Report results; notification failure does not invalidate the quality checks |
 
-The returned token is sent on protected requests as `Authorization: Bearer <token>`. The browser stores the short-lived token in `sessionStorage`, so closing the tab/session removes it. Backend authorization remains the security source of truth.
+PRs run checks without deployment. Main publishes tested images and deploys through the GitHub `staging` environment. Reports are uploaded as Actions artifacts. Scoped security exceptions are tracked in [trivyignore.yaml](scripts/security/trivyignore.yaml); DAST remains an acceptance task. See the [deployment and recovery guide](docs/deployment.md) for secrets, server layout and rollback limitations.
 
-## Tests and quality checks
+## Database access
 
-Backend unit tests:
+For local Navicat/DBeaver connections, use `localhost:5432` and the `POSTGRES_*` values from `.env`. For cloud inspection, use an SSH tunnel and the `sems5006_viewer` read-only account; [connection settings](docs/deployment.md#database-inspection) are documented separately.
 
-```bash
-cd backend
-mvn test
-```
+All schema changes use a new `VyyyyMMddHHmm__description.sql` file in `backend/src/main/resources/db/migration`. Never edit an applied migration. Flyway migrates on startup; Hibernate validates the schema. See the [database reference](docs/database/README.md).
 
-PostgreSQL integration tests require a running Docker daemon and are enabled explicitly:
+## Team workflow and documentation
 
-```bash
-cd backend
-RUN_CONTAINER_TESTS=true mvn test
-```
+Create a task branch from updated `main`, run relevant checks, open a PR and obtain team review. Use **Create a merge commit**, not squash. Main merges trigger CD. Full instructions: [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Frontend checks:
-
-```bash
-cd frontend
-npm run typecheck
-npm test
-npm run build
-```
-
-`mvn verify` writes the backend JaCoCo report to `backend/target/site/jacoco/index.html`. Backend line coverage is reported for visibility and does not currently block a build.
-
-GitHub Actions runs backend unit tests, PostgreSQL integration tests and frontend checks. Automatic dependency-upgrade pull requests are disabled; dependency versions are updated manually when the team decides an upgrade is needed.
-
-### Telegram CI notifications
-
-The final CI job uses `appleboy/telegram-action@v1.0.1` to send backend unit and combined line/branch coverage, PostgreSQL integration-test result, frontend result and line/branch coverage, commit information and a link to the GitHub Actions run. If Telegram is unavailable, the notification step does not change the build result.
-
-1. Create a bot with `@BotFather` in Telegram and keep its token private.
-2. Send the bot a message, or add it to the target group and send a message there.
-3. Call `https://api.telegram.org/bot<TOKEN>/getUpdates` and read `message.chat.id` to obtain the chat ID. Group chat IDs are normally negative numbers.
-4. In GitHub, open **Settings > Secrets and variables > Actions** and add these repository secrets:
-   - `TELEGRAM_TOKEN`: token issued by BotFather.
-   - `TELEGRAM_TO`: target private-chat or group-chat ID.
-
-Never add either Telegram value to `.env`, workflow YAML, source code or Git history. When the two secrets are absent, CI prints a skip message and continues normally.
-
-## Git workflow
-
-Use this sequence for every task: **update `main` → create your own task branch → develop and test locally → push → open a PR → request 1 reviewer → address feedback and pass checks → merge → update local `main`**. All changes go through a PR; do not push directly to `main`.
-
-### Create a branch for each task
-
-Complete the environment setup above first. Run Git commands from the repository root. Commit or stash unfinished changes (`git stash`) before switching branches so your working tree is clean.
-
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c event-list-alice
-```
-
-A branch name only needs to indicate the general task and developer name, such as `event-list-alice` or `login-bob`; no fixed prefix or task number is required. Replace the example with your own task and name. Each member uses a separate short-lived branch for each task.
-
-### Develop, test and push
-
-Use Option B above for daily development. Manually verify the affected behavior and run the relevant checks. Start each command block from the repository root:
-
-```bash
-cd backend
-mvn verify
-# For database or persistence changes, start Docker and also run:
-RUN_CONTAINER_TESTS=true mvn test
-```
-
-```bash
-cd frontend
-npm ci
-npm run typecheck
-npm test
-npm run build
-```
-
-A database-changing PR should include a new Flyway migration, corresponding application code, automated tests and database documentation. Never edit an applied migration.
-
-Return to the repository root, inspect the changes and stage only files belonging to the task. Replace the example paths below:
-
-```bash
-git status
-git diff
-git add path/to/changed-file path/to/another-file
-git diff --cached
-git commit -m "feat: add event list"
-git push -u origin event-list-alice
-```
-
-Do not commit `.env`, passwords, secrets or local generated files. Use descriptive commit messages such as `feat: add event list`, `fix: validate login input` or `docs: clarify local setup`.
-
-### Open a PR and request review
-
-1. Create a GitHub PR with **base: `main`** and **compare: your task branch**.
-2. Complete the PR template with the task or issue, changes, test commands and results. Include screenshots for UI changes and teammate setup steps for database or configuration changes.
-3. Request **1 other team member** under **Reviewers**, preferably someone familiar with the affected module. Use a Draft PR for unfinished work, then mark it Ready for review.
-4. Merging requires **1 approval from another team member**. A comment or review request is not an approval.
-5. Reviewers check task requirements, code clarity, error handling, authorization boundaries, tests and documentation.
-
-The current CI runs when a PR is opened or updated and after pushes to `main`. Pushing a task branch without opening a PR does not trigger the current CI.
-
-### Address feedback and merge
-
-If `main` has advanced, merge it into your task branch with a clean working tree:
-
-```bash
-git fetch origin
-git merge origin/main
-```
-
-Resolve conflicting files, stage them with `git add`, then run `git commit` to finish the merge. To cancel a conflicted merge, use `git merge --abort`. Rerun the relevant checks and `git push` after merging. Ask reviewers to review new changes so approvals cover the latest code.
-
-The PR author or designated merger uses **Squash and merge** only when:
-
-- The PR is ready, targets `main` and has no merge conflicts.
-- The `backend`, `backend-integration` and `frontend` CI checks all pass.
-- 1 other team member has approved, feedback is addressed and all review conversations are resolved.
-
-Delete the merged task branch on GitHub and update your local checkout:
-
-```bash
-git switch main
-git pull --ff-only origin main
-git fetch --prune
-```
-
-Start the next task on a new branch from the updated `main`. After squash merging, `git branch -d` may refuse to delete the old local branch because its original commits are not ancestors of `main`. Keep it until you verify that the PR was merged and there are no unique changes to retain.
-
-### Repository administrator setup
-
-These are team conventions; documentation does not enable GitHub enforcement. Configure branch protection or a ruleset for `main` to require PRs, at least 1 approval, renewed approval after new changes, resolved conversations, and the `backend`, `backend-integration` and `frontend` status checks. Block force pushes and deletion of `main`.
-
-Telegram notification is not a required quality check for merging.
-
-### Scheduled registration and pre-registration
-
-Organizers may set a registration opening time; leaving it blank allows booking on publication. Before opening, attendees can save private booking details and see their pre-registrations and countdown on the dashboard. Pre-registration holds no inventory and never submits an order automatically. Once registration opens, review the saved details and confirm the booking. Removing the saved entry does not cancel an existing order.
-
-Before publication, configure at least one ticket type. **Create free ticket** uses the saved event capacity for a free admission ticket; it does not publish the draft. Drafts hide the order link.
-
-For published events, registration opening can be adjusted only before registration has opened. Once open (including immediate opening on publication), the opening time is fixed; event dates, location and the deadline remain editable subject to existing validation. Booking information is validated after the event lock and before inventory reservation.
-
-Frontend coverage: run `npm --prefix frontend run test:coverage`, then open `frontend/coverage/index.html`. CI uploads separate backend unit, backend combined, and frontend coverage artifacts. Frontend type checking runs once as part of the build. Coverage currently reports a baseline without blocking on percentage thresholds; browser end-to-end checks remain future work. Main builds now include staging deployment after all CI gates pass.
-
-
-## Staging CD and database access
-
-The `Deploy · Staging` job deploys only main pushes after image scanning and smoke tests.
-It consumes the same run's digest-pinned release artifact, checks its commit and image names,
-backs up PostgreSQL before updating containers, and verifies public HTTPS health before updating
-`/home/ubuntu/swe5006/current` and `deployed-sha`. Releases and backups remain on the host.
-A failed deployment does not automatically restore containers or the database.
-
-Configure the GitHub `staging` environment with `STAGING_SSH_KEY` and `STAGING_KNOWN_HOSTS`
-secrets and the `STAGING_HOST` variable; restrict deployment branches to main.
-Runtime secrets remain in `/home/ubuntu/swe5006/.env` and are never included in release archives.
-
-For database inspection, use an SSH tunnel to `ubuntu@18.139.212.35` and connect to
-`127.0.0.1:15432`, database `sems`, user `sems5006_viewer`. The local private connection file is
-`.secrets/cloud-staging/navicat.json` (ignored by Git). This role has SELECT privileges only,
-including future tables created by `sems_user`. Do not expose port 15432 publicly.
-See [Chinese deployment notes](README.zh-CN.md#cd-与云端数据库查看2026-10-20) for server layout and recovery limitations.
-
-
-## Session and password rules
-
-JWTs default to one hour (`SEMS_JWT_TTL=PT1H`). The frontend uses the actual expiry,
-clears expired sessions on timers or API 401 responses, and checks roles on page focus,
-every 30 seconds, and after a 403. Changed roles require a fresh login; an ordinary
-resource-level denial or transient network failure does not discard the session.
-Role updates create a transactional `ROLES_CHANGED` inbox notification; unchanged roles
-produce no duplicate notice. Existing tokens keep their original expiry.
-
-New registration and bootstrap passwords must contain 8–16 ASCII letters or digits.
-Existing passwords remain usable at login. The shared application `Clock` supplies
-JWT validation, business deadlines, notifications and JPA auditing timestamps.
+- [Documentation index](docs/README.md): API, architecture and database references.
+- [Deployment guide](docs/deployment.md): CI/CD, shared proxy, database access and recovery.
+- [Testing record](docs/testing.zh-CN.md): current evidence and historical results.
+- [Delivery checklist](docs/remaining-work.zh-CN.md): feature-freeze and final acceptance work.
+- [Demo walkthrough](docs/sprint-4-demo.zh-CN.md) and [presentation review](docs/presentation-readiness-2026-10-19.zh-CN.md): the multi-role demo and course evidence.
