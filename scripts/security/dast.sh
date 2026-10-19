@@ -34,7 +34,9 @@ pathlib.Path(sys.argv[2], 'run.json').write_text(json.dumps({
 }, indent=2) + '\n')
 PY
 status=0
-docker run "${docker_options[@]}" -v "$workspace:/zap/wrk:rw" "$image" \
+# Avoid scanner-owned cache directories that a different Linux runner UID cannot remove.
+docker run "${docker_options[@]}" -e PYTHONDONTWRITEBYTECODE=1 \
+    -v "$workspace:/zap/wrk:rw" "$image" \
     zap-baseline.py -t "$target" -m 1 -T 5 --autooff \
     --hook=/zap/wrk/hooks.py -r zap.html -J zap.json -w zap.md \
     > "$workspace/scan.log" 2>&1 || status=$?

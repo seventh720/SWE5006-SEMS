@@ -18,7 +18,7 @@ main `fce7f1f` 的 [CI/CD 运行 39301559757](https://github.com/seventh720/SWE5
 
 云端公开HTTPS初扫22个URL，高危0、中危2、低危7、信息5；缺少CSP与防嵌入头的两项中危已修复。独立PostgreSQL/后端/前端与临时HTTPS代理首次复扫剩余COOP/COEP两项低危；补齐这两个响应头后最终复扫22个URL，高危0、中危0、低危0、信息5，66项规则通过、0警告、0忽略。以上为按来源站点计数的报告条目，不是完整渗透测试结论。
 
-安全头、静态入口、公开API、HTTPS Origin注册/登录冒烟通过；Chrome活动页与日历应用通过，应用error日志为空。门槛测试5项通过。云端修复版本需本次PR合并部署后再扫描；详见[DAST实施与结果](dast.zh-CN.md)。
+安全头、静态入口、公开API、HTTPS Origin注册/登录冒烟通过；Chrome活动页与日历应用通过，应用error日志为空。门槛测试5项通过。PR #38已合并，main `cdd0c66`的[运行39307641504](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39307641504)完成部署和云端扫描，高/中/低危均为0；DAST作业因删除容器用户的Python缓存失败。禁用字节码生成后已实际复扫云端，报告保存及清理成功、退出0，并在Linux不同UID下验证修复。main作业整体成功仍待清理修复合并后核对；详见[DAST实施与结果](dast.zh-CN.md)。
 
 ## 2026-10-19 报名资料校验Strategy
 
