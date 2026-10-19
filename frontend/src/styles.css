@@ -198,6 +198,8 @@ input:focus { outline: 3px solid #b7e2e0; border-color: #17686d; }
 .notification-message { white-space: pre-line; }
 @media (max-width: 760px) { .notification-categories { grid-template-columns: 1fr; } }
 .staff-assignments { margin-bottom: 1.5rem; }
+.staff-selected-event { margin-top: 1rem; display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+.staff-selected-event p { margin: 0; }
 .staff-section-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
 .staff-workspace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
 .staff-shell section[id] { scroll-margin-top: 1.5rem; }

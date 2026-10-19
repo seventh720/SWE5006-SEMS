@@ -53,12 +53,20 @@ it("ignores unrelated QR content without posting it",async()=>{
  const scan=vi.fn();render(<TicketCamera onScan={scan} onClose={vi.fn()}/>);
  await screen.findByText(/not a SEMS ticket/);expect(scan).not.toHaveBeenCalled();
 });
-it("stops the stream on camera switching and requests the selected PC webcam",async()=>{
- navigator.mediaDevices.enumerateDevices=vi.fn().mockResolvedValue([{kind:"videoinput",deviceId:"one",label:"Built-in"},{kind:"videoinput",deviceId:"two",label:"USB webcam"}]);
+it("offers only rear and front cameras and releases the stream before switching",async()=>{
  render(<TicketCamera onScan={vi.fn()} onClose={vi.fn()}/>);
- fireEvent.click(await screen.findByRole("combobox",{name:"Camera"}));
- fireEvent.click(screen.getByRole("option",{name:"USB webcam"}));
- await waitFor(()=>expect(getUserMedia).toHaveBeenCalledWith({audio:false,video:{deviceId:{exact:"two"}}}));expect(stop).toHaveBeenCalled();
+ await screen.findByText(/Point the camera/);
+ fireEvent.click(screen.getByRole("combobox",{name:"Camera"}));
+ expect(screen.getAllByRole("option")).toHaveLength(2);
+ expect(screen.getByRole("option",{name:"Rear camera"}).getAttribute("aria-selected")).toBe("true");
+ fireEvent.click(screen.getByRole("option",{name:"Front camera"}));
+ await waitFor(()=>expect(getUserMedia).toHaveBeenLastCalledWith({audio:false,video:{facingMode:{ideal:"user"},width:{ideal:1280},height:{ideal:720}}}));
+ expect(stop.mock.invocationCallOrder[0]).toBeLessThan(getUserMedia.mock.invocationCallOrder[1]);
+ await screen.findByText(/Point the camera/);
+ fireEvent.click(screen.getByRole("combobox",{name:"Camera"}));
+ fireEvent.click(screen.getByRole("option",{name:"Rear camera"}));
+ await waitFor(()=>expect(getUserMedia).toHaveBeenLastCalledWith({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}}}));
+ expect(navigator.mediaDevices.enumerateDevices).not.toHaveBeenCalled();
 });
 it("releases the camera when the tab goes into the background",async()=>{
  const close=vi.fn();render(<TicketCamera onScan={vi.fn()} onClose={close}/>);
