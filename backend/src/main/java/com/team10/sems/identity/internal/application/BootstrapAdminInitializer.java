@@ -33,6 +33,9 @@ public class BootstrapAdminInitializer implements ApplicationRunner {
         if (!properties.enabled()) {
             return;
         }
+        if (!properties.password().matches("[A-Za-z0-9]{8,16}")) {
+            throw new IllegalArgumentException("Bootstrap password must contain 8–16 English letters or digits");
+        }
         String email = properties.email().strip().toLowerCase(Locale.ROOT);
         users.findByEmail(email).ifPresentOrElse(existing -> {
             if (!existing.getRoles().contains(Role.ADMIN)) {

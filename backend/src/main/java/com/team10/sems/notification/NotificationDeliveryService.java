@@ -11,15 +11,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(propagation = Propagation.MANDATORY)
 public class NotificationDeliveryService {
     private final JdbcTemplate jdbc;
+    private final java.time.Clock clock;
 
-    public NotificationDeliveryService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public NotificationDeliveryService(JdbcTemplate jdbc, java.time.Clock clock) { this.jdbc = jdbc; this.clock = clock; }
 
     public void send(UUID userId, NotificationType type, String sourceKey, String title, String message,
             UUID eventId, UUID bookingId, UUID ticketTypeId) {
         jdbc.update("""
-                INSERT INTO notifications(id,user_id,type,source_key,title,message,event_id,booking_id,ticket_type_id)
-                VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT (user_id,type,source_key) DO NOTHING
-                """, UUID.randomUUID(), userId, type.name(), sourceKey, title, message, eventId, bookingId, ticketTypeId);
+                INSERT INTO notifications(id,user_id,type,source_key,title,message,event_id,booking_id,ticket_type_id,created_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (user_id,type,source_key) DO NOTHING
+                """, UUID.randomUUID(), userId, type.name(), sourceKey, title, message, eventId, bookingId, ticketTypeId, java.sql.Timestamp.from(clock.instant()));
     }
 
     /** Call in the assignment transaction after validating organizer ownership and locking the event. */

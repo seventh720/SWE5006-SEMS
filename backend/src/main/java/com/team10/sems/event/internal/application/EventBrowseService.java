@@ -6,7 +6,6 @@ import jakarta.persistence.criteria.Predicate;
 import java.util.Locale;
 import java.util.ArrayList;
 import java.util.Set;
-import java.time.Instant;
 import java.time.LocalDate;
 import com.team10.sems.event.EventView;
 import com.team10.sems.event.internal.persistence.EventRepository;
@@ -22,9 +21,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional(readOnly = true)
 public class EventBrowseService {
+    private final java.time.Clock clock;
     private final EventRepository events;
 
-    public EventBrowseService(EventRepository events) {
+    public EventBrowseService(EventRepository events, java.time.Clock clock) {
+        this.clock = clock;
         this.events = events;
     }
 
@@ -35,7 +36,7 @@ public class EventBrowseService {
         if (!Set.of("ALL", "UPCOMING", "ONGOING", "ENDED").contains(status)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown event status filter");
         }
-        var now = Instant.now();
+        var now = clock.instant();
         Specification<Event> filter = (root, query, cb) -> {
             var predicates = new ArrayList<Predicate>();
             predicates.add(cb.equal(root.get("status"), "PUBLISHED"));

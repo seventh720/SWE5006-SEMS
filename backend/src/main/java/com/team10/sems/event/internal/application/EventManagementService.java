@@ -58,7 +58,7 @@ public class EventManagementService {
         event.configureBooking(input.bookingRequirements());
         event.configureIllustration(input.illustration());
         event.configureRegistrationDeadline(input.registrationClosesAt());
-        event.configureRegistrationOpening(input.registrationOpensAt());
+        event.configureRegistrationOpening(input.registrationOpensAt(), clock.instant());
         return events.saveAndFlush(event).toManagementView();
     }
 
@@ -75,7 +75,7 @@ public class EventManagementService {
         event.configureBooking(input.bookingRequirements());
         event.configureIllustration(input.illustration());
         event.configureRegistrationDeadline(input.registrationClosesAt());
-        event.configureRegistrationOpening(input.registrationOpensAt());
+        event.configureRegistrationOpening(input.registrationOpensAt(), clock.instant());
         events.flush(); // Trigger optimistic-lock conflicts before constructing the response.
         publisher.publishEvent(new EventUpdated(before, event.toManagementView()));
         return event.toManagementView();
@@ -88,7 +88,7 @@ public class EventManagementService {
         draft.configureBooking(source.bookingRequirements());
         draft.configureIllustration(source.illustration());
         draft.configureRegistrationDeadline(source.registrationClosesAt());
-        draft.configureRegistrationOpening(source.registrationOpensAt());
+        draft.configureRegistrationOpening(source.registrationOpensAt(), clock.instant());
         var saved = events.saveAndFlush(draft).toManagementView();
         publisher.publishEvent(new EventCopied(id, saved.id()));
         return saved;

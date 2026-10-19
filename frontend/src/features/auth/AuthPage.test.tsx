@@ -17,7 +17,7 @@ function credentials() {
 beforeEach(() => { sessionStorage.clear(); fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 it("logs in through the real provider, persists the session and clears it on logout", async () => {
-  fetchMock.mockResolvedValue(response({ accessToken: "token", user })); mount(); credentials();
+  fetchMock.mockResolvedValue(response({ accessToken: "token", expiresIn: 3600, user })); mount(); credentials();
   fireEvent.submit(screen.getByLabelText("Email").closest("form")!);
   await screen.findByText("Account: Alice");
   expect(JSON.parse(sessionStorage.getItem("sems-auth")!).token).toBe("token");
@@ -25,13 +25,13 @@ it("logs in through the real provider, persists the session and clears it on log
   fireEvent.click(screen.getByText("Logout")); expect(sessionStorage.getItem("sems-auth")).toBeNull();
 });
 it("shows login errors and allows a subsequent successful attempt", async () => {
-  fetchMock.mockResolvedValueOnce(response({ detail: "Invalid email or password" }, 401)).mockResolvedValueOnce(response({ accessToken: "token", user }));
+  fetchMock.mockResolvedValueOnce(response({ detail: "Invalid email or password" }, 401)).mockResolvedValueOnce(response({ accessToken: "token", expiresIn: 3600, user }));
   mount(); credentials(); fireEvent.submit(screen.getByLabelText("Email").closest("form")!);
   await screen.findByText("Invalid email or password"); expect(sessionStorage.getItem("sems-auth")).toBeNull();
   fireEvent.submit(screen.getByLabelText("Email").closest("form")!); await screen.findByText("Account: Alice");
 });
 it("registers before logging in and preserves the server-assigned role", async () => {
-  fetchMock.mockResolvedValueOnce(response(user, 201)).mockResolvedValueOnce(response({ accessToken: "token", user }));
+  fetchMock.mockResolvedValueOnce(response(user, 201)).mockResolvedValueOnce(response({ accessToken: "token", expiresIn: 3600, user }));
   mount(); fireEvent.click(screen.getByRole("button", { name: "Register" })); credentials();
   fireEvent.change(screen.getByLabelText("Username"), { target: { value: "Alice" } });
   fireEvent.click(screen.getByRole("button", { name: "Register and login" })); await screen.findByText("Account: Alice");
@@ -39,7 +39,7 @@ it("registers before logging in and preserves the server-assigned role", async (
   expect(JSON.parse(sessionStorage.getItem("sems-auth")!).user.roles).toEqual(["ATTENDEE"]);
 });
 it("returns to the intended event page after login", async () => {
-  fetchMock.mockResolvedValue(response({ accessToken: "token", user }));
+  fetchMock.mockResolvedValue(response({ accessToken: "token", expiresIn: 3600, user }));
   render(<AuthProvider><MemoryRouter initialEntries={[{ pathname: "/login", state: { from: { pathname: "/events/e1", search: "?keyword=Open" } } }]}>
     <Routes>
       <Route path="/login" element={<AuthPage />} />
@@ -54,7 +54,7 @@ it("returns to the intended event page after login", async () => {
 it("shows a duplicate username error and lets the user choose another name", async () => {
   fetchMock.mockResolvedValueOnce(response({ detail: "Username is already registered" }, 409))
     .mockResolvedValueOnce(response({ ...user, username: "alice2" }, 201))
-    .mockResolvedValueOnce(response({ accessToken: "token", user: { ...user, username: "alice2" } }));
+    .mockResolvedValueOnce(response({ accessToken: "token", expiresIn: 3600, user: { ...user, username: "alice2" } }));
   mount(); fireEvent.click(screen.getByRole("button", { name: "Register" })); credentials();
   fireEvent.change(screen.getByLabelText("Username"), { target: { value: "Alice" } });
   fireEvent.click(screen.getByRole("button", { name: "Register and login" }));
@@ -62,4 +62,18 @@ it("shows a duplicate username error and lets the user choose another name", asy
   fireEvent.change(screen.getByLabelText("Username"), { target: { value: "alice2" } });
   fireEvent.click(screen.getByRole("button", { name: "Register and login" }));
   await screen.findByText("Account: alice2");
+});
+
+it("validates registration passwords as 8–16 ASCII letters or digits", async () => {
+  mount(); fireEvent.click(screen.getByRole("button", { name: "Register" })); credentials();
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "Alice" } });
+  for (const password of ["1234567", "a".repeat(17), "Password!", "密码密码密码密码", "abcd efgh"]) {
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: password } });
+    fireEvent.submit(screen.getByLabelText("Email").closest("form")!);
+    expect(screen.getByRole("alert").textContent).toContain("8–16 English letters or digits");
+  }
+  expect(fetchMock).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Password").getAttribute("maxlength")).toBe("16");
+  fireEvent.click(screen.getByRole("button", { name: "Login" }));
+  expect(screen.getByLabelText("Password").getAttribute("maxlength")).toBeNull();
 });

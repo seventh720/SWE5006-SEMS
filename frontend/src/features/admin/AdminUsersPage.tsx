@@ -1,3 +1,4 @@
+import { signalSessionChange } from "../../shared/auth/sessionEvents";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
@@ -63,6 +64,9 @@ export function AdminUsersPage() {
         { method: "PUT", body: JSON.stringify({ roles: target.roles }) },
         token!,
       );
+      if (updated.id === currentUser?.id && [...updated.roles].sort().join(",") !== [...currentUser.roles].sort().join(",")) {
+        signalSessionChange({ token: token!, reason: "roles" });
+      }
       if (request === currentRequest.current) setUsers((current) => current.map((item) => item.id === updated.id ? updated : item));
     } catch (caught) {
       if (request === currentRequest.current) { setError(caught instanceof ApiError ? caught.message : "Unable to update roles"); setExpired(caught instanceof ApiError && caught.status === 401); }

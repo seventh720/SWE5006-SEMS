@@ -41,17 +41,17 @@ public class PreRegistration {
         return result;
     }
 
-    public void update(UUID ticket, int quantity, AttendeeInfo info) {
+    public void update(UUID ticket, int quantity, AttendeeInfo info, Instant now) {
         ticketTypeId = ticket;
         this.quantity = quantity;
         attendeeInfo = info;
-        updatedAt = Instant.now();
+        updatedAt = now;
     }
 
-    public void markBooked(UUID booking) {
+    public void markBooked(UUID booking, Instant now) {
         if (bookingId == null) {
             bookingId = booking;
-            updatedAt = Instant.now();
+            updatedAt = now;
         }
     }
 

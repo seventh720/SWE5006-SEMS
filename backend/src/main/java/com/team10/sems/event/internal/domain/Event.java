@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
+@jakarta.persistence.EntityListeners(org.springframework.data.jpa.domain.support.AuditingEntityListener.class)
 @Table(name = "events")
 public class Event {
     @Id
@@ -41,8 +42,10 @@ public class Event {
     @Column(nullable = false)
     private long version;
     @Column(name = "created_at", nullable = false, updatable = false)
+    @org.springframework.data.annotation.CreatedDate
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)
+    @org.springframework.data.annotation.LastModifiedDate
     private Instant updatedAt;
 
     @Column(name = "require_real_name", nullable = false)
@@ -85,11 +88,11 @@ public class Event {
         registrationClosesAt = effectiveDeadline;
     }
 
-    public void configureRegistrationOpening(Instant opening) {
+    public void configureRegistrationOpening(Instant opening, Instant now) {
         if ("CANCELLED".equals(status)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancelled events cannot be edited");
         }
-        if ("PUBLISHED".equals(status) && (registrationOpensAt == null || !registrationOpensAt.isAfter(Instant.now()))
+        if ("PUBLISHED".equals(status) && (registrationOpensAt == null || !registrationOpensAt.isAfter(now))
                 && !java.util.Objects.equals(opening, registrationOpensAt)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration opening cannot change after registration has opened");
         }
@@ -177,17 +180,6 @@ public class Event {
         this.startsAt = startsAt;
         this.endsAt = endsAt;
         this.capacity = capacity;
-    }
-
-    @PrePersist
-    void onCreate() {
-        createdAt = Instant.now();
-        updatedAt = createdAt;
-    }
-
-    @PreUpdate
-    void onUpdate() {
-        updatedAt = Instant.now();
     }
 
     public void configureIllustration(String selection) {

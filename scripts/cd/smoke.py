@@ -26,12 +26,13 @@ for path in ['/', '/events', '/healthz', '/actuator/health', '/api/v1/events']:
 
 suffix = secrets.token_hex(5)
 account = {'username': 'smoke' + suffix, 'email': suffix + '@example.test',
-           'password': 'Smoke-Only-' + secrets.token_hex(12)}
+           'password': secrets.token_hex(8)}
 status, _ = request('/api/v1/auth/register', account)
 assert status in (200, 201)
 status, body = request('/api/v1/auth/login', {'email': account['email'], 'password': account['password']})
 assert status == 200
 payload = json.loads(body)
+assert payload['expiresIn'] == 3600, 'JWT lifetime must be one hour'
 assert payload.get('accessToken'), 'Login must issue an access token'
 status, me = request('/api/v1/auth/me', token=payload['accessToken'])
 assert status == 200 and json.loads(me)['email'] == account['email']

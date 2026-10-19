@@ -14,7 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class NotificationService {
     private final JdbcTemplate jdbc;
-    public NotificationService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    private final java.time.Clock clock;
+    public NotificationService(JdbcTemplate jdbc, java.time.Clock clock) { this.jdbc = jdbc; this.clock = clock; }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public NotificationPage list(UUID user, int page, int size, boolean unreadOnly) {
@@ -31,7 +32,7 @@ public class NotificationService {
 
     @Transactional
     public void markRead(UUID user, UUID id) {
-        int changed = jdbc.update("UPDATE notifications SET read_at=COALESCE(read_at,CURRENT_TIMESTAMP) WHERE id=? AND user_id=?", id, user);
+        int changed = jdbc.update("UPDATE notifications SET read_at=COALESCE(read_at,?) WHERE id=? AND user_id=?", java.sql.Timestamp.from(clock.instant()), id, user);
         if (changed == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found");
     }
 

@@ -371,3 +371,17 @@ For database inspection, use an SSH tunnel to `ubuntu@18.139.212.35` and connect
 `.secrets/cloud-staging/navicat.json` (ignored by Git). This role has SELECT privileges only,
 including future tables created by `sems_user`. Do not expose port 15432 publicly.
 See [Chinese deployment notes](README.zh-CN.md#cd-与云端数据库查看2026-10-20) for server layout and recovery limitations.
+
+
+## Session and password rules
+
+JWTs default to one hour (`SEMS_JWT_TTL=PT1H`). The frontend uses the actual expiry,
+clears expired sessions on timers or API 401 responses, and checks roles on page focus,
+every 30 seconds, and after a 403. Changed roles require a fresh login; an ordinary
+resource-level denial or transient network failure does not discard the session.
+Role updates create a transactional `ROLES_CHANGED` inbox notification; unchanged roles
+produce no duplicate notice. Existing tokens keep their original expiry.
+
+New registration and bootstrap passwords must contain 8–16 ASCII letters or digits.
+Existing passwords remain usable at login. The shared application `Clock` supplies
+JWT validation, business deadlines, notifications and JPA auditing timestamps.

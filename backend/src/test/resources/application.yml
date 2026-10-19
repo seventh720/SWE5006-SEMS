@@ -5,7 +5,7 @@ sems:
     jwt:
       secret: integration-test-secret-with-at-least-32-characters
       issuer: sems-test
-      ttl: PT5M
+      ttl: PT1H
   bootstrap:
     admin:
       username: admin

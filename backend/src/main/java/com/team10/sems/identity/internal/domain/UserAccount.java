@@ -13,8 +13,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.Instant;
@@ -24,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
+@jakarta.persistence.EntityListeners(org.springframework.data.jpa.domain.support.AuditingEntityListener.class)
 @Table(name = "users")
 public class UserAccount {
 
@@ -54,9 +53,11 @@ public class UserAccount {
     private long version;
 
     @Column(name = "created_at", nullable = false, updatable = false)
+    @org.springframework.data.annotation.CreatedDate
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @org.springframework.data.annotation.LastModifiedDate
     private Instant updatedAt;
 
     @Column(name = "profile_real_name", length = 100)
@@ -157,15 +158,4 @@ public class UserAccount {
         return new UserView(id, username, email, status, Set.copyOf(roles), createdAt);
     }
 
-    @PrePersist
-    void onCreate() {
-        Instant now = Instant.now();
-        createdAt = now;
-        updatedAt = now;
-    }
-
-    @PreUpdate
-    void onUpdate() {
-        updatedAt = Instant.now();
-    }
 }

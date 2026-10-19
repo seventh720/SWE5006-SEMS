@@ -11,7 +11,6 @@ import com.team10.sems.booking.internal.persistence.BookingRequestLock;
 import com.team10.sems.booking.internal.persistence.PreRegistrationRepository;
 import com.team10.sems.event.EventAccessService;
 import com.team10.sems.ticketing.TicketReservationService;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -26,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional
 public class BookingService {
+    private final java.time.Clock clock;
     private final BookingInfoValidator infoValidator;
     private final BookingRepository bookings;
     private final BookingRequestLock requestLocks;
@@ -36,7 +36,8 @@ public class BookingService {
 
     public BookingService(BookingRepository bookings, BookingRequestLock requestLocks,
             EventAccessService events, TicketReservationService tickets,
-            PreRegistrationRepository preRegistrations, ApplicationEventPublisher publisher, BookingInfoValidator infoValidator) {
+            PreRegistrationRepository preRegistrations, ApplicationEventPublisher publisher, BookingInfoValidator infoValidator, java.time.Clock clock) {
+        this.clock = clock;
         this.infoValidator = infoValidator;
         this.publisher = publisher;
         this.preRegistrations = preRegistrations;
@@ -63,10 +64,10 @@ public class BookingService {
         var event = events.lockEvent(input.eventId());
         infoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
         var ticket = tickets.reserve(input.eventId(), input.ticketTypeId(), input.quantity());
-        Booking booking = Booking.confirmed(user, key, event, ticket, input.quantity(), input.attendeeInfo());
+        Booking booking = Booking.confirmed(user, key, event, ticket, input.quantity(), input.attendeeInfo(), clock.instant());
         var result = view(bookings.saveAndFlush(booking));
         preRegistrations.findByUserIdAndEventId(user, input.eventId())
-                .ifPresent(preRegistration -> preRegistration.markBooked(result.id()));
+                .ifPresent(preRegistration -> preRegistration.markBooked(result.id(), clock.instant()));
         publisher.publishEvent(new BookingConfirmed(result.id(), booking.eventId()));
         return new Created(result, true);
     }
@@ -88,10 +89,10 @@ public class BookingService {
         var event = events.lockEvent(eventId);
         Booking booking = owned(user, id);
         if (booking.isCancelled()) return view(booking);
-        if (!event.startsAt().isAfter(Instant.now())) {
+        if (!event.startsAt().isAfter(clock.instant())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This event has already started");
         }
-        if (booking.cancel("ATTENDEE_CANCELLED")) {
+        if (booking.cancel("ATTENDEE_CANCELLED", clock.instant())) {
             publisher.publishEvent(new BookingCancelled(id, eventId, "ATTENDEE_CANCELLED"));
             tickets.release(eventId, booking.ticketTypeId(), booking.quantity());
         }

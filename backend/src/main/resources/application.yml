@@ -33,7 +33,7 @@ sems:
     jwt:
       secret: ${SEMS_JWT_SECRET}
       issuer: ${SEMS_JWT_ISSUER:sems-api}
-      ttl: ${SEMS_JWT_TTL:PT30M}
+      ttl: ${SEMS_JWT_TTL:PT1H}
   bootstrap:
     admin:
       username: ${SEMS_BOOTSTRAP_ADMIN_USERNAME:admin}

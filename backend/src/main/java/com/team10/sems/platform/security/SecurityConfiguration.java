@@ -19,7 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.InvalidBearerTokenException;
@@ -70,11 +69,16 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(JwtProperties properties) {
+    JwtDecoder jwtDecoder(JwtProperties properties, java.time.Clock clock) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey(properties))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build();
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(properties.issuer()));
+        var timestamps = new org.springframework.security.oauth2.jwt.JwtTimestampValidator(java.time.Duration.ZERO);
+        timestamps.setClock(clock);
+        decoder.setJwtValidator(new org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator<>(
+                timestamps, new org.springframework.security.oauth2.jwt.JwtIssuerValidator(properties.issuer()),
+                new org.springframework.security.oauth2.jwt.JwtClaimValidator<java.time.Instant>("exp",
+                        expiry -> expiry != null && clock.instant().isBefore(expiry))));
         return decoder;
     }
 
