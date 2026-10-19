@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   lint:
-    name: Source and workflow lint
+    name: Lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -39,7 +39,7 @@ jobs:
 
 
   security:
-    name: SAST, dependency and secret scans
+    name: Security · SAST, Dependencies & Secrets
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: backend
@@ -67,6 +67,7 @@ jobs:
 
 
   backend:
+    name: Backend · Unit Tests
     runs-on: ubuntu-24.04
     outputs:
       coverage: ${{ steps.coverage.outputs.line }}
@@ -101,6 +102,7 @@ jobs:
             backend/target/surefire-reports/
 
   backend-integration:
+    name: Backend · Integration Tests
     runs-on: ubuntu-24.04
     outputs:
       coverage: ${{ steps.coverage.outputs.line }}
@@ -131,6 +133,7 @@ jobs:
             backend/target/surefire-reports/
 
   frontend:
+    name: Frontend · Tests & Build
     runs-on: ubuntu-24.04
     outputs:
       coverage: ${{ steps.coverage.outputs.line }}
@@ -163,7 +166,7 @@ jobs:
         run: npm run build
 
   notify:
-    name: Telegram notification
+    name: Notify · Telegram
     if: always()
     needs: [lint, security, backend, backend-integration, frontend]
     runs-on: ubuntu-24.04
