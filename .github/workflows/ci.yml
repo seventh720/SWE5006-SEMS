@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   lint:
-    name: Source and workflow lint
+    name: Lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -27,35 +27,47 @@ jobs:
           cache: maven
       - run: npm ci
         working-directory: frontend
-      - run: npm run lint
-        working-directory: frontend
-      - run: mvn -B -f backend/pom.xml validate
-      - name: Check GitHub Actions and shell syntax
-        run: |
-          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
-          bash -n scripts/security/scan.sh
+      - name: Run lint and collect reports
+        run: bash scripts/ci/lint.sh
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: lint-report
+          path: lint-reports/
+          retention-days: 7
+
 
   security:
-    name: SAST, dependency and secret scans
+    name: Security · SAST, Dependencies & Secrets
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: backend
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: backend-jar
           path: backend/target/
       - run: bash scripts/security/scan.sh
-      - name: Upload security reports
+      - name: Upload SAST report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
-          name: static-security-reports
-          path: security-reports/
+          name: sast-report
+          path: security-reports/semgrep.json
+          retention-days: 7
+      - name: Upload dependency and secret reports
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: dependency-secret-reports
+          path: security-reports/trivy-*.json
           retention-days: 7
 
+
   backend:
+    name: Backend · Unit Tests
     runs-on: ubuntu-24.04
     outputs:
       coverage: ${{ steps.coverage.outputs.line }}
@@ -70,7 +82,7 @@ jobs:
       - name: Compile, test and generate backend coverage
         working-directory: backend
         run: mvn -B clean verify
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: backend-jar
           path: backend/target/sems-backend-*.jar
@@ -82,7 +94,7 @@ jobs:
         run: python3 scripts/ci/backend-coverage.py backend/target/site/jacoco/jacoco.xml "Backend unit tests"
       - name: Upload unit-test coverage and results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: backend-unit-coverage
           path: |
@@ -90,6 +102,7 @@ jobs:
             backend/target/surefire-reports/
 
   backend-integration:
+    name: Backend · Integration Tests
     runs-on: ubuntu-24.04
     outputs:
       coverage: ${{ steps.coverage.outputs.line }}
@@ -112,7 +125,7 @@ jobs:
         run: python3 scripts/ci/backend-coverage.py backend/target/site/jacoco/jacoco.xml "Backend unit + PostgreSQL integration tests"
       - name: Upload combined coverage and results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: backend-combined-coverage
           path: |
@@ -120,6 +133,7 @@ jobs:
             backend/target/surefire-reports/
 
   frontend:
+    name: Frontend · Tests & Build
     runs-on: ubuntu-24.04
     outputs:
       coverage: ${{ steps.coverage.outputs.line }}
@@ -143,7 +157,7 @@ jobs:
         run: python3 scripts/ci/frontend-coverage.py frontend/coverage/coverage-summary.json
       - name: Upload frontend coverage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: frontend-coverage
           path: frontend/coverage/
@@ -152,7 +166,7 @@ jobs:
         run: npm run build
 
   notify:
-    name: Telegram notification
+    name: Notify · Telegram
     if: always()
     needs: [lint, security, backend, backend-integration, frontend]
     runs-on: ubuntu-24.04

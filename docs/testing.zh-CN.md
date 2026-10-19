@@ -210,3 +210,9 @@ Spring MVC 6.2.19 的两条记录保留为**当前功能范围不适用的限时
 本阶段不包含 DAST、容器镜像扫描或自动部署；业务权限和并发正确性仍由专项测试验证。
 
 本地验证：ESLint、Checkstyle、actionlint、shell 语法检查通过；后端 208 项测试（含 PostgreSQL 集成）全部通过、零跳过；前端 235 项测试及构建通过，通知测试类型写法调整后额外复验 4 项通知测试和类型检查。最终 Semgrep 零 findings / 解析错误；Trivy 无未豁免 HIGH/CRITICAL 发现，Java 报告保留上述两条限时例外。远端 CI 尚待推送后验证。
+
+### CI 报告展示
+
+Actions 的 Artifacts 分别提供 `lint-report`（摘要和各工具文本输出）、`sast-report`（Semgrep JSON）、`dependency-secret-reports`（Trivy JSON）。检查失败时仍上传已有报告；lint 会继续收集各工具结果，最终以非零状态阻断。报告保留 7 天，可用于演示，但应在到期前保存所需课程证据。DAST 尚未实施，因此没有 `dast-report`；后续运行 ZAP 后再增加实际 HTML/JSON 报告。
+
+Artifact Actions 升级为 upload-artifact 7.0.2 / download-artifact 8.0.2，替换引发 Node.js 20 弃用提示的 v4。此处是 Action 自身运行时，与前端项目使用的 Node.js 22 独立。IDE 自动生成的 backend/.settings 等文件不再跟踪，本地文件保留，Java 版本和构建检查仍由 pom.xml 管理。
