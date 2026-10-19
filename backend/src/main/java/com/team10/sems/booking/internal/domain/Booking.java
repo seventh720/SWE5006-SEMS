@@ -77,7 +77,7 @@ public class Booking {
     }
 
     public static Booking confirmed(UUID user, String key, EventAccessView event,
-            TicketTypeView ticket, int quantity, AttendeeInfo info) {
+            TicketTypeView ticket, int quantity, AttendeeInfo info, Instant now) {
         Booking booking = new Booking();
         booking.attendeeRealName = info.realName();
         booking.attendeeEmail = info.email();
@@ -102,7 +102,7 @@ public class Booking {
         booking.ticketTypeName = ticket.name();
         booking.status = "CONFIRMED";
         booking.paymentStatus = "NOT_REQUIRED";
-        booking.createdAt = Instant.now();
+        booking.createdAt = now;
         booking.updatedAt = booking.createdAt;
         return booking;
     }
@@ -112,11 +112,11 @@ public class Booking {
                 && attendeeInfo().equals(info);
     }
 
-    public boolean cancel(String reason) {
+    public boolean cancel(String reason, Instant now) {
         if ("CANCELLED".equals(status)) return false;
         status = "CANCELLED";
         cancellationReason = reason;
-        updatedAt = Instant.now();
+        updatedAt = now;
         return true;
     }
 

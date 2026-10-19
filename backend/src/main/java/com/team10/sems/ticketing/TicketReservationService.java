@@ -3,7 +3,6 @@ package com.team10.sems.ticketing;
 import com.team10.sems.event.EventAccessService;
 import com.team10.sems.ticketing.internal.domain.TicketType;
 import com.team10.sems.ticketing.internal.persistence.TicketTypeRepository;
-import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,10 +12,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @Transactional
 public class TicketReservationService {
+    private final java.time.Clock clock;
     private final TicketTypeRepository ticketTypes;
     private final EventAccessService events;
 
-    public TicketReservationService(TicketTypeRepository ticketTypes, EventAccessService events) {
+    public TicketReservationService(TicketTypeRepository ticketTypes, EventAccessService events, java.time.Clock clock) {
+        this.clock = clock;
         this.ticketTypes = ticketTypes;
         this.events = events;
     }
@@ -26,13 +27,14 @@ public class TicketReservationService {
         if (!"PUBLISHED".equals(event.status())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
         }
-        if (!event.startsAt().isAfter(Instant.now())) {
+        var now = clock.instant();
+        if (!event.startsAt().isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This event has already started");
         }
-        if (!event.registrationClosesAt().isAfter(Instant.now())) {
+        if (!event.registrationClosesAt().isAfter(now)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration for this event has closed");
         }
-        if (event.registrationOpensAt() != null && Instant.now().isBefore(event.registrationOpensAt())) {
+        if (event.registrationOpensAt() != null && now.isBefore(event.registrationOpensAt())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration for this event has not opened yet");
         }
         TicketType ticket = find(eventId, ticketTypeId);

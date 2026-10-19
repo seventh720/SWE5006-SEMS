@@ -2,7 +2,7 @@ import { apiRequest } from "../../shared/api/client";
 
 export const notificationsEnabled = import.meta.env.VITE_NOTIFICATIONS_ENABLED !== "false";
 
-export type NotificationType = "STAFF_ASSIGNED" | "STAFF_REVOKED" | "BOOKING_CONFIRMED" |
+export type NotificationType = "ROLES_CHANGED" | "STAFF_ASSIGNED" | "STAFF_REVOKED" | "BOOKING_CONFIRMED" |
   "BOOKING_CANCELLED" | "REGISTRATION_OPENING_SOON" | "EVENT_UPDATED" | "EVENT_CANCELLED";
 
 export interface Notification {
@@ -24,6 +24,7 @@ export interface NotificationPage {
 }
 
 export const notificationLabels: Record<NotificationType, string> = {
+  ROLES_CHANGED: "Roles changed",
   STAFF_ASSIGNED: "Staff assignment", STAFF_REVOKED: "Assignment removed",
   BOOKING_CONFIRMED: "Booking confirmed", BOOKING_CANCELLED: "Booking cancelled",
   REGISTRATION_OPENING_SOON: "Registration opens soon", EVENT_UPDATED: "Event updated",

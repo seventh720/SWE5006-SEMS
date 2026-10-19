@@ -23,7 +23,7 @@ class BookingServiceTest {
     private final TicketReservationService tickets = mock(TicketReservationService.class);
     private final PreRegistrationRepository preRegistrations = mock(PreRegistrationRepository.class);
     private final BookingService service = new BookingService(bookings, locks, events, tickets, preRegistrations,
-            mock(org.springframework.context.ApplicationEventPublisher.class), infoValidator);
+            mock(org.springframework.context.ApplicationEventPublisher.class), infoValidator, java.time.Clock.systemUTC());
     private final UUID user = UUID.randomUUID();
     private final UUID eventId = UUID.randomUUID();
     private final UUID ticketId = UUID.randomUUID();
@@ -35,7 +35,7 @@ class BookingServiceTest {
 
     private Booking booking(EventAccessView event) {
         return Booking.confirmed(user, "key", event,
-                new TicketTypeView(ticketId, eventId, "Free", 0, "SGD", 10, 1, 0L, true), 1, AttendeeInfo.EMPTY);
+                new TicketTypeView(ticketId, eventId, "Free", 0, "SGD", 10, 1, 0L, true), 1, AttendeeInfo.EMPTY, Instant.now());
     }
 
     @Test

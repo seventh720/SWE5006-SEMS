@@ -6,9 +6,14 @@ import { UsernameForm } from "./UsernameForm";
 
 const fetchMock = vi.fn<typeof fetch>();
 function CurrentUsername() { return <p>Welcome, {useAuth().user?.username}</p>; }
-function mount() { return render(<AuthProvider><CurrentUsername /><UsernameForm /></AuthProvider>); }
+function mount() {
+  const implementation = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((url, ...args) => url === "/api/v1/auth/me"
+    ? Promise.resolve(new Response(JSON.stringify(JSON.parse(sessionStorage.getItem("sems-auth")!).user)))
+    : implementation(url, ...args));
+  return render(<AuthProvider><CurrentUsername /><UsernameForm /></AuthProvider>); }
 beforeEach(() => {
-  sessionStorage.setItem("sems-auth", JSON.stringify({ token: "original-token", user: {
+  sessionStorage.setItem("sems-auth", JSON.stringify({ token: "original-token", expiresAt: Date.now() + 3600000, user: {
     id: "u1", username: "alice", email: "alice@example.com", roles: ["ATTENDEE"], status: "ACTIVE",
   } }));
   fetchMock.mockReset(); vi.stubGlobal("fetch", fetchMock);
@@ -22,8 +27,8 @@ it("updates the shared username immediately and retains it across reloads", asyn
   fireEvent.click(screen.getByRole("button", { name: "Save username" }));
   await screen.findByText("Welcome, new.name");
   expect(JSON.parse(sessionStorage.getItem("sems-auth")!).user).toMatchObject({ username: "new.name", email: "alice@example.com", roles: ["ATTENDEE"] });
-  expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/profile/username");
-  expect(fetchMock.mock.calls[0][1]?.headers).toMatchObject({ Authorization: "Bearer original-token" });
+  expect(fetchMock.mock.calls.find(([url]) => url === "/api/v1/profile/username")![0]).toBe("/api/v1/profile/username");
+  expect(fetchMock.mock.calls.find(([url]) => url === "/api/v1/profile/username")![1]?.headers).toMatchObject({ Authorization: "Bearer original-token" });
   view.unmount(); mount();
   expect((screen.getByLabelText("Username") as HTMLInputElement).value).toBe("new.name");
 });

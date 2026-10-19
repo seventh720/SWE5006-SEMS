@@ -4,8 +4,6 @@ import com.team10.sems.ticketing.TicketTypeView;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
@@ -13,6 +11,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
+@jakarta.persistence.EntityListeners(org.springframework.data.jpa.domain.support.AuditingEntityListener.class)
 @Table(name = "ticket_types")
 public class TicketType {
 
@@ -45,9 +44,11 @@ public class TicketType {
     private long version;
 
     @Column(name = "created_at", nullable = false)
+    @org.springframework.data.annotation.CreatedDate
     private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
+    @org.springframework.data.annotation.LastModifiedDate
     private Instant updatedAt;
 
     protected TicketType() {
@@ -192,22 +193,6 @@ public class TicketType {
         }
 
         return quota;
-    }
-
-    @PrePersist
-    void prePersist() {
-        Instant now = Instant.now();
-
-        if (createdAt == null) {
-            createdAt = now;
-        }
-
-        updatedAt = now;
-    }
-
-    @PreUpdate
-    void preUpdate() {
-        updatedAt = Instant.now();
     }
 
     public UUID getId() {

@@ -17,13 +17,15 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
 public class TicketTypeManagementService {
+    private final java.time.Clock clock;
 
     private final TicketTypeRepository ticketTypes;
     private final EventAccessService events;
 
     public TicketTypeManagementService(
             TicketTypeRepository ticketTypes,
-            EventAccessService events) {
+            EventAccessService events, java.time.Clock clock) {
+        this.clock = clock;
         this.ticketTypes = ticketTypes;
         this.events = events;
     }
@@ -139,7 +141,7 @@ public class TicketTypeManagementService {
 
     private void requireEditableEvent(EventAccessView event) {
         if ((!"DRAFT".equals(event.status()) && !"PUBLISHED".equals(event.status()))
-                || !event.startsAt().isAfter(java.time.Instant.now())) {
+                || !event.startsAt().isAfter(clock.instant())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Ticket types can only be configured before an active event starts");
         }

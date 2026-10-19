@@ -12,12 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class EventCancellationListener {
+    private final java.time.Clock clock;
     private final BookingRepository bookings;
     private final TicketReservationService tickets;
     private final ApplicationEventPublisher publisher;
 
     public EventCancellationListener(BookingRepository bookings, TicketReservationService tickets,
-            ApplicationEventPublisher publisher) {
+            ApplicationEventPublisher publisher, java.time.Clock clock) {
+        this.clock = clock;
         this.publisher = publisher;
         this.bookings = bookings;
         this.tickets = tickets;
@@ -28,7 +30,7 @@ public class EventCancellationListener {
     public void cancel(EventCancelled event) {
         // Synchronous: the publisher holds the event lock and all changes roll back together.
         for (var booking : bookings.findByEventIdAndStatusOrderByTicketTypeIdAscIdAsc(event.eventId(), "CONFIRMED")) {
-            if (booking.cancel("EVENT_CANCELLED")) {
+            if (booking.cancel("EVENT_CANCELLED", clock.instant())) {
                 publisher.publishEvent(new BookingCancelled(booking.toView().id(), event.eventId(), "EVENT_CANCELLED"));
                 tickets.release(event.eventId(), booking.ticketTypeId(), booking.quantity());
             }

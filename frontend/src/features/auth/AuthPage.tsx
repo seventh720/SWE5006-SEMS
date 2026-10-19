@@ -4,7 +4,7 @@ import { ApiError } from "../../shared/api/client";
 import { useAuth } from "./AuthContext";
 
 export function AuthPage() {
-  const { user, login, register } = useAuth();
+  const { user, login, register, sessionNotice } = useAuth();
   const location = useLocation();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
@@ -21,6 +21,10 @@ export function AuthPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (mode === "register" && !/^[A-Za-z0-9]{8,16}$/.test(password)) {
+      setError("Password must contain 8–16 English letters or digits.");
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
@@ -61,6 +65,7 @@ export function AuthPage() {
         </div>
 
         <form onSubmit={submit}>
+          {sessionNotice && <p role="status" className="result-message">{sessionNotice}</p>}
           <h2>{mode === "login" ? "Welcome back" : "Create attendee account"}</h2>
           {mode === "register" && (
             <label>
@@ -93,13 +98,16 @@ export function AuthPage() {
             <input
               type="password"
               autoComplete={mode === "login" ? "current-password" : "new-password"}
-              minLength={8}
-              maxLength={72}
+              minLength={mode === "register" ? 8 : undefined}
+              maxLength={mode === "register" ? 16 : undefined}
+              pattern={mode === "register" ? "[A-Za-z0-9]{8,16}" : undefined}
+              aria-describedby={mode === "register" ? "password-help" : undefined}
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
           </label>
+          {mode === "register" && <p id="password-help" className="muted">8–16 English letters or digits. Letters only, digits only, or a combination are accepted.</p>}
           {error && <p className="error-message" role="alert">{error}</p>}
           <button className="primary-button" disabled={submitting} type="submit">
             {submitting ? "Please wait..." : mode === "login" ? "Login" : "Register and login"}

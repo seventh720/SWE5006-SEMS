@@ -49,8 +49,12 @@ class AuthenticationFlowIntegrationTest {
     @Autowired
     private org.springframework.security.oauth2.jwt.JwtEncoder encoder;
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean java.time.Clock clock;
+
     @BeforeEach
     void clearUsers() {
+        org.mockito.Mockito.when(clock.instant()).thenAnswer(invocation -> java.time.Instant.now());
+        jdbc.update("DELETE FROM notifications");
         users.deleteAll();
     }
 
@@ -417,6 +421,73 @@ class AuthenticationFlowIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(3));
         mvc.perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + token).param("size", "51"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void passwordPolicyAllowsOnlyEightToSixteenAsciiLettersOrDigits() throws Exception {
+        int index = 0;
+        for (String password : java.util.List.of("12345678", "abcdefghijklmnop", "Password123")) {
+            String username = "valid" + index++;
+            mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(java.util.Map.of("username", username,
+                            "email", username + "@example.test", "password", password))))
+                    .andExpect(status().isCreated());
+        }
+        for (String password : java.util.List.of("1234567", "a".repeat(17), "password!", "汉".repeat(25), "abcd efgh", "😀".repeat(8))) {
+            mvc.perform(post("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(java.util.Map.of("username", "invalid",
+                            "email", "invalid@example.test", "password", password))))
+                    .andExpect(status().isBadRequest());
+        }
+        org.junit.jupiter.api.Assertions.assertEquals(3, users.count());
+        users.saveAndFlush(UserAccount.register("legacy", "legacy@example.test", passwordEncoder.encode("LegacyPasswordLong!123")));
+        org.junit.jupiter.api.Assertions.assertNotNull(login("legacy@example.test", "LegacyPasswordLong!123"));
+    }
+
+    @Test
+    void tokenExpiresAtOneHourAndJpaAuditingUsesTheSharedClock() throws Exception {
+        var now = java.time.Instant.parse("2031-02-03T04:05:06Z");
+        org.mockito.Mockito.when(clock.instant()).thenReturn(now);
+        var user = users.saveAndFlush(UserAccount.register("clockuser", "clock@example.test", passwordEncoder.encode("Password123")));
+        org.junit.jupiter.api.Assertions.assertEquals(now, user.toView().createdAt());
+        var response = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"clock@example.test\",\"password\":\"Password123\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.expiresIn").value(3600))
+                .andReturn().getResponse().getContentAsString();
+        String token = objectMapper.readTree(response).get("accessToken").asText();
+        org.mockito.Mockito.when(clock.instant()).thenReturn(now.plusSeconds(3599));
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token)).andExpect(status().isOk());
+        org.mockito.Mockito.when(clock.instant()).thenReturn(now.plusSeconds(3600));
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void roleChangesNotifyOnlyTheAffectedUserAndNoOpDoesNotDuplicate() throws Exception {
+        var admin = users.saveAndFlush(UserAccount.bootstrapAdmin("notifier", "notifier@example.test", passwordEncoder.encode("Password123")));
+        var target = users.saveAndFlush(UserAccount.register("recipient", "recipient@example.test", "unused"));
+        String token = login("notifier@example.test", "Password123");
+        String path = "/api/v1/admin/users/" + target.getId() + "/roles";
+        var now = java.time.Instant.now().plusSeconds(1).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+        org.mockito.Mockito.when(clock.instant()).thenReturn(now);
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(put(path).header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"roles\":[\"ATTENDEE\",\"STAFF\"]}")).andExpect(status().isOk());
+        }
+        org.junit.jupiter.api.Assertions.assertEquals(1, jdbc.queryForObject(
+                "SELECT count(*) FROM notifications WHERE user_id=? AND type='ROLES_CHANGED'", Integer.class, target.getId()));
+        org.junit.jupiter.api.Assertions.assertEquals(0, jdbc.queryForObject(
+                "SELECT count(*) FROM notifications WHERE user_id=?", Integer.class, admin.getId()));
+        org.junit.jupiter.api.Assertions.assertTrue(java.util.Objects.requireNonNull(jdbc.queryForObject(
+                "SELECT message FROM notifications WHERE user_id=?", String.class, target.getId())).contains("Event Staff"));
+        org.junit.jupiter.api.Assertions.assertEquals(now, java.util.Objects.requireNonNull(jdbc.queryForObject(
+                "SELECT created_at FROM notifications WHERE user_id=?", java.sql.Timestamp.class, target.getId())).toInstant());
+        jdbc.execute("ALTER TABLE notifications ADD CONSTRAINT test_reject_role_notice CHECK (type <> 'ROLES_CHANGED') NOT VALID");
+        try {
+            org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () -> mvc.perform(put(path)
+                    .header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"roles\":[\"ATTENDEE\"]}")));
+            org.junit.jupiter.api.Assertions.assertTrue(users.findById(target.getId()).orElseThrow().getRoles().contains(com.team10.sems.identity.Role.STAFF));
+        } finally { jdbc.execute("ALTER TABLE notifications DROP CONSTRAINT test_reject_role_notice"); }
     }
 
 }

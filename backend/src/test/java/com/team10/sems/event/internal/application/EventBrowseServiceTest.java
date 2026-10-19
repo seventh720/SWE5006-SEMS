@@ -14,7 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 class EventBrowseServiceTest {
     private final EventRepository repository = mock(EventRepository.class);
-    private final EventBrowseService service = new EventBrowseService(repository);
+    private final EventBrowseService service = new EventBrowseService(repository, java.time.Clock.systemUTC());
 
     @Test
     void rejectsInvalidPagesBeforeQueryingDatabase() {

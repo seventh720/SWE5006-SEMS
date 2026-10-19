@@ -20,8 +20,10 @@ import org.springframework.web.server.ResponseStatusException;
 public class UserAdministrationService {
 
     private final UserAccountRepository users;
+    private final org.springframework.context.ApplicationEventPublisher publisher;
 
-    public UserAdministrationService(UserAccountRepository users) {
+    public UserAdministrationService(UserAccountRepository users, org.springframework.context.ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
         this.users = users;
     }
 
@@ -52,7 +54,12 @@ public class UserAdministrationService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "At least one active administrator must remain. Assign another administrator first.");
         }
+        var before = Set.copyOf(user.getRoles());
         user.replaceRoles(roles);
+        if (!before.equals(user.getRoles())) {
+            publisher.publishEvent(new com.team10.sems.identity.UserRolesChanged(userId, before,
+                    user.getRoles(), UUID.randomUUID()));
+        }
         return user.toView();
     }
 }

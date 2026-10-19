@@ -1,3 +1,5 @@
+import { signalSessionChange } from "../auth/sessionEvents";
+
 const API_URL = import.meta.env.VITE_API_URL ?? "";
 
 interface ProblemResponse {
@@ -30,6 +32,10 @@ export async function apiRequest<T>(
   });
 
   if (!response.ok) {
+    if (token && response.status === 401) signalSessionChange({ token, reason: "expired" });
+    if (token && response.status === 403 && path !== "/api/v1/auth/me") {
+      signalSessionChange({ token, reason: "forbidden" });
+    }
     let problem: ProblemResponse;
     try {
       problem = (await response.json()) as ProblemResponse;

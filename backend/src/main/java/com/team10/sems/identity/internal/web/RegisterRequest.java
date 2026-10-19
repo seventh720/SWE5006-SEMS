@@ -17,6 +17,7 @@ public record RegisterRequest(
         String email,
 
         @NotBlank
-        @Size(min = 8, max = 72)
+        @Size(min = 8, max = 16)
+        @Pattern(regexp = "[A-Za-z0-9]+", message = "must contain only English letters or digits")
         String password) {
 }

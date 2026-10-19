@@ -24,6 +24,7 @@ class TokenServiceTest {
         String secret = "unit-test-secret-with-at-least-32-characters";
         SecretKey key = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         new ApplicationContextRunner()
+                .withBean(Clock.class, Clock::systemUTC)
                 .withBean(JwtEncoder.class, () -> new NimbusJwtEncoder(new ImmutableSecret<>(key)))
                 .withBean(JwtProperties.class,
                         () -> new JwtProperties(secret, "sems-test", Duration.ofMinutes(5)))

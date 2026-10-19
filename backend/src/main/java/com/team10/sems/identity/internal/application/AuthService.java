@@ -26,6 +26,10 @@ public class AuthService {
 
     @Transactional
     public UserView register(String username, String email, String rawPassword) {
+        if (rawPassword == null || !rawPassword.matches("[A-Za-z0-9]{8,16}")) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Password must contain 8–16 English letters or digits");
+        }
         String normalizedUsername = normalizeUsername(username);
         String normalizedEmail = normalizeEmail(email);
         if (users.existsByUsername(normalizedUsername)) {

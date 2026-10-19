@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional
 @PreAuthorize("hasRole('ATTENDEE')")
 public class PreRegistrationService {
+    private final java.time.Clock clock;
     private final BookingInfoValidator infoValidator;
     private final PreRegistrationRepository registrations;
     private final EventAccessService events;
@@ -26,7 +27,8 @@ public class PreRegistrationService {
     private final RegistrationReminderService reminders;
 
     public PreRegistrationService(PreRegistrationRepository registrations, EventAccessService events,
-            TicketReservationService tickets, RegistrationReminderService reminders, BookingInfoValidator infoValidator) {
+            TicketReservationService tickets, RegistrationReminderService reminders, BookingInfoValidator infoValidator, java.time.Clock clock) {
+        this.clock = clock;
         this.infoValidator = infoValidator;
         this.reminders = reminders;
         this.registrations = registrations;
@@ -42,7 +44,7 @@ public class PreRegistrationService {
         if (!"PUBLISHED".equals(event.status())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
         }
-        if (event.registrationOpensAt() == null || !Instant.now().isBefore(event.registrationOpensAt())) {
+        if (event.registrationOpensAt() == null || !clock.instant().isBefore(event.registrationOpensAt())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Pre-registration is only available before registration opens");
         }
         var ticket = tickets.inspect(eventId, input.ticketTypeId());
@@ -55,7 +57,7 @@ public class PreRegistrationService {
         infoValidator.validate(event.bookingRequirements(), input.attendeeInfo());
         var registration = registrations.findByUserIdAndEventId(user, eventId)
                 .orElseGet(() -> PreRegistration.create(user, eventId));
-        registration.update(input.ticketTypeId(), input.quantity(), input.attendeeInfo());
+        registration.update(input.ticketTypeId(), input.quantity(), input.attendeeInfo(), clock.instant());
         var saved = registrations.saveAndFlush(registration);
         reminders.notifyEvent(eventId);
         return view(saved);
@@ -88,7 +90,7 @@ public class PreRegistrationService {
     private PreRegistrationView view(PreRegistration registration) {
         var event = events.requireEvent(registration.eventId());
         var ticket = tickets.inspect(registration.eventId(), registration.ticketTypeId());
-        Instant now = Instant.now();
+        Instant now = clock.instant();
         String status = registration.bookingId() != null ? "BOOKED"
                 : !"PUBLISHED".equals(event.status()) ? "EVENT_CANCELLED"
                 : !now.isBefore(event.registrationClosesAt()) ? "CLOSED"
