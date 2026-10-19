@@ -28,7 +28,9 @@ p=Path(sys.argv[1])
       - "127.0.0.1::80"
 ''')
 config=json.loads(subprocess.check_output(['docker','compose','--env-file',str(p/'runtime.env'),'-p','swe5006','-f','deployment/compose.yaml','-f','deployment/compose.cloud.yaml','config','--format','json']))
-assert all(not service.get('ports') for service in config['services'].values()), 'Cloud must not publish application/database ports'
+assert all(not config['services'][name].get('ports') for name in ('backend', 'frontend'))
+ports=config['services']['postgres']['ports']
+assert len(ports) == 1 and ports[0]['host_ip'] == '127.0.0.1' and str(ports[0]['published']) == '15432' and ports[0]['target'] == 5432, 'Database must only publish on the SSH loopback port'
 assert set(config['services']['backend']['networks']) == {'default'}
 assert set(config['services']['postgres']['networks']) == {'default'}
 assert 'edge' in config['services']['frontend']['networks']

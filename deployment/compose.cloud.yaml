@@ -1,5 +1,5 @@
 # Overlay: docker compose -p swe5006 -f compose.yaml -f compose.cloud.yaml ...
-# Compose 2.24.4+ required. All inbound traffic goes through the existing Caddy.
+# Compose 2.24.4+ required. HTTP goes through Caddy; PostgreSQL is SSH-only.
 x-runtime: &runtime
   restart: unless-stopped
   logging:
@@ -10,7 +10,8 @@ x-runtime: &runtime
 services:
   postgres:
     <<: *runtime
-    ports: !reset []
+    ports: !override
+      - "127.0.0.1:15432:5432"
     mem_limit: 512m
   backend:
     <<: *runtime

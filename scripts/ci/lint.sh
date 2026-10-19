@@ -21,7 +21,16 @@ check() {
 check eslint npm --prefix frontend run lint
 check checkstyle mvn -B -f backend/pom.xml validate
 check actionlint docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
-check shell-syntax bash -n scripts/ci/lint.sh scripts/security/scan.sh scripts/cd/*.sh
+# Invoked through the check helper.
+# shellcheck disable=SC2317
+shell_syntax() {
+    local script
+    for script in scripts/ci/lint.sh scripts/security/scan.sh scripts/cd/*.sh; do
+        bash -n "$script" || return
+    done
+}
+check shell-syntax shell_syntax
+check release-validation python3 scripts/cd/test-release.py
 cat "$summary"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     cat "$summary" >> "$GITHUB_STEP_SUMMARY"

@@ -214,10 +214,53 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  deploy:
+    name: Deploy · Staging
+    needs: images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment:
+      name: staging
+      url: https://swe5006.seventh720.com
+    concurrency:
+      group: swe5006-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check this is still the latest main commit
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [ "$current" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Skipping superseded commit $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/download-artifact@v8.0.2
+        if: steps.latest.outputs.deploy == 'true'
+        with:
+          name: release-images
+          path: image-reports/
+      - name: Back up database, deploy tested images and check HTTPS
+        if: steps.latest.outputs.deploy == 'true'
+        env:
+          STAGING_HOST: ${{ vars.STAGING_HOST }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: bash scripts/cd/remote-deploy.sh
+      - name: Record deployment result
+        if: steps.latest.outputs.deploy == 'true'
+        run: |
+          echo "Deployed $GITHUB_SHA to https://swe5006.seventh720.com" >> "$GITHUB_STEP_SUMMARY"
+          echo "Database backup retained on Lightsail before deployment." >> "$GITHUB_STEP_SUMMARY"
+
   notify:
     name: Notify · Telegram
     if: always()
-    needs: [lint, security, backend, backend-integration, frontend, images]
+    needs: [lint, security, backend, backend-integration, frontend, images, deploy]
     runs-on: ubuntu-24.04
     env:
       TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
@@ -235,7 +278,7 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           disable_web_page_preview: true
           message: |
-            ${{ needs.images.result == 'success' && needs.lint.result == 'success' && needs.security.result == 'success' && needs.backend.result == 'success' && needs['backend-integration'].result == 'success' && needs.frontend.result == 'success' && '✅ SEMS CI success' || '❌ SEMS CI failed' }}
+            ${{ (needs.deploy.result == 'success' || (github.event_name == 'pull_request' && needs.deploy.result == 'skipped')) && needs.images.result == 'success' && needs.lint.result == 'success' && needs.security.result == 'success' && needs.backend.result == 'success' && needs['backend-integration'].result == 'success' && needs.frontend.result == 'success' && '✅ SEMS CI/CD success' || '❌ SEMS CI/CD failed' }}
 
             User: ${{ github.actor }}
             Repository: ${{ github.repository }}
@@ -247,6 +290,7 @@ jobs:
             Lint: ${{ needs.lint.result }}
             Static security: ${{ needs.security.result }}
             Images: ${{ needs.images.result }}
+            Staging deployment: ${{ needs.deploy.result }}
             Backend: ${{ needs.backend.result }}
             Backend unit-test line coverage: ${{ needs.backend.outputs.coverage }}
             Backend unit-test branch coverage: ${{ needs.backend.outputs.branch_coverage }}

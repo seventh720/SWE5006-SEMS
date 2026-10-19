@@ -351,4 +351,23 @@ Before publication, configure at least one ticket type. **Create free ticket** u
 
 For published events, registration opening can be adjusted only before registration has opened. Once open (including immediate opening on publication), the opening time is fixed; event dates, location and the deadline remain editable subject to existing validation. Booking information is validated after the event lock and before inventory reservation.
 
-Frontend coverage: run `npm --prefix frontend run test:coverage`, then open `frontend/coverage/index.html`. CI uploads separate backend unit, backend combined, and frontend coverage artifacts. Frontend type checking runs once as part of the build. Coverage currently reports a baseline without blocking on percentage thresholds; browser end-to-end checks and automated deployment remain future work.
+Frontend coverage: run `npm --prefix frontend run test:coverage`, then open `frontend/coverage/index.html`. CI uploads separate backend unit, backend combined, and frontend coverage artifacts. Frontend type checking runs once as part of the build. Coverage currently reports a baseline without blocking on percentage thresholds; browser end-to-end checks remain future work. Main builds now include staging deployment after all CI gates pass.
+
+
+## Staging CD and database access
+
+The `Deploy · Staging` job deploys only main pushes after image scanning and smoke tests.
+It consumes the same run's digest-pinned release artifact, checks its commit and image names,
+backs up PostgreSQL before updating containers, and verifies public HTTPS health before updating
+`/home/ubuntu/swe5006/current` and `deployed-sha`. Releases and backups remain on the host.
+A failed deployment does not automatically restore containers or the database.
+
+Configure the GitHub `staging` environment with `STAGING_SSH_KEY` and `STAGING_KNOWN_HOSTS`
+secrets and the `STAGING_HOST` variable; restrict deployment branches to main.
+Runtime secrets remain in `/home/ubuntu/swe5006/.env` and are never included in release archives.
+
+For database inspection, use an SSH tunnel to `ubuntu@18.139.212.35` and connect to
+`127.0.0.1:15432`, database `sems`, user `sems5006_viewer`. The local private connection file is
+`.secrets/cloud-staging/navicat.json` (ignored by Git). This role has SELECT privileges only,
+including future tables created by `sems_user`. Do not expose port 15432 publicly.
+See [Chinese deployment notes](README.zh-CN.md#cd-与云端数据库查看2026-10-20) for server layout and recovery limitations.
