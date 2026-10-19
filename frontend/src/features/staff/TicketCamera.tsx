@@ -15,8 +15,7 @@ export function TicketCamera({onScan, onClose}: {onScan: (code: string) => void;
   const scan = useRef(onScan);
   scan.current = onScan;
   const [aspectRatio, setAspectRatio] = useState(4 / 3);
-  const [device, setDevice] = useState("");
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [facingMode, setFacingMode] = useState("environment");
   const [status, setStatus] = useState("Starting camera…");
   const [error, setError] = useState("");
   const resume = useRef<(() => void) | null>(null);
@@ -53,7 +52,7 @@ export function TicketCamera({onScan, onClose}: {onScan: (code: string) => void;
           setError("This browser cannot access a camera. Use another browser, a scanner or the ticket code below.");
           return;
         }
-        stream = await navigator.mediaDevices.getUserMedia({audio: false, video: device ? {deviceId: {exact: device}} : {facingMode: {ideal: "environment"}, width: {ideal: 1280}, height: {ideal: 720}}});
+        stream = await navigator.mediaDevices.getUserMedia({audio: false, video: {facingMode: {ideal: facingMode}, width: {ideal: 1280}, height: {ideal: 720}}});
         if (cancelled) { stream.getTracks().forEach(track => track.stop()); return; }
         phase = "playback";
         // Set DOM properties as well as React attributes for mobile WebKit.
@@ -80,10 +79,6 @@ export function TicketCamera({onScan, onClose}: {onScan: (code: string) => void;
           });
         }
         if (cancelled) return;
-        // Device enumeration is optional; a working default camera must still scan.
-        navigator.mediaDevices.enumerateDevices?.().then(list => {
-          if (!cancelled) setDevices(list.filter(item => item.kind === "videoinput" && item.deviceId));
-        }).catch(() => {});
         phase = "scanner";
         const {default: decode} = await import("jsqr");
         if (cancelled) return;
@@ -124,17 +119,15 @@ export function TicketCamera({onScan, onClose}: {onScan: (code: string) => void;
     }
     void start();
     return () => { stop(); document.removeEventListener("visibilitychange", hidden); };
-  }, [device, attempt, onClose]);
+  }, [facingMode, attempt, onClose]);
 
   return <section className="ticket-camera" aria-label="Ticket camera scanner">
     <video ref={video} autoPlay muted playsInline aria-label="Camera preview"
       style={{display: "block", height: "auto", maxWidth: "100%", objectFit: "contain", aspectRatio, width: `min(100%, ${420 * aspectRatio}px)`}}
       onResize={() => {const preview = video.current; if (preview?.videoWidth && preview.videoHeight) setAspectRatio(preview.videoWidth / preview.videoHeight);}} />
     {error ? <p role="alert">{error}</p> : <p role="status">{status}</p>}
-    {devices.length > 1 && <Select label="Camera" value={device} onChange={setDevice}
-      options={[{ value: "", label: "Automatic (prefer rear camera)" }, ...devices.map((item, index) => ({
-        value: item.deviceId, label: item.label || `Camera ${index + 1}`,
-      }))]} />}
+    <Select label="Camera" value={facingMode} onChange={setFacingMode}
+      options={[{ value: "environment", label: "Rear camera" }, { value: "user", label: "Front camera" }]} />
     <div className="camera-actions">
       {playbackBlocked && <button type="button" className="primary-button" onClick={() => resume.current?.()}>Start preview</button>}
       {error && <button type="button" onClick={() => setAttempt(value => value + 1)}>Retry camera</button>}

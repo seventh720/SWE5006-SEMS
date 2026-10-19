@@ -151,8 +151,10 @@ export function StaffPage() {
       {events.length === 0 ? (!refreshing && !loadError && <p>No event assignments yet. Ask an organizer to assign you to an event.</p>) : <Select label="Choose event" value={eventId} disabled={busy || checkingIn || refreshing}
         onChange={value => { generation.current++; stopScan(); setEventId(value); setMessage(""); }}
         options={[{ value: "", label: "Select an event" }, ...events.map(event => ({ value: event.id, label: event.title }))]} />}
-      {selected && <EventPhase startsAt={selected.startsAt} endsAt={selected.endsAt} status={selected.status} />}
-      {selected && <p className="muted">{formatEventTime(selected.startsAt)} – {formatEventTime(selected.endsAt)} · SGT{!inWindow && " · Check-in opens 15 minutes before the event and closes 15 minutes after it starts (or at its end, if earlier)."}</p>}
+      {selected && <div className="staff-selected-event">
+        <EventPhase startsAt={selected.startsAt} endsAt={selected.endsAt} status={selected.status} />
+        <p className="muted">{formatEventTime(selected.startsAt)} – {formatEventTime(selected.endsAt)} · SGT{!inWindow && " · Check-in opens 15 minutes before the event and closes 15 minutes after it starts (or at its end, if earlier)."}</p>
+      </div>}
     </section>
     <div className="staff-workspace-grid"><section className="card" id="ticket-verification"><p className="section-label">Arrival desk</p><h2>Ticket verification</h2>
       {scanning && <TicketCamera onClose={stopScan} onScan={value => { changeCode(value); stopScan(); setMessage("QR code detected. Select Verify ticket."); }} />}
