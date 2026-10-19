@@ -9,6 +9,52 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Source and workflow lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: mvn -B -f backend/pom.xml validate
+      - name: Check GitHub Actions and shell syntax
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
+          bash -n scripts/security/scan.sh
+
+  security:
+    name: SAST, dependency and secret scans
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/
+      - run: bash scripts/security/scan.sh
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-security-reports
+          path: security-reports/
+          retention-days: 7
+
   backend:
     runs-on: ubuntu-24.04
     outputs:
@@ -24,6 +70,12 @@ jobs:
       - name: Compile, test and generate backend coverage
         working-directory: backend
         run: mvn -B clean verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/sems-backend-*.jar
+          if-no-files-found: error
+          retention-days: 1
       - name: Summarize unit-test coverage
         id: coverage
         if: always()
@@ -102,7 +154,7 @@ jobs:
   notify:
     name: Telegram notification
     if: always()
-    needs: [backend, backend-integration, frontend]
+    needs: [lint, security, backend, backend-integration, frontend]
     runs-on: ubuntu-24.04
     env:
       TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
@@ -120,7 +172,7 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           disable_web_page_preview: true
           message: |
-            ${{ needs.backend.result == 'success' && needs['backend-integration'].result == 'success' && needs.frontend.result == 'success' && '✅ SEMS CI success' || '❌ SEMS CI failed' }}
+            ${{ needs.lint.result == 'success' && needs.security.result == 'success' && needs.backend.result == 'success' && needs['backend-integration'].result == 'success' && needs.frontend.result == 'success' && '✅ SEMS CI success' || '❌ SEMS CI failed' }}
 
             User: ${{ github.actor }}
             Repository: ${{ github.repository }}
@@ -129,6 +181,8 @@ jobs:
             Commit: ${{ github.sha }}
             Commit Message: ${{ github.event.head_commit.message || github.event.pull_request.title || 'N/A' }}
 
+            Lint: ${{ needs.lint.result }}
+            Static security: ${{ needs.security.result }}
             Backend: ${{ needs.backend.result }}
             Backend unit-test line coverage: ${{ needs.backend.outputs.coverage }}
             Backend unit-test branch coverage: ${{ needs.backend.outputs.branch_coverage }}
