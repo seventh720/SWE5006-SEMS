@@ -4,7 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { StaffPage, StaffRoute } from "./StaffPage";
 
-const auth = vi.hoisted(() => ({ user: { roles: ["STAFF"] } }));
+const auth = vi.hoisted(() => ({ user: { roles: ["STAFF"] }, token: null }));
 vi.mock("../auth/AuthContext", () => ({ useAuth: () => auth }));
 afterEach(cleanup);
 
@@ -15,10 +15,10 @@ function mount() {
   </Routes></MemoryRouter>);
 }
 
-it("keeps verification unavailable until assignments and check-in are connected", () => {
+it("disables verification when staff has no assigned event", () => {
   auth.user.roles = ["STAFF"];
   mount();
-  expect(screen.getByText("Event assignments are not available yet.")).toBeTruthy();
+  expect(screen.getByText(/No event assignments yet/)).toBeTruthy();
   expect((screen.getByRole("button", { name: "Open scanner" }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByRole("button", { name: "Verify ticket" }) as HTMLButtonElement).disabled).toBe(true);
   expect((screen.getByLabelText("Or enter a ticket code") as HTMLInputElement).disabled).toBe(true);
