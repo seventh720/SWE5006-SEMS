@@ -216,3 +216,9 @@ Spring MVC 6.2.19 的两条记录保留为**当前功能范围不适用的限时
 Actions 的 Artifacts 分别提供 `lint-report`（摘要和各工具文本输出）、`sast-report`（Semgrep JSON）、`dependency-secret-reports`（Trivy JSON）。检查失败时仍上传已有报告；lint 会继续收集各工具结果，最终以非零状态阻断。报告保留 7 天，可用于演示，但应在到期前保存所需课程证据。DAST 尚未实施，因此没有 `dast-report`；后续运行 ZAP 后再增加实际 HTML/JSON 报告。
 
 Artifact Actions 升级为 upload-artifact 7.0.2 / download-artifact 8.0.2，替换引发 Node.js 20 弃用提示的 v4。此处是 Action 自身运行时，与前端项目使用的 Node.js 22 独立。IDE 自动生成的 backend/.settings 等文件不再跟踪，本地文件保留，Java 版本和构建检查仍由 pom.xml 管理。
+
+### 运行镜像检查
+
+后续流水线加入 `Images · Scan & Smoke Test` 和 `image-security-reports`。检查实际已测试 JAR/dist 所构建镜像，以及修补后的 PostgreSQL 镜像；隔离数据库验证初始化、Flyway、健康检查和 HTTPS Origin 代理认证链路。main 成功后才发布 GHCR 并保存 digest 锁定文件。部署步骤见根目录 README.zh-CN.md 的“镜像与共享服务器部署”；DAST 与真实服务器上线仍待执行。
+
+本地镜像验证结果：三个运行镜像扫描通过（保留已记录的两条 Spring 适用性例外）；隔离 PostgreSQL 初始化与 Flyway 迁移完成；所有服务达到 healthy，页面深链接、API、HTTPS Origin 注册/登录及本人资料读取通过；cloud 配置确认无宿主机端口发布且数据库/后端不接入共享入口网络。

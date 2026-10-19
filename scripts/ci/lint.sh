@@ -21,7 +21,7 @@ check() {
 check eslint npm --prefix frontend run lint
 check checkstyle mvn -B -f backend/pom.xml validate
 check actionlint docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
-check shell-syntax bash -n scripts/ci/lint.sh scripts/security/scan.sh
+check shell-syntax bash -n scripts/ci/lint.sh scripts/security/scan.sh scripts/cd/*.sh
 cat "$summary"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     cat "$summary" >> "$GITHUB_STEP_SUMMARY"

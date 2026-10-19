@@ -455,3 +455,48 @@ Telegram 通知不是合并所需的质量检查。
 报名窗口调整规则：尚未开放的已发布活动可以调整报名开始时间；一旦已开放（含发布后立即开放），开始时间固定，后端拒绝修改并返回409。活动时间、地点和报名截止时间仍可按现有规则调整。预订先完成幂等检查、锁定活动和报名资料校验，再预留库存。
 
 前端覆盖率：运行 `npm --prefix frontend run test:coverage`，查看 `frontend/coverage/index.html`。CI分别上传后端单元、后端完整、前端覆盖率报告，并在摘要和通知中展示行/分支覆盖率。前端类型检查在构建时执行一次。当前记录覆盖率基线，未设置百分比阻断门槛；浏览器端到端检查和自动部署尚未接入。
+
+
+## 镜像与共享服务器部署（2026-10-19）
+
+流水线新增 `Images · Scan & Smoke Test`。它等待 lint、静态安全、前后端测试和数据库集成检查通过，下载本次构建的 JAR/dist，使用 Dockerfile 的 `ci` target 打包；不会在镜像阶段重新编译不同产物。Trivy 扫描 backend、frontend、postgres 三个运行镜像的 HIGH/CRITICAL 漏洞及密钥。沿用测试说明中两条精确 Spring MVC 适用性例外，其他发现阻断。
+
+镜像冒烟测试使用独立 Compose 项目、随机临时凭据、临时数据库卷和动态本机端口。检查健康状态、全新 Flyway 迁移、页面深链接、公共 API，以及带外部 HTTPS Origin 的注册/登录/身份查询；退出时仅清理该次测试创建的容器与卷。该检查不是 DAST，也不代表真实域名证书已经验证。
+
+在 main 的 push 上，扫描和冒烟成功后发布 GHCR 镜像，以提交 SHA 标记，并产出 `release-images` artifact（`compose.release.json`，镜像引用固定为 digest，保留 30 天）。PR 只构建和检查，不推送镜像。`image-security-reports` 保存扫描和冒烟记录 7 天。第一次 main 发布仍需实际验证 GHCR 权限；服务器拉取私有镜像需要有 read:packages 权限的凭据。
+
+本地复验：
+
+```bash
+RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml clean verify
+npm --prefix frontend ci
+npm --prefix frontend run build
+bash scripts/cd/images.sh
+bash scripts/cd/image-smoke.sh
+```
+
+本地默认 Dockerfile target 仍支持从源码构建。`.dockerignore` 使用允许列表，防止本机 node_modules、IDE 配置、环境文件和测试日志进入镜像上下文。PostgreSQL 镜像使用 Alpine su-exec 替代含旧 Go 依赖的 gosu；保持原版入口流程与数据目录。
+
+### 与 SWE5001 共用 HTTPS 入口
+
+5006 使用独立的 Compose 项目名 `swe5006`、数据库卷、目录、密码和 JWT 密钥。先检查主机剩余内存；cloud overlay 的上限合计约 1.4 GiB，主机还需为现有 5001 和系统预留空间。不要覆盖 5001 的数据库或环境文件。
+
+`deployment/compose.cloud.yaml` 需要 Docker Compose 2.24.4+。它移除数据库、后端和前端的所有宿主机端口发布，设置重启策略、日志轮转、内存限制；后端仅接受内部前端代理，只有前端加入名为 `swe5006-edge` 的网络。现有 Caddy 通过此网络访问 `sems5006-web:80`。
+
+上线顺序（当前只提供配置，尚未在服务器执行）：
+
+1. 在服务器独立目录保存本项目部署文件和私有 `.env`，从所选 main CI 下载 `compose.release.json`。确认文件记录的提交就是要部署的版本。已有 5006 数据时，升级前先备份并检查备份可读；首次部署创建空库。不要使用 `down -v` 更新真实环境。
+2. 登录镜像仓库，然后在项目根目录执行：
+
+   ```bash
+   docker compose --env-file .env -p swe5006 -f deployment/compose.yaml -f deployment/compose.cloud.yaml -f compose.release.json pull
+   docker compose --env-file .env -p swe5006 -f deployment/compose.yaml -f deployment/compose.cloud.yaml -f compose.release.json up -d --no-build --wait
+   ```
+
+3. `swe5006-edge` 创建后，将 `deployment/proxy/compose.swe5001-overlay.yaml` 作为附加配置用于现有 5001 Compose，使 Caddy 同时保留原 default 网络并连接 5006 网络。必须沿用 5001 原有项目名、镜像锁定文件及所有既有 compose 参数；只更新 Caddy，不能用这个 overlay 单独启动整个 5001 项目。将该网络设置纳入 5001 后续部署配置，否则下一次 5001 部署可能移除连接。
+4. 将 `deployment/proxy/swe5006.Caddyfile` 的站点段加入原 Caddyfile，保留 5001 站点；先 validate 再 reload。此配置也应持久纳入 5001 的部署源文件，不能只修改临时 release 目录。不要再启动第二个 Caddy 抢占 80/443。
+5. 检查 `https://swe5006.seventh720.com` 的证书、登录、活动浏览及手机扫码，并回归检查 5001 域名。第一次创建管理员后清除 bootstrap 密码配置。
+
+Nginx 保留可信 Caddy 提供的 HTTPS 协议信息，cloud 后端启用 Spring forwarded headers。前提是云端前后端不直接暴露公网；不要在开放的后端端口上无条件信任转发头。共享代理变更需要结合服务器实际目录及网络配置执行，仓库中的示例不代表已上线。
+
+此阶段没有 SSH 自动部署、自动数据库回滚或 DAST。应用镜像回退也不等于数据库可以无条件降级，回退前必须检查迁移兼容性。

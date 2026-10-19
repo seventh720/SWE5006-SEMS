@@ -1,0 +1,9 @@
+*
+!pom.xml
+!config/
+!config/**
+!src/
+!src/**
+!target/
+target/*
+!target/sems-backend-*.jar

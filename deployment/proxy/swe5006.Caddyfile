@@ -1,0 +1,5 @@
+# Append this site to the EXISTING Caddyfile; preserve the SWE5001 site.
+swe5006.seventh720.com {
+    encode zstd gzip
+    reverse_proxy sems5006-web:80
+}

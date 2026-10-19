@@ -1,0 +1,32 @@
+# Overlay: docker compose -p swe5006 -f compose.yaml -f compose.cloud.yaml ...
+# Compose 2.24.4+ required. All inbound traffic goes through the existing Caddy.
+x-runtime: &runtime
+  restart: unless-stopped
+  logging:
+    driver: local
+    options:
+      max-size: "10m"
+      max-file: "3"
+services:
+  postgres:
+    <<: *runtime
+    ports: !reset []
+    mem_limit: 512m
+  backend:
+    <<: *runtime
+    ports: !reset []
+    mem_limit: 768m
+    environment:
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:MaxMetaspaceSize=192m"
+  frontend:
+    <<: *runtime
+    ports: !reset []
+    mem_limit: 96m
+    networks:
+      default:
+      edge:
+        aliases: [sems5006-web]
+networks:
+  edge:
+    name: swe5006-edge

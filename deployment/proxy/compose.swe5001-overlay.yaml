@@ -1,0 +1,11 @@
+# Apply on the existing SWE5001 stack after SWE5006 creates swe5006-edge.
+# Keep its existing compose files and volume/project names unchanged.
+services:
+  caddy:
+    networks:
+      default:
+      swe5006-edge:
+networks:
+  swe5006-edge:
+    external: true
+    name: swe5006-edge

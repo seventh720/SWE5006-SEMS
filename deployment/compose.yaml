@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    build:
+      context: ./postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-sems}
       POSTGRES_USER: ${POSTGRES_USER:-sems_user}
@@ -40,7 +41,7 @@ services:
       - "3000:80"
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   sems_postgres_data:
