@@ -12,6 +12,7 @@
 | [通知接入](notification-integration.zh-CN.md) | 通知入口、前端接口约定、STAFF通知和开售前5分钟提醒 |
 | [数据库](database/README.md) | Flyway 迁移、字段和数据关系 |
 | [架构决策](adr/0001-modular-monolith.md) | 模块化单体及事务边界 |
+| [DAST](dast.zh-CN.md) | ZAP公开HTTPS被动扫描、门槛、报告及修复复扫结果 |
 | [测试覆盖](testing.zh-CN.md) | 当前实测结果、执行方法、业务覆盖和缺口 |
 | [10月27日演示准备评审](presentation-readiness-2026-10-19.zh-CN.md) | 课程与proposal映射、已复现问题、讲解路线与逐日行动清单 |
 | [剩余工作](remaining-work.zh-CN.md) | 已上线状态、功能冻结范围与最终封板验收 |
