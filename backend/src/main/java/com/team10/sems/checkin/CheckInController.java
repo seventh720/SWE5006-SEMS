@@ -87,7 +87,7 @@ public class CheckInController {
         Verification ticket = lookup(eventId, parse(code));
         TicketView result = lifecycle.checkIn(eventId, ticket.bookingId(), ticket.ticketId());
         db.update("INSERT INTO ticket_check_in_records(id,ticket_id,event_id,booking_id,operator_id,checked_in_at) VALUES (?,?,?,?,?,?)",
-                UUID.randomUUID(), result.id(), eventId, result.bookingId(), operator, result.checkedInAt());
+                UUID.randomUUID(), result.id(), eventId, result.bookingId(), operator, java.sql.Timestamp.from(result.checkedInAt()));
         return result;
     }
 
