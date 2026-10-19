@@ -454,7 +454,7 @@ Telegram 通知不是合并所需的质量检查。
 
 报名窗口调整规则：尚未开放的已发布活动可以调整报名开始时间；一旦已开放（含发布后立即开放），开始时间固定，后端拒绝修改并返回409。活动时间、地点和报名截止时间仍可按现有规则调整。预订先完成幂等检查、锁定活动和报名资料校验，再预留库存。
 
-前端覆盖率：运行 `npm --prefix frontend run test:coverage`，查看 `frontend/coverage/index.html`。CI分别上传后端单元、后端完整、前端覆盖率报告，并在摘要和通知中展示行/分支覆盖率。前端类型检查在构建时执行一次。当前记录覆盖率基线，未设置百分比阻断门槛；浏览器端到端检查和自动部署尚未接入。
+前端覆盖率：运行 `npm --prefix frontend run test:coverage`，查看 `frontend/coverage/index.html`。CI分别上传后端单元、后端完整、前端覆盖率报告，并在摘要和通知中展示行/分支覆盖率。前端类型检查在构建时执行一次。当前记录覆盖率基线，未设置百分比阻断门槛；浏览器端到端检查尚未接入；main 的自动部署流程见下文。
 
 
 ## 镜像与共享服务器部署（2026-10-19）
@@ -481,7 +481,7 @@ bash scripts/cd/image-smoke.sh
 
 5006 使用独立的 Compose 项目名 `swe5006`、数据库卷、目录、密码和 JWT 密钥。先检查主机剩余内存；cloud overlay 的上限合计约 1.4 GiB，主机还需为现有 5001 和系统预留空间。不要覆盖 5001 的数据库或环境文件。
 
-`deployment/compose.cloud.yaml` 需要 Docker Compose 2.24.4+。它移除数据库、后端和前端的所有宿主机端口发布，设置重启策略、日志轮转、内存限制；后端仅接受内部前端代理，只有前端加入名为 `swe5006-edge` 的网络。现有 Caddy 通过此网络访问 `sems5006-web:80`。
+`deployment/compose.cloud.yaml` 需要 Docker Compose 2.24.4+。它移除前后端宿主机端口发布，仅将数据库绑定到 `127.0.0.1:15432` 供 SSH 隧道访问，设置重启策略、日志轮转、内存限制；后端仅接受内部前端代理，只有前端加入名为 `swe5006-edge` 的网络。现有 Caddy 通过此网络访问 `sems5006-web:80`。
 
 上线顺序（当前只提供配置，尚未在服务器执行）：
 
@@ -499,4 +499,33 @@ bash scripts/cd/image-smoke.sh
 
 Nginx 保留可信 Caddy 提供的 HTTPS 协议信息，cloud 后端启用 Spring forwarded headers。前提是云端前后端不直接暴露公网；不要在开放的后端端口上无条件信任转发头。共享代理变更需要结合服务器实际目录及网络配置执行，仓库中的示例不代表已上线。
 
-此阶段没有 SSH 自动部署、自动数据库回滚或 DAST。应用镜像回退也不等于数据库可以无条件降级，回退前必须检查迁移兼容性。
+自动部署配置见下文。当前没有自动数据库回滚或 DAST。应用镜像回退也不等于数据库可以无条件降级，回退前必须检查迁移兼容性。
+
+
+## CD 与云端数据库查看（2026-10-20）
+
+`main` push → Lint / Tests / SAST → 构建、扫描和冒烟验证镜像 → 发布 digest → `Deploy · Staging`。
+PR 不部署。部署使用同一次 CI 的 `release-images`，校验提交及三个镜像摘要，不在服务器重新构建。
+同一环境串行部署；开始前跳过已被更新 main 替代的运行。GitHub `staging` environment 保存
+`STAGING_SSH_KEY`、`STAGING_KNOWN_HOSTS`，变量 `STAGING_HOST`。SSH 私钥不进入仓库。
+
+服务器布局：
+- `/home/ubuntu/swe5006/.env`：主机私有配置，CD 不覆盖。
+- `releases/<sha>-<run>-<attempt>/`：每次部署的 Compose、脚本及镜像摘要。
+- `current` / `previous`：最近成功及前一次成功部署。
+- `backups/pre-<sha>-<timestamp>.dump`：升级前 PostgreSQL 自定义格式备份。
+- `deployed-sha`：仅在容器健康且公网 HTTPS 检查通过后更新。
+
+部署前必须成功备份已有数据库，随后 `up --no-build --wait`，重启前端使 Nginx 重新解析后端，
+再验证页面、API 和 `/actuator/health`。失败时保留旧成功标记和备份，并让 CI 失败；
+运行中的容器可能已经更新，不能据成功标记断言已经回滚。确认 Flyway 兼容性后才能手动回退镜像；
+数据库恢复需单独操作，不能对真实环境执行 `down -v`。该流程升级现有实例，首次建库仍使用前面的初始化步骤。
+
+Navicat / DBeaver 使用 SSH 隧道：
+- SSH 主机 `18.139.212.35`，端口 `22`，用户 `ubuntu`，使用 Lightsail 私钥。
+- 数据库主机 `127.0.0.1`，端口 `15432`，数据库 `sems`，用户 `sems5006_viewer`。
+- 只读账号密码保存在本地忽略目录 `.secrets/cloud-staging/navicat.json`，不提交 Git。
+- 账号仅有 public schema 现有及后续表的 SELECT 权限，不能新增、修改或删除业务数据。
+
+5001 数据库保留原来的 `127.0.0.1:5432`。不要在 Lightsail 防火墙开放 15432。
+共享 Caddy 的持久化修复位于 SWE5001 PR #16，须在下次 5001 部署前合并，保留 5006 代理网络及站点。

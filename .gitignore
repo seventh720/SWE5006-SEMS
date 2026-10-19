@@ -4,6 +4,7 @@
 
 # Local environment and credentials
 .env
+.secrets/
 *.local
 
 # Java
