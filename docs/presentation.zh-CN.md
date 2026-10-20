@@ -16,7 +16,7 @@
 | DevSecOps | PR检查→受测镜像→digest发布→数据库备份→部署→HTTPS检查→DAST；保存一次历史失败与成功记录 |
 | Demo与备份 | 多角色操作脚本、专用演示账号/活动、两份独立备份录屏（CI/CD与系统Demo） |
 
-课程要求映射沿用已完成的2026-10-19原始评审：Briefing、`SWE5006 - Practice Project Presentation Guidelines.docx`及`Team10_SWE5006_Assignment_Proposal.pdf`。原proposal为4轮迭代/50人日，并提出1000并发、95%常见请求3秒内的目标；团队目前按五个Sprint交付，需说明范围与排期调整。[云端分级测试](acceptance/capacity-2026-10-20/README.md)已在250 VU出现接口延迟超标、500 VU出现请求超时，未进入1000档；演示须如实说明性能目标差距。
+课程要求映射沿用已完成的2026-10-19原始评审：Briefing、`SWE5006 - Practice Project Presentation Guidelines.docx`及`Team10_SWE5006_Assignment_Proposal.pdf`。原proposal为4轮迭代/50人日，并提出1000并发、95%常见请求3秒内的参考目标；团队目前按五个Sprint交付，需说明范围与排期调整。维护者已明确当前容量验证以500 VU为目标，1000作为参考。[优化后复测](acceptance/capacity-500-2026-10-20/README.md)在250 VU出现34次超时，500未执行；演示须说明当前500目标尚未验证通过，不修改原proposal或把参考数字当作已达成成绩。
 
 ## 需求与实现映射
 

@@ -2,14 +2,18 @@
 """Run the graded suite only after capacity-watch is active and fixtures exist."""
 import argparse
 from datetime import datetime, timezone
-import json, os, pathlib, subprocess, threading, time
+import json, os, pathlib, subprocess, threading, time, uuid
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--credentials',type=pathlib.Path,required=True)
 parser.add_argument('--reports',type=pathlib.Path,required=True)
 parser.add_argument('--read-start-level',type=int,choices=[50,100,250,500,1000],default=50)
+parser.add_argument('--max-vus',type=int,choices=[50,100,250,500,1000],default=1000,help='Do not schedule any scenario above this ceiling')
+parser.add_argument('--target-hold',default='180s',help='Hold duration at the selected ceiling; lower levels hold for 30s')
 parser.add_argument('--latency-report-only',action='store_true',help='Record failed latency thresholds but continue; requires target operator authorization')
 parser.add_argument('--skip-preflight',action='store_true',help='Use only when preflight already passed with these same fixtures')
 args=parser.parse_args()
+if args.read_start_level > args.max_vus:
+    parser.error('--read-start-level must not exceed --max-vus')
 root=pathlib.Path(__file__).resolve().parents[2]
 reports=args.reports.resolve()
 reports.mkdir(parents=True,exist_ok=True)
@@ -20,6 +24,7 @@ latest=json.loads((reports/'resources.jsonl').read_text().splitlines()[-1])
 assert (datetime.now(timezone.utc)-datetime.fromisoformat(latest['at'])).total_seconds()<15, 'Health monitor is stale'
 assert not latest['stopReasons'], 'Health guard already stopped the run'
 results=[]
+run_id=uuid.uuid4().hex[:12]
 
 def now(): return datetime.now(timezone.utc).isoformat()
 
@@ -38,10 +43,11 @@ def run(mode,vus,hold):
     name=f'{mode}-{vus}vu'
     command=['docker','run','--rm','--name','sems5006-capacity-load','--cpus','4','--memory','2g','--user',f'{os.getuid()}:{os.getgid()}',
              '-e','K6_CREDENTIALS=/run/credentials.json','-e',f'CAPACITY_VUS={vus}','-e',f'CAPACITY_HOLD={hold}','-e',f'CAPACITY_MODE={mode}',
+             '-e',f'CAPACITY_RUN_ID={run_id}',
              '-e','CAPACITY_LATENCY_ABORT='+('false' if args.latency_report_only else 'true'),
              '-v',f'{credentials}:/run/credentials.json:ro','-v',f'{root}/scripts/acceptance/capacity.js:/scripts/capacity.js:ro','-v',f'{reports}:/reports',
              'grafana/k6:1.3.0','run','--quiet','--summary-export',f'/reports/{name}.json','/scripts/capacity.js']
-    record={'name':name,'mode':mode,'targetVUs':vus,'rampSeconds':0 if mode=='contention' else 30,'plannedHold':hold,'startedAt':now()}
+    record={'name':name,'mode':mode,'runId':run_id,'targetVUs':vus,'rampSeconds':0 if mode=='contention' else 30,'plannedHold':hold,'startedAt':now()}
     done=threading.Event(); sampler=threading.Thread(target=sample_client,args=(done,),daemon=True);sampler.start()
     print('START',name,now(),flush=True)
     with (reports/f'{name}.log').open('w') as log:
@@ -72,13 +78,13 @@ if not args.skip_preflight:
     if not run('read',1,'5s'):raise SystemExit(1)
     if not run('mixed',1,'5s'):raise SystemExit(1)
 for mode in ['read','mixed']:
-    for vus in [50,100,250,500,1000]:
+    for vus in [level for level in [50,100,250,500,1000] if level <= args.max_vus]:
         if mode == 'read' and vus < args.read_start_level:
             continue
-        if not run(mode,vus,'180s' if vus==1000 else '30s'):raise SystemExit(1)
+        if not run(mode,vus,args.target_hold if vus==args.max_vus else '30s'):raise SystemExit(1)
         # Allow recovery and observe health between independent stages.
         for _ in range(10):
             if stop.exists():raise SystemExit(1)
             time.sleep(1)
-if not run('contention',1000,'60s'):raise SystemExit(1)
+if not run('contention',args.max_vus,'60s'):raise SystemExit(1)
 print('SUITE COMPLETED',now(),flush=True)
