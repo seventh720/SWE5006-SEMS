@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-10-20T13:21:55.096041+00:00",
+  "oldTokenChecks": [
+    {
+      "accountId": "10309f9f-8d19-4bd1-92d3-f9fcdabcf435",
+      "status": 401
+    },
+    {
+      "accountId": "e57ce65f-10e9-41cf-b783-375decc14ab3",
+      "status": 401
+    },
+    {
+      "accountId": "dea82fca-429d-40cb-b2d7-325e9d487775",
+      "status": 401
+    }
+  ],
+  "health": [
+    {
+      "url": "https://swe5006.seventh720.com/healthz",
+      "status": 200
+    },
+    {
+      "url": "https://swe5006.seventh720.com/actuator/health",
+      "status": 200
+    },
+    {
+      "url": "https://swe5001.seventh720.com/health/identity",
+      "status": 200
+    },
+    {
+      "url": "https://swe5001.seventh720.com/health/event-catalog",
+      "status": 200
+    },
+    {
+      "url": "https://swe5001.seventh720.com/health/admission",
+      "status": 200
+    }
+  ],
+  "originalAccountsUnchanged": true,
+  "originalEventsUnchanged": true,
+  "remainingFixtures": {
+    "remainingFixtureUsers": 0,
+    "remainingFixtureEvents": 0,
+    "remainingFixtureRoles": 0
+  },
+  "postCounts": {
+    "users": 6,
+    "events": 3,
+    "bookings": 2,
+    "issuedTickets": 3
+  }
+}

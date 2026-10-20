@@ -44,3 +44,6 @@ image-reports/
 
 # Dynamic security scan reports
 dast-reports/
+
+# Raw capacity-test logs and resource samples
+performance-reports/

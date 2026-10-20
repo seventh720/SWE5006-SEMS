@@ -1,0 +1,112 @@
+{
+  "at": "2026-10-20T12:31:57.922018+00:00",
+  "availableMemoryMiB": 1517.59,
+  "load1": 12.04,
+  "containers": [
+    {
+      "Name": "swe5006-frontend-1",
+      "CPUPerc": "12.52%",
+      "MemUsage": "10.5MiB / 96MiB",
+      "MemPerc": "10.94%",
+      "PIDs": "3"
+    },
+    {
+      "Name": "swe5006-backend-1",
+      "CPUPerc": "93.48%",
+      "MemUsage": "447.1MiB / 768MiB",
+      "MemPerc": "58.21%",
+      "PIDs": "223"
+    },
+    {
+      "Name": "swe5006-postgres-1",
+      "CPUPerc": "32.69%",
+      "MemUsage": "48.36MiB / 512MiB",
+      "MemPerc": "9.45%",
+      "PIDs": "16"
+    },
+    {
+      "Name": "swe5001-caddy-1",
+      "CPUPerc": "37.74%",
+      "MemUsage": "63.24MiB / 128MiB",
+      "MemPerc": "49.41%",
+      "PIDs": "10"
+    },
+    {
+      "Name": "swe5001-gateway-1",
+      "CPUPerc": "0.02%",
+      "MemUsage": "3.012MiB / 96MiB",
+      "MemPerc": "3.14%",
+      "PIDs": "2"
+    },
+    {
+      "Name": "swe5001-identity-1",
+      "CPUPerc": "0.10%",
+      "MemUsage": "319.8MiB / 768MiB",
+      "MemPerc": "41.64%",
+      "PIDs": "32"
+    },
+    {
+      "Name": "swe5001-event-catalog-1",
+      "CPUPerc": "0.18%",
+      "MemUsage": "360.1MiB / 768MiB",
+      "MemPerc": "46.89%",
+      "PIDs": "32"
+    },
+    {
+      "Name": "swe5001-admission-1",
+      "CPUPerc": "0.07%",
+      "MemUsage": "271.1MiB / 768MiB",
+      "MemPerc": "35.30%",
+      "PIDs": "32"
+    },
+    {
+      "Name": "swe5001-postgres-1",
+      "CPUPerc": "4.80%",
+      "MemUsage": "69.6MiB / 512MiB",
+      "MemPerc": "13.59%",
+      "PIDs": "36"
+    },
+    {
+      "Name": "swe5001-web-1",
+      "CPUPerc": "0.00%",
+      "MemUsage": "3.508MiB / 96MiB",
+      "MemPerc": "3.65%",
+      "PIDs": "3"
+    }
+  ],
+  "states": [
+    "/swe5006-backend-1|true|false|0",
+    "/swe5006-postgres-1|true|false|0",
+    "/swe5006-frontend-1|true|false|0"
+  ],
+  "database": "{\"connections\" : 11, \"active\" : 1, \"lockWaiters\" : 0, \"longestActiveSeconds\" : 0.000000}",
+  "health": {
+    "swe5006-api": {
+      "ok": true,
+      "seconds": 0.825
+    },
+    "swe5006-web": {
+      "ok": true,
+      "seconds": 0.226
+    },
+    "swe5001-web": {
+      "ok": true,
+      "seconds": 0.264
+    },
+    "swe5001-identity": {
+      "ok": true,
+      "seconds": 0.279
+    },
+    "swe5001-event-catalog": {
+      "ok": true,
+      "seconds": 0.261
+    },
+    "swe5001-admission": {
+      "ok": true,
+      "seconds": 0.41
+    }
+  },
+  "stopReasons": [
+    "hostOverload"
+  ]
+}
