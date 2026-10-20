@@ -6,9 +6,9 @@ SWE5006 Team 10's event management and free-ticketing application, built with Re
 
 ## Delivery status
 
-Verified on **20 October 2026 (SGT)**: business baseline [`fce7f1f`](https://github.com/seventh720/SWE5006-SEMS/commit/fce7f1f266fd2d7a13804a4d27f9f59eecbe2328) passed [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39301559757) and is deployed over HTTPS. The backend's runtime JWT lifetime is `PT1H`.
+Verified on **20 October 2026 (SGT)**: business baseline [`270c2b8`](https://github.com/seventh720/SWE5006-SEMS/commit/270c2b87322f89555d54222b825da82e0694fa54) passed [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552) and is deployed over HTTPS. The backend's runtime JWT lifetime is `PT1H`.
 
-The application is ready for **feature freeze**. Final presentation acceptance still needs cloud multi-role walkthroughs, deployment of the DAST header fixes followed by a cloud rescan, an isolated backup-restore exercise and a performance baseline. Real-device QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](docs/acceptance/sprint4-2026-10-20/README.md). These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
+The application is ready for **feature freeze**. Cloud multi-role acceptance, DAST, an isolated database restore and a small read-performance baseline are complete; see the [acceptance evidence](docs/acceptance/sprint4-2026-10-20/README.md). Presentation/Agile materials, backup recordings, rehearsals and the final presentation tag remain. Real-device QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](docs/acceptance/sprint4-2026-10-20/README.md). These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
 
 ## Features and roles
 
@@ -47,7 +47,7 @@ docs/                Design decisions, API contracts, testing and presentation e
 
 The backend is a modular monolith with `identity`, `event`, `ticketing`, `booking`, `checkin`, `notification` and `reporting`. Check-in and reporting have documented JDBC access to shared tables. See the [architecture decision](docs/adr/0001-modular-monolith.md).
 
-Design patterns map to concrete code: **Observer** for synchronous transactional business events, **State** for ticket lifecycle transitions, and **Strategy** for booking-information validation. Pricing Strategy is deferred with paid tickets; booking-information validation provides the current Strategy demonstration. A shared injected `Clock` supplies business boundaries, JWT validation, notifications and JPA audit timestamps. See the [pattern and presentation evidence](docs/presentation-readiness-2026-10-19.zh-CN.md).
+Design patterns map to concrete code: **Observer** for synchronous transactional business events, **State** for ticket lifecycle transitions, and **Strategy** for booking-information validation. Pricing Strategy is deferred with paid tickets; booking-information validation provides the current Strategy demonstration. A shared injected `Clock` supplies business boundaries, JWT validation, notifications and JPA audit timestamps. See the [pattern and presentation evidence](docs/presentation.zh-CN.md).
 
 ## Quick start
 
@@ -118,7 +118,7 @@ npm --prefix frontend run test:coverage
 npm --prefix frontend run build
 ```
 
-Docker must be running for the lint script's actionlint container and PostgreSQL integration tests. Without `RUN_CONTAINER_TESTS=true`, container tests are skipped. `build` includes frontend type checking. Coverage reports: `backend/target/site/jacoco/index.html` and `frontend/coverage/index.html`; percentages are reported without a minimum coverage gate. Latest regression results: **211 backend / 244 frontend tests** ([details](docs/testing.zh-CN.md)).
+Docker must be running for the lint script's actionlint container and PostgreSQL integration tests. Without `RUN_CONTAINER_TESTS=true`, container tests are skipped. `build` includes frontend type checking. Coverage reports: `backend/target/site/jacoco/index.html` and `frontend/coverage/index.html`; percentages are reported without a minimum coverage gate. Current regression counts and coverage: [testing record](docs/testing.zh-CN.md).
 
 | Stage | Purpose |
 |---|---|
@@ -130,7 +130,7 @@ Docker must be running for the lint script's actionlint container and PostgreSQL
 | Security · DAST Baseline | Main only, after deployment: passive public HTTPS scan; High/Medium or scan errors fail the workflow |
 | Notify · Telegram | Report results; notification failure does not invalidate the quality checks |
 
-PRs run checks without deployment. Main publishes tested images and deploys through the GitHub `staging` environment. Reports are uploaded as Actions artifacts. Scoped security exceptions are tracked in [trivyignore.yaml](scripts/security/trivyignore.yaml); ZAP DAST baseline scripts and post-deployment workflow are included; see the [scan results and scope](docs/dast.zh-CN.md). Header fixes passed an isolated HTTPS rescan; their cloud deployment/rescan remains pending until this change is merged. See the [deployment and recovery guide](docs/deployment.md) for secrets, server layout and rollback limitations.
+PRs run checks without deployment. Main publishes tested images and deploys through the GitHub `staging` environment. Reports are uploaded as Actions artifacts. Scoped security exceptions are tracked in [trivyignore.yaml](scripts/security/trivyignore.yaml); ZAP DAST baseline scripts and post-deployment workflow are included; see the [scan results and scope](docs/dast.zh-CN.md). The latest main deployment and cloud scan passed, with zero High/Medium/Low findings. See the [deployment and recovery guide](docs/deployment.md) for secrets, server layout and rollback limitations.
 
 ## Database access
 
@@ -144,6 +144,6 @@ Create a task branch from updated `main`, run relevant checks, open a PR and obt
 
 - [Documentation index](docs/README.md): API, architecture and database references.
 - [Deployment guide](docs/deployment.md): CI/CD, shared proxy, database access and recovery.
-- [Testing record](docs/testing.zh-CN.md): current evidence and historical results.
+- [Testing record](docs/testing.zh-CN.md): current results, commands and verification limits.
 - [Delivery checklist](docs/remaining-work.zh-CN.md): feature-freeze and final acceptance work.
-- [Demo walkthrough](docs/sprint-4-demo.zh-CN.md) and [presentation review](docs/presentation-readiness-2026-10-19.zh-CN.md): the multi-role demo and course evidence.
+- [Demo walkthrough](docs/sprint-4-demo.zh-CN.md) and [presentation guide](docs/presentation.zh-CN.md): the multi-role demo and course evidence.

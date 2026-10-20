@@ -2,7 +2,7 @@
 
 [English README](../README.md) | [中文 README](../README.zh-CN.md) | [Delivery checklist](remaining-work.zh-CN.md)
 
-Verified business baseline on 20 October 2026 (SGT): `fce7f1f`, deployed successfully by [run 39301559757](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39301559757). Public URL: <https://swe5006.seventh720.com>. The running backend uses `SEMS_JWT_TTL=PT1H`.
+Verified business baseline on 20 October 2026 (SGT): `270c2b8`, deployed successfully by [run 39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552). Public URL: <https://swe5006.seventh720.com>. The running backend uses `SEMS_JWT_TTL=PT1H`.
 
 ## Release flow
 
@@ -101,4 +101,15 @@ A failed update retains the backup and last successful version marker. Container
 4. Validate a backup by restoring it into a separate temporary database before planning a live restore. Listing the archive is only a readability check, not a recovery rehearsal.
 5. Recheck HTTPS, login and the affected business flow after recovery. Never use `down -v` on the real environment to upgrade or recover it.
 
-Phone QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](acceptance/sprint4-2026-10-20/README.md). DAST header fixes passed an isolated HTTPS rescan and await deployment/cloud rescan through this change. An actual isolated restore exercise and performance measurement remain on the [acceptance checklist](remaining-work.zh-CN.md). Do not label them complete based on the CI/CD success alone.
+Phone QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](acceptance/sprint4-2026-10-20/README.md). The latest main DAST job passed. A real dump containing bookings, tickets and audit history was restored into a disposable database on 20 October, with schema, constraints, migration history and row counts checked; both temporary databases were removed. A small 1/5/10-VU read baseline was also measured. See the [actual evidence and limits](acceptance/sprint4-2026-10-20/README.md); these do not establish whole-host recovery, automatic rollback or 1000-user capacity.
+
+
+## Repeat the isolated restore check
+
+On the SWE5006 host, run the [restore checker](../scripts/acceptance/restore-check.py) with an existing private dump and an output report path:
+
+```bash
+python3 scripts/acceptance/restore-check.py /home/ubuntu/swe5006/backups/selected.dump /home/ubuntu/swe5006/acceptance/restore.json
+```
+
+Use a real selected backup filename. The script uses the existing deployment operator's `sudo docker` access, creates fresh databases, restores with `--exit-on-error --single-transaction`, compares the live schema after a server parse round trip, checks constraints/migration history/counts, and removes only its temporary databases. A live database can change after a backup, so count differences must be assessed against the backup time. The dump remains private on the host; commit only validation metadata.

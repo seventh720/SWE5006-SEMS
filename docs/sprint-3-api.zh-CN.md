@@ -1,14 +1,12 @@
-# Sprint 3 接口、权限与事务约定
+# 接口、权限与事务约定
 
-## 2026-10-16：修改用户名
+## 修改用户名
 
 登录用户可在个人资料页的Username区域修改用户名。`PUT /api/v1/profile/username` 接收 `{"username":"new.name"}`，成功返回 `{"username":"new.name"}`。用户ID从JWT读取，只能修改本人；登录邮箱、密码、角色及订单归属不变。
 
 规则与注册一致：3–50位字母、数字、点、下划线或连字符，保存为小写。相同用户名重复保存成功；非法输入400，重名409（包括并发抢占），未登录401。现有数据库唯一约束继续生效，无新增迁移。前端同步更新AuthContext和sessionStorage，Dashboard及刷新后的页面使用新用户名。
 
-新增接口需要重启运行中的后端；前端开发服务器会热更新。
-
-更新：2026-10-07。实现范围为免费票预订；付费票、支付、二维码及签到进入 Sprint 4。
+更新：2026-10-20。当前包含免费预订、自动出票、Staff核销、站内通知与报表；支付/退款不在交付范围。
 
 ## 业务规则
 
@@ -152,22 +150,6 @@ sequenceDiagram
     DB-->>UI: 同事务提交后返回订单
 ```
 
-## Sprint 4 交接
-
-下列为下一轮设计输入，尚未实现，不应当作当前接口调用：
-
-- 免费订单确认后，每张票发行唯一凭证；重复处理同一订单不得重复出票。
-- 模拟支付采用独立支付记录：待支付→成功/失败/超时，成功后确认订单并出票；待支付占库与超时释放须另行设计和测试。真实网关若为课程必需项，先确认沙箱及回调验签要求。
-- 票券状态为有效→已核销或已作废；取消订单/活动使对应票券失效。退款记录不能靠本轮 `CANCELLED` 状态替代。
-- 工作人员需要STAFF角色及具体活动授权，核销时检查活动、订单、票券和未核销状态；二维码内容不代替后端授权。
-- 建议先完成免费订单出票→工作人员核销，再接支付、通知和报表。Sprint 4末冻结核心功能，Sprint 5用于整体验收和交付。
-
-## 用户名与依赖安装授权
-
-- 注册时选择3–50字符用户名，允许英文字母、数字、点、下划线和连字符，保存为小写。相同用户名（包括仅大小写不同）返回409；数据库唯一约束也拦截并发重复注册。Dashboard显示已设置的用户名。
-- `frontend/package.json` 的 `allowScripts` 仅批准 `esbuild@0.28.2` 与 `fsevents@2.3.3`。npm 11可用 `npm install-scripts ls` 查看；升级这两个包后需重新审核新版本。
-
-
 ## 开始报名时间与预约预填（2026-10-07）
 
 活动创建、编辑、复制和详情增加可选字段 `registrationOpensAt`（ISO 8601）。为空表示发布后直接报名；设置时必须早于 `registrationClosesAt`（截止留空时取活动开始时间）。页面使用 SGT 和 `YYYY-MM-DD HH:mm`。服务端在预订事务中检查报名时间，未到开始时间的新订单返回 409。
@@ -210,7 +192,7 @@ API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×
 报名窗口调整规则：尚未开放的已发布活动可以调整报名开始时间；一旦已开放（含发布后立即开放），开始时间固定，后端拒绝修改并返回409。活动时间、地点和报名截止时间仍可按现有规则调整。预订先完成幂等检查、锁定活动和报名资料校验，再预留库存。
 
 
-## Sprint 4 电子票与 Staff 补充（2026-10-19）
+## 电子票与Staff
 
 - 确认订单的 BookingConfirmed 在同一事务触发逐张出票；失败则回滚订单、库存和通知。
 - POST /api/v1/bookings/{bookingId}/tickets：ATTENDEE 本人订单；返回逐张 id、bookingId、eventId、ordinal、status、checkedInAt、voidedAt。有效旧订单在此幂等补票，取消订单只读已有票券。角色不符403、非本人或不存在404。
@@ -222,7 +204,7 @@ API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×
 - 业务验证与演示步骤见 [Sprint 4 演示脚本](sprint-4-demo.zh-CN.md)。
 
 
-## 2026-10-19 权限撤销与活动编辑边界修复
+## 权限撤销与活动编辑边界
 
 - JWT仍检查签名、issuer和有效期；Bearer认证同时读取当前有效账号的角色，权限取token与数据库的交集。角色撤销对后续请求立即生效，新增角色仍需重新登录；保留角色不受影响。停用、锁定或不存在的账号返回401，被撤销角色的受保护操作返回403。
 - `PUT /api/v1/admin/users/{id}/roles`在数据库事务内串行检查角色变更，禁止移除最后一个有效ADMIN，返回409并提示先设置另一管理员。停用管理员不计入有效数量。
@@ -230,7 +212,7 @@ API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×
 - 复制操作保留配置、使用新活动ID和独立库存，不复制订单、已出票券、签到历史；原活动保留审计。不需要新迁移。
 
 
-## 2026-10-19：检索、用户分页与票种报表
+## 检索、用户分页与票种报表
 
 所有page从0开始，默认size=10，允许1–50；无效页码/大小或倒置日期返回400。from/to为YYYY-MM-DD，筛选SGT活动开始日，to含当天。
 
@@ -247,3 +229,20 @@ API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×
 报表每行含活动ID/标题/发布状态/时间、票种ID/名称、quota、available、confirmed、cancelled、checkedIn。totals为confirmed/cancelled/checkedIn，按所有匹配行统计，不局限当前页；库存数字不受订单状态筛选影响。已取消活动仍可报告；VOID和已取消订单不计当前有效签到。未配置票种的活动不进入此表，原单活动统计接口保留。
 
 Staff `/api/v1/staff/events`新增status字段；已取消活动保留分配和历史，但客户端禁用入场。前端每30秒、聚焦/恢复可见时刷新；验票、扫描、签到期间暂停自动刷新。后端仍在每次操作时校验权限和时间窗口。
+
+## Staff工作台与核销接口
+
+| 方法与路径（前缀`/api/v1`） | 权限/行为 |
+|---|---|
+| GET `/staff/events` | STAFF，返回本人已分配活动，包含发布状态 |
+| GET `/staff/events/{eventId}/assignments` | ORGANIZER/ADMIN，且拥有该活动；当前人员和候选有效STAFF |
+| PUT / DELETE `/staff/events/{eventId}/assignments/{staffId}` | 活动所有者分配/撤销，成功204；真实变化才通知 |
+| POST `/staff/events/{eventId}/verify` | 已分配STAFF，`{"code":"sems:ticket:<UUID>"}`，只预检 |
+| POST `/staff/events/{eventId}/check-ins` | 同上，原子核销并写操作员/时间；重复核销409 |
+| GET `/staff/events/{eventId}/check-ins` | 已分配STAFF，最近200条审计；取消活动不删除历史 |
+
+核销窗口为`[startsAt−15min, min(startsAt+15min, endsAt))`，活动须PUBLISHED，后端时间为准。核销、活动取消和撤销活动分配均先锁活动，再检查授权及票券，避免竞态；全局角色撤销由身份模块在后续Bearer请求中生效。内部票券事务契约见[取消联动](sprint-4-cancellation.zh-CN.md)。
+
+二维码接受UUID或`sems:ticket:UUID`，不接受任意URL。摄像头要求HTTPS/localhost，默认后置，可切换前置；授权失败可重试，播放受阻可手动Start preview。关闭、切换活动/摄像头、切后台、识别成功及卸载时释放资源。识别只填入票码，仍须Verify ticket→Confirm check-in。
+
+手机扫码验收状态见[验收记录](acceptance/sprint4-2026-10-20/README.md)，不再维护独立的“待接入”说明。

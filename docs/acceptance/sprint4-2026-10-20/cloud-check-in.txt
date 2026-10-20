@@ -1,0 +1,3 @@
+Browser tab: 1652651322, Title: "SEMS · Events & Ticketing", URL: "https://swe5006.seventh720.com/staff".
+There has been no change in the accessibility tree.
+The focused UI element is 1 AXWebArea SEMS · Events & Ticketing, URL: swe5006.seventh720.com/staff
