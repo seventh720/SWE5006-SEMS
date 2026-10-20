@@ -1,0 +1,11 @@
+{
+  "samples": 20,
+  "startedAt": "2026-10-20T08:28:48.578447+00:00",
+  "endedAt": "2026-10-20T08:30:43.452349+00:00",
+  "minimumAvailableMemoryMiB": 1639.75,
+  "containerSampledPeakCpuPercent": {
+    "swe5006-backend-1": 57.81,
+    "swe5006-postgres-1": 5.46,
+    "swe5006-frontend-1": 3.24
+  }
+}

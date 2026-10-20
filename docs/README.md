@@ -1,27 +1,31 @@
 # 文档导航
 
-## 当前使用与维护
+先看[交付状态与剩余工作](remaining-work.zh-CN.md)。应用已功能冻结；云端流程、DAST、手机扫码、隔离恢复与小规模读取基线已有结果，剩余工作集中在演示/敏捷材料与最终演示准备。
+
+## 使用与维护
 
 | 文档 | 用途 |
 |---|---|
-| [部署维护](deployment.md) | 当前 CI/CD、共享代理、SSH 数据库查看和恢复边界 |
-| [团队协作](../CONTRIBUTING.md) | 任务分支、审查、普通 merge commit 及功能冻结规则 |
-| [项目说明（中文）](../README.zh-CN.md) / [English](../README.md) | 环境准备、运行、角色、常用流程和团队协作 |
-| [接口、权限与事务](sprint-3-api.zh-CN.md) | 票种、订单、个人资料、报名时间、预约接口与业务规则 |
-| [Sprint 4 取消联动](sprint-4-cancellation.zh-CN.md) | 票券作废、出票/核销事务、内部接口及后续接入边界 |
-| [通知接入](notification-integration.zh-CN.md) | 通知入口、前端接口约定、STAFF通知和开售前5分钟提醒 |
-| [数据库](database/README.md) | Flyway 迁移、字段和数据关系 |
-| [架构决策](adr/0001-modular-monolith.md) | 模块化单体及事务边界 |
-| [DAST](dast.zh-CN.md) | ZAP公开HTTPS被动扫描、门槛、报告及修复复扫结果 |
-| [测试覆盖](testing.zh-CN.md) | 当前实测结果、执行方法、业务覆盖和缺口 |
-| [10月27日演示准备评审](presentation-readiness-2026-10-19.zh-CN.md) | 课程与proposal映射、已复现问题、讲解路线与逐日行动清单 |
-| [剩余工作](remaining-work.zh-CN.md) | 已上线状态、功能冻结范围与最终封板验收 |
-| [Sprint 4 演示脚本](sprint-4-demo.zh-CN.md) | 免费预订、电子票、Staff 分配、签到、统计与取消验收 |
+| [项目说明（中文）](../README.zh-CN.md) / [English](../README.md) | 环境、运行、角色与业务规则 |
+| [部署维护](deployment.md) | CI/CD、共享代理、SSH数据库查看、备份与恢复边界 |
+| [团队协作](../CONTRIBUTING.md) | 任务分支、团队审查、merge commit与功能冻结 |
+| [接口与事务](sprint-3-api.zh-CN.md) | 当前身份、活动、票种、预订、电子票、Staff与报表契约 |
+| [取消联动](sprint-4-cancellation.zh-CN.md) | 内部票券接口、锁顺序、事务及取消一致性 |
+| [通知](notification-integration.zh-CN.md) | 站内类型、权限、定时与去重 |
+| [数据库](database/README.md) / [架构决策](adr/0001-modular-monolith.md) | Flyway、ERD、模块化单体与当前边界例外 |
 
-## 计划与验收
+## 验证与交付
 
-- [Sprint 2 原始计划](sprint-2-plan.zh-CN.md)
-- [Sprint 3 原始计划](sprint-3-plan.zh-CN.md)
-- [正式验收和截图](acceptance/README.md)
+| 文档 | 用途 |
+|---|---|
+| [测试与覆盖](testing.zh-CN.md) | 当前测试数量/覆盖率、执行命令、安全例外及验证边界 |
+| [DAST](dast.zh-CN.md) | 已通过的云端ZAP基线、运行方式和报告 |
+| [10月20日云端验收](acceptance/sprint4-2026-10-20/README.md) | 多角色、二维码/核销截图、恢复校验、真实性能数据与测试清理 |
+| [验收证据索引](acceptance/README.md) | 历史浏览器验收与截图，保留各自日期/环境 |
+| [演示指南](presentation.zh-CN.md) | 待制作材料、课程要求映射、Observer/State/Strategy与演示节奏 |
+| [业务演示脚本](sprint-4-demo.zh-CN.md) | 多角色操作顺序、预期结果及签到窗口 |
+| [交付清单](remaining-work.zh-CN.md) | 已完成项与唯一剩余行动清单 |
 
-计划保留用于课程材料和用户故事追踪，不作为当前完成情况清单。历史验收保留当时结论；最新回归数据只维护在测试覆盖说明中。已过时的分批开发进度与收尾过程记录不再单独保留。
+## 原始计划
+
+[Sprint 2](sprint-2-plan.zh-CN.md)与[Sprint 3](sprint-3-plan.zh-CN.md)保留原始用户故事、负责人、验收标准和DoD，用于课程追踪，不代表当前状态。逐次开发日志不再重复维护；需要追溯时查看Git/PR历史，不删除原始验收证据。

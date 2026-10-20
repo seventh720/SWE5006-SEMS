@@ -6,9 +6,9 @@ SWE5006 第 10 组课程项目，使用 React、TypeScript、Spring Boot 和 Pos
 
 ## 当前交付状态
 
-**2026年10月20日（SGT）已核验**：业务基线 [`fce7f1f`](https://github.com/seventh720/SWE5006-SEMS/commit/fce7f1f266fd2d7a13804a4d27f9f59eecbe2328) 的 [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39301559757) 全部通过，已部署到 HTTPS 云端，后端实际 JWT 配置为 `PT1H`。
+**2026年10月20日（SGT）已核验**：业务基线 [`270c2b8`](https://github.com/seventh720/SWE5006-SEMS/commit/270c2b87322f89555d54222b825da82e0694fa54) 的 [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552) 全部通过，已部署到 HTTPS 云端，后端实际 JWT 配置为 `PT1H`。
 
-当前可进入**功能冻结**。演示版本最终封板前，还需完成云端多角色验收、DAST安全头修复上线后复扫、隔离数据库恢复演练、性能基线。手机扫码已由维护者于10月20日确认通过，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余项目详见[交付清单](docs/remaining-work.zh-CN.md)。正式 presentation：**2026年10月27日 10:30 SGT**。
+当前保持**功能冻结**。云端多角色流程、DAST、隔离数据库恢复与小规模读取性能基线均已完成，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余为演示/敏捷材料、备份录屏、彩排与最终演示版本。手机扫码已由维护者于10月20日确认通过，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余项目详见[交付清单](docs/remaining-work.zh-CN.md)。正式 presentation：**2026年10月27日 10:30 SGT**。
 
 ## 功能与角色
 
@@ -47,7 +47,7 @@ docs/                设计决策、接口约定、测试与演示证据
 
 后端采用模块化单体，包括 `identity`、`event`、`ticketing`、`booking`、`checkin`、`notification`、`reporting`。签到和报表通过 JDBC 读取共享表的边界例外记录在[架构决策](docs/adr/0001-modular-monolith.md)中。
 
-设计模式已有具体对应：**Observer** 用于同步事务事件及通知，**State** 用于票券生命周期，**Strategy** 用于报名资料校验。定价 Strategy 随收费票范围延期，演示使用资料校验策略。业务时间边界、JWT、通知和 JPA 审计统一使用注入的 `Clock`。模式图与演示路线见[演示准备评审](docs/presentation-readiness-2026-10-19.zh-CN.md)。
+设计模式已有具体对应：**Observer** 用于同步事务事件及通知，**State** 用于票券生命周期，**Strategy** 用于报名资料校验。定价 Strategy 随收费票范围延期，演示使用资料校验策略。业务时间边界、JWT、通知和 JPA 审计统一使用注入的 `Clock`。模式图与演示路线见[演示指南](docs/presentation.zh-CN.md)。
 
 ## 快速启动
 
@@ -128,7 +128,7 @@ npm --prefix frontend run test:coverage
 npm --prefix frontend run build
 ```
 
-Lint 中的 actionlint 容器和 PostgreSQL 集成测试需要 Docker 运行。未设置 `RUN_CONTAINER_TESTS=true` 时，容器测试会跳过。前端 `build` 已包含类型检查。覆盖率报告位于 `backend/target/site/jacoco/index.html` 和 `frontend/coverage/index.html`，当前展示真实覆盖率但不设置最低百分比门槛。最新回归为**后端211项、前端244项**，详见[测试记录](docs/testing.zh-CN.md)。
+Lint 中的 actionlint 容器和 PostgreSQL 集成测试需要 Docker 运行。未设置 `RUN_CONTAINER_TESTS=true` 时，容器测试会跳过。前端 `build` 已包含类型检查。覆盖率报告位于 `backend/target/site/jacoco/index.html` 和 `frontend/coverage/index.html`，当前展示真实覆盖率但不设置最低百分比门槛。当前回归数量及覆盖率见[测试记录](docs/testing.zh-CN.md)。
 
 | 阶段 | 内容 |
 |---|---|
@@ -140,7 +140,7 @@ Lint 中的 actionlint 容器和 PostgreSQL 集成测试需要 Docker 运行。�
 | Security · DAST Baseline | 仅main部署后：公开HTTPS被动扫描；中高危或扫描错误使流水线失败 |
 | Notify · Telegram | 汇总结果；通知失败不改变质量检查结论 |
 
-PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部署。检查报告保存为 Actions artifacts。受控安全例外记录在 [trivyignore.yaml](scripts/security/trivyignore.yaml)；ZAP DAST Baseline及部署后任务已加入，见[扫描结果与范围](docs/dast.zh-CN.md)。安全头修复已通过隔离HTTPS复扫，合并本次变更后再部署并进行云端复扫。凭据配置、服务器目录和恢复边界见[部署维护说明](docs/deployment.md)。
+PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部署。检查报告保存为 Actions artifacts。受控安全例外记录在 [trivyignore.yaml](scripts/security/trivyignore.yaml)；ZAP DAST Baseline及部署后任务已加入，见[扫描结果与范围](docs/dast.zh-CN.md)。最新main部署与云端扫描均成功，高/中/低危均为0。凭据配置、服务器目录和恢复边界见[部署维护说明](docs/deployment.md)。
 
 ## 数据库查看与变更
 
@@ -154,6 +154,6 @@ PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部
 
 - [文档导航](docs/README.md)：接口、架构和数据库资料。
 - [部署维护](docs/deployment.md)：CI/CD、共享代理、数据库访问与恢复。
-- [测试记录](docs/testing.zh-CN.md)：当前验证结果及历史证据。
+- [测试记录](docs/testing.zh-CN.md)：当前结果、命令及验证边界。
 - [交付清单](docs/remaining-work.zh-CN.md)：功能冻结和最终封板前的验收工作。
-- [系统演示脚本](docs/sprint-4-demo.zh-CN.md)及[准备评审](docs/presentation-readiness-2026-10-19.zh-CN.md)：多角色演示和课程要求映射。
+- [系统演示脚本](docs/sprint-4-demo.zh-CN.md)及[演示指南](docs/presentation.zh-CN.md)：多角色演示和课程要求映射。

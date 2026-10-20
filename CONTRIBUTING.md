@@ -90,7 +90,7 @@ Start the next task on a new branch from the updated `main`. Preserve individual
 
 ### Repository administrator setup
 
-These are team conventions; documentation does not enable GitHub enforcement. Configure branch protection or a ruleset for `main` to require PRs, at least 1 approval, renewed approval after new changes, resolved conversations, and the six quality checks listed above. Select their current names from a completed workflow run. Block force pushes and deletion of `main`.
+The maintainer deferred enabling rulesets on 20 October; this section is future setup guidance, not a current delivery blocker. These are team conventions; documentation does not enable GitHub enforcement. Configure branch protection or a ruleset for `main` to require PRs, at least 1 approval, renewed approval after new changes, resolved conversations, and the six quality checks listed above. Select their current names from a completed workflow run. Block force pushes and deletion of `main`.
 
 Telegram notification is not a required quality check for merging.
 

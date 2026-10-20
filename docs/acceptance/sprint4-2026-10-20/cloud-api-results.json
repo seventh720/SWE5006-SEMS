@@ -1,0 +1,400 @@
+{
+  "startedAt": "2026-10-20T08:22:12.772011+00:00",
+  "steps": [
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "actor": "anonymous",
+      "status": 201
+    },
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "actor": "anonymous",
+      "status": 201
+    },
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "actor": "anonymous",
+      "status": 201
+    },
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "actor": "anonymous",
+      "status": 201
+    },
+    {
+      "phase": "seed",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "PUT",
+      "path": "/api/v1/admin/users/349026c8-86ea-4e0c-80cd-af1b9728af1c/roles",
+      "actor": "admin",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "PUT",
+      "path": "/api/v1/admin/users/d3980a5b-978e-4a5f-a193-80b916eedfca/roles",
+      "actor": "admin",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/organizer/events",
+      "actor": "organizer",
+      "status": 201
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/ticket-types/default-free",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "GET",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/publish",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "prepare",
+      "method": "PUT",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/assignments/d3980a5b-978e-4a5f-a193-80b916eedfca",
+      "actor": "organizer",
+      "status": 204
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/bookings",
+      "actor": "attendee",
+      "status": 201
+    },
+    {
+      "phase": "prepare",
+      "method": "POST",
+      "path": "/api/v1/bookings/860d944b-e044-432b-b7ed-f17cda41f676/tickets",
+      "actor": "attendee",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/verify",
+      "actor": "staff",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/check-ins",
+      "actor": "staff",
+      "status": 409
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/bookings/860d944b-e044-432b-b7ed-f17cda41f676/cancel",
+      "actor": "attendee",
+      "status": 409
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/bookings/860d944b-e044-432b-b7ed-f17cda41f676/tickets",
+      "actor": "admin",
+      "status": 404
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/check-ins",
+      "actor": "staff",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/statistics",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "PUT",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/notifications?size=50",
+      "actor": "staff",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "DELETE",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/assignments/d3980a5b-978e-4a5f-a193-80b916eedfca",
+      "actor": "organizer",
+      "status": 204
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/verify",
+      "actor": "staff",
+      "status": 403
+    },
+    {
+      "phase": "verify",
+      "method": "PUT",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/assignments/d3980a5b-978e-4a5f-a193-80b916eedfca",
+      "actor": "organizer",
+      "status": 204
+    },
+    {
+      "phase": "verify",
+      "method": "PUT",
+      "path": "/api/v1/admin/users/d3980a5b-978e-4a5f-a193-80b916eedfca/roles",
+      "actor": "admin",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/staff/events",
+      "actor": "staff",
+      "status": 403
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/notifications?size=50",
+      "actor": "staff",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "PUT",
+      "path": "/api/v1/admin/users/d3980a5b-978e-4a5f-a193-80b916eedfca/roles",
+      "actor": "admin",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "actor": "anonymous",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/bookings",
+      "actor": "attendee",
+      "status": 201
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/bookings/11e67196-bdf4-4655-8e16-68123deaf9f6/cancel",
+      "actor": "attendee",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/cancel",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/bookings/860d944b-e044-432b-b7ed-f17cda41f676/tickets",
+      "actor": "attendee",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "POST",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/verify",
+      "actor": "staff",
+      "status": 409
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4",
+      "actor": "anonymous",
+      "status": 404
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/organizer/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/statistics",
+      "actor": "organizer",
+      "status": 200
+    },
+    {
+      "phase": "verify",
+      "method": "GET",
+      "path": "/api/v1/staff/events/9f00eaad-9fec-48ae-866b-e5b0fa250bd4/check-ins",
+      "actor": "staff",
+      "status": 200
+    },
+    {
+      "phase": "demote",
+      "method": "PUT",
+      "path": "/api/v1/admin/users/349026c8-86ea-4e0c-80cd-af1b9728af1c/roles",
+      "actor": "admin",
+      "status": 200
+    },
+    {
+      "phase": "demote",
+      "method": "PUT",
+      "path": "/api/v1/admin/users/d3980a5b-978e-4a5f-a193-80b916eedfca/roles",
+      "actor": "admin",
+      "status": 200
+    },
+    {
+      "phase": "demote",
+      "method": "PUT",
+      "path": "/api/v1/admin/users/8135d4f8-efb3-4ebb-af0e-d3d2a7af8bef/roles",
+      "actor": "admin",
+      "status": 200
+    },
+    {
+      "phase": "confirm-disabled",
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "actor": "admin",
+      "status": 401
+    },
+    {
+      "phase": "confirm-disabled",
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "actor": "organizer",
+      "status": 401
+    },
+    {
+      "phase": "confirm-disabled",
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "actor": "attendee",
+      "status": 401
+    },
+    {
+      "phase": "confirm-disabled",
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "actor": "staff",
+      "status": 401
+    }
+  ],
+  "assertions": [
+    "Four synthetic accounts registered; one-hour JWT issued",
+    "Role assignment through application API; fresh logins",
+    "Owned event, free quota, publication, staff assignment, 2-ticket booking and issuance",
+    "Browser check-in persisted on the server",
+    "Duplicate and checked-in cancellation denied; ownership and one audit record verified",
+    "Event update notification and assignment revocation enforced",
+    "Role revocation rejects old bearer permissions; inbox notice and fresh login verified",
+    "Unused-order cancellation, event cancellation, VOID tickets, retained audit and final 0/3/0 report",
+    "All temporary privileged roles removed",
+    "All synthetic accounts disabled; existing bearer tokens rejected"
+  ],
+  "status": "PASS",
+  "finishedAt": "2026-10-20T08:27:51.734871+00:00",
+  "eventId": "9f00eaad-9fec-48ae-866b-e5b0fa250bd4",
+  "finalStatistics": {
+    "eventId": "9f00eaad-9fec-48ae-866b-e5b0fa250bd4",
+    "eventStatus": "CANCELLED",
+    "capacity": 10,
+    "validReservedTickets": 0,
+    "cancelledTickets": 3,
+    "checkedInTickets": 0
+  },
+  "testAccountsDisabled": true
+}

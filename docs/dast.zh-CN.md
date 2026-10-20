@@ -1,53 +1,33 @@
 # DAST Baseline
 
-日期：2026-10-20（SGT）。使用官方 ZAP 2.17.0 镜像，并固定镜像 digest。
+2026-10-20核验业务基线`270c2b8`：[main运行39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552)的部署与DAST均成功。
 
-## 执行范围
+## 当前云端结果
 
-[脚本](../scripts/security/dast.sh)运行[ZAP Baseline](https://www.zaproxy.org/docs/docker/baseline-scan/)，爬行1分钟后完成被动扫描。显式访问首页、登录页、活动列表、公开活动GET接口与健康接口，防止只扫描SPA的空HTML入口；同时爬取关联静态资源。关闭爬虫表单处理与POST提交，不创建线上账号或订单，不执行主动攻击扫描。
+| 目标 | URL数 | 规则通过 | 高危 | 中危 | 低危 | 信息 |
+|---|---:|---:|---:|---:|---:|---:|
+| `https://swe5006.seventh720.com` | 22 | 66 | 0 | 0 | 0 | 4 |
 
-这是未登录公开范围的DAST基线，不包含登录后多角色接口、SQL注入/XSS主动攻击验证、业务越权、并发、压力测试或完整浏览器E2E。已有权限/事务集成测试和人工验收继续独立保留，不能用本报告替代。
+无失败、警告或IGNORE规则。信息项为SPA识别及缓存策略；此结果不代表完成主动攻击或全站渗透测试。
 
-## 本次实测
+此前发现的CSP、防嵌入及其他安全头已修复；COOP/COEP也已补齐。CSP保留同源脚本、React样式属性、data/blob头像及二维码，`camera=(self)`允许本站相机。后续跨源资源须满足CSP及CORP/CORS要求。
 
-| 环境 | URL数 | 高危 | 中危 | 低危 | 信息 | 结果 |
-|---|---:|---:|---:|---:|---:|---|
-| 云端 `https://swe5006.seventh720.com`，已部署基线 `fce7f1f` | 22 | 0 | 2 | 7 | 5 | 按门槛失败，发现缺少CSP和防嵌入头 |
-| 首次安全头修复，隔离HTTPS `https://dast.local` | 22 | 0 | 0 | 2 | 5 | 通过中高危门槛，继续修复COOP/COEP低危 |
-| 补齐COOP/COEP后的最终镜像，隔离PostgreSQL/后端/前端及临时Caddy HTTPS | 22 | 0 | 0 | 0 | 5 | 66项规则通过，0失败、0警告、0忽略 |
-| PR #38合并部署后的云端，main `cdd0c66`，Actions运行39307641504 | 22 | 0 | 0 | 0 | 4 | 扫描通过；清理Python缓存权限错误导致作业失败 |
-| 禁止字节码缓存后的脚本，重新扫描同一云端 | 22 | 0 | 0 | 0 | 5 | 66项规则通过，报告保存及清理成功，退出0 |
+PR #38的首次云端扫描已经零高/中/低危，但容器用户生成的Python缓存导致runner清理失败；PR #39通过`PYTHONDONTWRITEBYTECODE=1`修复。最新main已验证报告保存、清理及作业整体退出成功，不再将该问题列为待办。
 
-计数为ZAP JSON中按来源站点划分的告警条目；同一规则可有多个实例或跨HTTP/HTTPS站点出现。没有将规则标为IGNORE，也没有将所有警告统一当作通过。
+## 扫描范围与门槛
 
-修复内容：Nginx统一发送CSP、`X-Frame-Options`、`X-Content-Type-Options`、HTTPS HSTS、Referrer/Permissions/Cross-Origin-Resource策略，并隐藏Nginx版本。CSP允许本地头像预览和二维码的data/blob图片、React样式属性及同源脚本；`camera=(self)`保留本站手机摄像头权限。Nginx代理响应去除重复的后端安全头，再统一添加一次。HSTS只对HTTPS或可信代理转发的HTTPS发送。
+[脚本](../scripts/security/dast.sh)使用固定digest的官方ZAP 2.17.0镜像运行[Baseline](https://www.zaproxy.org/docs/docker/baseline-scan/)。爬行1分钟并显式访问首页、登录页、活动列表、公开活动GET API和健康接口，扫描关联静态资源；关闭表单处理/POST提交，不创建线上账号订单。
 
-首次修复复扫的两项低危已通过`Cross-Origin-Opener-Policy: same-origin`和`Cross-Origin-Embedder-Policy: require-corp`修复；最终复扫高、中、低危均为0。当前脚本、样式、API及插图均同源，头像预览和二维码使用data/blob图片。后续若新增跨源资源，需要其显式支持CORP或CORS，见[COEP说明](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy)。剩余信息项包括缓存策略及SPA识别，不表示已发现可利用漏洞。
+仅main部署后运行；PR不扫描既有部署。高/中危、扫描器错误、缺失报告或种子请求未全部200使作业失败；低危/信息项保留。部署后失败不自动回滚容器或数据库。
 
-修复后的响应头、公开入口、API和HTTPS Origin注册/登录冒烟通过；Chrome活动页和日历选择/应用正常，应用error日志为空。DAST门槛测试5项通过，覆盖中高危失败、低危保留、缺失报告/站点和种子访问不完整不能误报通过。
-
-PR #38已合并并部署到云端。首次[main运行39307641504](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39307641504)的六项质量检查、部署均成功，云端DAST扫描也无高/中/低危；作业最后清理`__pycache__/hooks.cpython-311.pyc`时因容器用户与runner用户不同而失败。
-
-修复在ZAP容器设置`PYTHONDONTWRITEBYTECODE=1`，避免生成由容器用户持有的缓存目录；保留原有退出码与失败门槛。Linux不同UID复现实验验证旧方式会发生PermissionError，禁用字节码后可由runner正常清理。修复脚本已实际重新扫描云端并以0退出；合并该修复后仍需核对main作业整体成功。
+本基线没有登录后覆盖、SQL注入/XSS主动验证、业务越权验证或压力测试。云端业务权限/事务验收单独记录在[10月20日验收](acceptance/sprint4-2026-10-20/README.md)，不能用被动扫描替代。
 
 ## 运行与报告
-
-从仓库根目录运行，需要Docker及联网：
 
 ```bash
 bash scripts/security/dast.sh https://swe5006.seventh720.com
 ```
 
-报告默认保存到被Git忽略的`dast-reports/`：`zap.html`、`zap.json`、`zap.md`、`summary.md`、`coverage.json`、`scan.log`、`run.json`和镜像digest。`run.json`记录目标、时间、配置提交及工作树是否有未提交改动。报告不保存登录凭据。
+需要Docker及联网。输出至忽略目录`dast-reports/`，包含HTML/JSON/Markdown、摘要、种子覆盖、日志、时间/配置提交及镜像digest。`DAST_REPORT_DIR`可改目录，`DAST_DOCKER_NETWORK`用于已有隔离网络。
 
-本次云端初扫位于该目录顶层，隔离复扫位于`dast-reports/isolated/`。补齐COOP/COEP后的最终复扫位于`dast-reports/isolated-final/`，这些均为实际运行产物。失败Actions作业的报告另存于`dast-reports/github-39307641504/`；清理修复后的云端复扫报告位于`dast-reports/cloud-cleanup-fix/`。隔离环境使用自签临时证书，只验证应用响应；它不证明云端证书或TLS配置质量。
-
-可用`DAST_REPORT_DIR`指定其他报告目录；`DAST_DOCKER_NETWORK`用于连接已有隔离Docker网络。不要将隔离环境目标写入云端验收结果。
-
-## CI与失败处理
-
-新增`Security · DAST Baseline`作业依赖成功的`Deploy · Staging`，仅main推送部署后运行；PR不扫描现有云端版本。过时main运行会跳过，避免把当前站点结果归给旧提交。作业保存`dast-report` artifact共7天，摘要和Telegram汇总包含DAST状态。
-
-高危或中危使作业失败；低危和信息项完整保留并显示。扫描器启动/连接错误、非预期退出、报告缺失或5个种子请求没有全部返回200也使作业失败，不把扫描失败当作零漏洞。
-
-这是部署后检查，失败不会撤销已完成的部署，也没有自动数据库恢复。保留报告、复核发现并通过修复PR再部署；演示需要的报告应在artifact到期前下载。
+Actions上传`dast-report`并保留7天，摘要和Telegram汇总DAST状态。成功main的原报告已下载到本机`dast-reports/github-39311200552/`；演示前与其他离线材料一并备份，不依赖artifact永久可用。
