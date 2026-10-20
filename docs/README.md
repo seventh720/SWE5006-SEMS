@@ -1,6 +1,6 @@
 # 文档导航
 
-先看[交付状态与剩余工作](remaining-work.zh-CN.md)。500 VU容量目标已通过；1000 VU因共享HTTPS代理OOM中断，两套系统已恢复。详情见[最新容量报告](acceptance/capacity-2026-10-21/README.md)。云端流程、DAST、手机扫码和隔离恢复已有结果，演示/敏捷材料及最终演示准备仍待完成。
+先看[交付状态与剩余工作](remaining-work.zh-CN.md)。500 VU容量目标已通过；Caddy调为256 MiB后未再OOM；最新1000目标尝试因健康响应时间保护中断，尚未完成。详情见[最新容量报告](acceptance/capacity-2026-10-21/README.md)。云端流程、DAST、手机扫码和隔离恢复已有结果，演示/敏捷材料及最终演示准备仍待完成。
 
 ## 使用与维护
 
@@ -21,7 +21,7 @@
 | [测试与覆盖](testing.zh-CN.md) | 当前测试数量/覆盖率、执行命令、安全例外及验证边界 |
 | [DAST](dast.zh-CN.md) | 已通过的云端ZAP基线、运行方式和报告 |
 | [10月20日云端验收](acceptance/sprint4-2026-10-20/README.md) | 多角色、二维码/核销截图、恢复校验、真实性能数据与测试清理 |
-| [最新云端容量验证](acceptance/capacity-2026-10-21/README.md) | 同一部署的500 VU通过结果与1000 VU共享代理OOM中断结果，含请求、资源、库存和清理证明 |
+| [最新云端容量验证](acceptance/capacity-2026-10-21/README.md) | 同一部署的500 VU通过结果与最新1000目标健康延迟保护中断结果，含请求、资源、库存和清理证明 |
 | [验收证据索引](acceptance/README.md) | 历史浏览器验收与截图，保留各自日期/环境 |
 | [演示指南](presentation.zh-CN.md) | 待制作材料、课程要求映射、Observer/State/Strategy与演示节奏 |
 | [业务演示脚本](sprint-4-demo.zh-CN.md) | 多角色操作顺序、预期结果及签到窗口 |

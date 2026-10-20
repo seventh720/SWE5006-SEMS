@@ -1,0 +1,27 @@
+{
+  "applicationCommit": "2857fee120d5d4c13bf86acf70244caa7c2c76e1",
+  "caddyMemoryMiB": 256,
+  "targetVUs": 1000,
+  "observedPeakVUs": 964,
+  "requests": 10612,
+  "completedRequestErrorRate": 0,
+  "overallP95Ms": 2583.7554655500003,
+  "stableHoldExecuted": false,
+  "plannedHoldSeconds": 180,
+  "stageWallSeconds": 30.24,
+  "exitCode": 105,
+  "stopReason": "Three consecutive successful API health probes exceeded the retained 2-second health-response guard",
+  "apiHealthProbeSeconds": [
+    2.23,
+    2.119,
+    2.298
+  ],
+  "allHealthResponsesSuccessful": true,
+  "caddyOrSemsContainerRecreatedOrRestarted": false,
+  "caddyOrSemsOOMObserved": false,
+  "containersBeforeAfterIdentical": true,
+  "loadWarnings": 0,
+  "serverUpgraded": false,
+  "onlyResourceChangeFromOriginal": "Shared Caddy memory limit 128 -> 256 MiB",
+  "cleanupAndRecoveryPassed": true
+}

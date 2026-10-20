@@ -67,6 +67,8 @@ The cloud overlay applies restart policies, log rotation and memory limits (Post
 
 SWE5001's Caddy owns ports 80/443. It routes `swe5006.seventh720.com` to `sems5006-web:80` on `swe5006-edge`; only the SWE5006 frontend joins that edge network. Preserve both applications' routes and existing SWE5001 Compose settings. The host-owned `/home/ubuntu/swe5001/shared-proxy/Caddyfile` and `shared-proxy.compose.yaml` survive release replacement through the merged [SWE5001 PR #16](https://github.com/seventh720/SWE5001-SEMS/pull/16).
 
+On 21 October 2026 (SGT), the shared Caddy memory limit was raised from 128 to 256 MiB using `services.caddy.mem_limit: 256m` in the host-owned `shared-proxy.compose.yaml`. Only Caddy was recreated, preserving its image, routes, certificate volumes and networks; both systems' health checks passed. The server plan and SWE5006 container limits were unchanged. Keep this override when applying future SWE5001 releases.
+
 Repository [proxy examples](../deployment/proxy/) are references for initial setup, not instructions to overwrite the live Caddy configuration. Do not start a second proxy on 80/443. Retain the trusted proxy boundary when using forwarded HTTPS headers.
 
 ### Runtime changes and initial setup

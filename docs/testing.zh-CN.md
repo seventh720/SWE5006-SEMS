@@ -1,6 +1,6 @@
 # 测试与覆盖情况
 
-核验日期：2026-10-21（SGT）。覆盖率基线`270c2b8`对应[main运行39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552)；最新连接池版本`2bfab3a`的[main质量检查、部署及DAST](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39450479185)全部成功。原始验收保留在[验收目录](acceptance/README.md)，开发历史可查Git。
+核验日期：2026-10-21（SGT）。覆盖率基线`270c2b8`对应[main运行39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552)；最新部署版本`2857fee`的[main质量检查、部署及DAST](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39457678852)全部成功。原始验收保留在[验收目录](acceptance/README.md)，开发历史可查Git。
 
 ## 当前结果
 
@@ -14,7 +14,7 @@
 | 静态安全 | SAST、依赖/密钥检查及三镜像扫描通过；保留下述Spring适用性例外 |
 | 部署与DAST | main部署、HTTPS检查、公开页面/API被动扫描及报告清理全部成功；高/中/低危0，信息4 |
 | 云端业务/恢复/性能 | 多角色闭环、非空业务备份隔离恢复、1/5/10 VU读取基线完成；见[10月20日实测](acceptance/sprint4-2026-10-20/README.md) |
-| 云端容量验证 | [最新报告](acceptance/capacity-2026-10-21/README.md)：500 VU读取/混合稳定档p95为1.94/1.96秒，错误0；500人竞争100票无超卖；1000 VU因共享代理OOM中断，两套系统恢复且清理通过 |
+| 云端容量验证 | [最新报告](acceptance/capacity-2026-10-21/README.md)：500 VU读取/混合稳定档p95为1.94/1.96秒，错误0；500人竞争100票无超卖；Caddy调为256 MiB后未再OOM，1000目标尝试因健康响应时间保护中断，未完成稳态；清理通过 |
 | 手机扫码 | 维护者确认通过；设备/浏览器未提供，未扩大为全移动端兼容性结论 |
 
 后端单元与完整回归的覆盖率分别计算，不相加。前端统计生产`src`代码，保留未执行入口/路由在分母中。当前没有最低覆盖率百分比门槛。

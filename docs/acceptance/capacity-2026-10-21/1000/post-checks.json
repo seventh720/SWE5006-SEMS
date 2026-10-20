@@ -2,59 +2,59 @@
   "health": {
     "swe5006-api": {
       "status": 200,
-      "seconds": 0.046,
+      "seconds": 0.068,
       "UP": true
     },
     "swe5006-web": {
       "status": 200,
-      "seconds": 0.033,
+      "seconds": 0.067,
       "UP": null
     },
     "swe5001-web": {
       "status": 200,
-      "seconds": 0.062,
+      "seconds": 0.094,
       "UP": null
     },
     "swe5001-identity": {
       "status": 200,
-      "seconds": 0.066,
+      "seconds": 0.093,
       "UP": true
     },
     "swe5001-event-catalog": {
       "status": 200,
-      "seconds": 0.062,
+      "seconds": 0.093,
       "UP": true
     },
     "swe5001-admission": {
       "status": 200,
-      "seconds": 0.062,
+      "seconds": 0.093,
       "UP": true
     }
   },
   "oldTokensAfterCleanup": [
     {
       "accountIndex": 0,
-      "remainingTokenLifetimeSeconds": 3571,
+      "remainingTokenLifetimeSeconds": 3561,
       "status": 401,
-      "seconds": 0.029
+      "seconds": 0.039
     },
     {
       "accountIndex": 1,
-      "remainingTokenLifetimeSeconds": 2995,
+      "remainingTokenLifetimeSeconds": 2213,
       "status": 401,
-      "seconds": 0.036
+      "seconds": 0.041
     },
     {
       "accountIndex": 500,
-      "remainingTokenLifetimeSeconds": 3192,
+      "remainingTokenLifetimeSeconds": 2422,
       "status": 401,
-      "seconds": 0.034
+      "seconds": 0.039
     },
     {
       "accountIndex": 1000,
-      "remainingTokenLifetimeSeconds": 3393,
+      "remainingTokenLifetimeSeconds": 2628,
       "status": 401,
-      "seconds": 0.032
+      "seconds": 0.057
     }
   ],
   "originalDataUnchanged": {
@@ -76,5 +76,7 @@
     "remainingFixtureEvents": 0,
     "remainingFixtureRoles": 0
   },
-  "serverResourceSettingsChanged": false
+  "serverResourceSettingsChanged": true,
+  "serverUpgraded": false,
+  "resourceChange": "Shared Caddy memory limit 128 -> 256 MiB only"
 }
