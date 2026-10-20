@@ -50,6 +50,12 @@
 
 证据：[运行与门槛](1000/run.json)、[中断原因](1000/outcome.json)、[健康停止样本](1000/guard-stop.json)、[资源](1000/resource-summary.json)、[前后容器](1000/containers-before.txt)/[结束状态](1000/containers-after.txt)、[清理与恢复](1000/post-checks.json)、[库存审计](1000/fixture-audit.json)、[部署版本及镜像](1000/deployed-images.txt)。旧1000 VU尝试已从当前文档清理，历史可查Git。
 
+## 后续健康阈值调整（尚未实测）
+
+维护者已同意将下一轮健康慢响应停止线调整为5秒，单次探针超时6秒，仍需连续3次慢响应或失败才停止。`capacity-watch.py`和云端`capacity-guard.py`均支持`--health-latency-limit`及`--health-timeout`，默认分别为5和6；超时必须大于慢响应停止线，非法参数在连接云端前拒绝。
+
+业务整体/逐接口p95仍按3秒评分，8秒业务请求超时、真实错误及内存/OOM保护保留。此调整只影响压测监控，未改动应用健康接口或业务逻辑。上面的真实运行使用2秒停止线、3秒探针超时，结果保持不变；新设置尚未重新加压，不代表1000 VU已通过。监控启动前须把同版本`capacity-guard.py`同步至云端`/tmp/sems5006-capacity-guard.py`。
+
 ## 环境与负载模型
 
 - 原2 vCPU、3832 MiB共享云主机，SWE5001继续运行。后端768 MiB、数据库512 MiB、前端96 MiB上限不变。共享Caddy仅在最新轮调为256 MiB；未升级服务器，未改变业务、权限或库存逻辑。
@@ -65,11 +71,13 @@
 原始日志及资源序列保存在本机忽略目录`performance-reports/cloud-2026-10-20-pool-500`和`performance-reports/cloud-2026-10-21-caddy256-1000`；仅脱敏后的指标和核验结果提交Git。旧容量报告已清理，历史可查Git。
 
 ```bash
-# 先准备独立测试账号与活动，启动capacity-watch.py --load1-limit 0
+# 先准备独立测试账号与活动；重现上述运行时启动监控并显式指定旧阈值：
+# capacity-watch.py ... --load1-limit 0 --health-latency-limit 2 --health-timeout 3
 python3 scripts/acceptance/capacity-run.py \
   --credentials <private-k6-credentials.json> --reports <monitored-report-directory> \
   --read-start-level 250 --max-vus 500 --target-hold 180s --latency-report-only
 # 最新1000轮采用新账号/新监控目录，改为 --read-start-level 250 --max-vus 1000
+# 下一轮监控采用 --health-latency-limit 5 --health-timeout 6，成绩须另行记录
 ```
 
 此测试的VU是带思考时间的活跃虚拟用户；成绩适用于本轮短时数据集及指定API模型，不证明同等RPS、浏览器人数、同时登录容量、长期稳定性或系统最大容量。500 VU为已完成的交付目标，proposal的1000为参考；追加测试按实际结果报告。

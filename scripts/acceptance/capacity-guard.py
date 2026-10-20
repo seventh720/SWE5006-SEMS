@@ -21,8 +21,14 @@ def docker(*arguments):
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--load1-limit', type=float, default=8,
                     help='Three samples above this limit stop the run; 0 records load without stopping')
+parser.add_argument('--health-latency-limit', type=float, default=5,
+                    help='Three consecutive slow or failed health probes stop the run')
+parser.add_argument('--health-timeout', type=float, default=6,
+                    help='Per-probe timeout in seconds; must exceed the health latency limit')
 args = parser.parse_args()
 assert args.load1_limit >= 0
+if not 0 < args.health_latency_limit < args.health_timeout < float('inf'):
+    parser.error('Require 0 < --health-latency-limit < --health-timeout < infinity')
 domain = docker('exec', 'swe5001-caddy-1', 'printenv', 'SEMS_DOMAIN')
 bad = {}
 
@@ -30,7 +36,7 @@ bad = {}
 def probe(name, url):
     started = time.monotonic()
     try:
-        with urllib.request.urlopen(url, timeout=3) as response:
+        with urllib.request.urlopen(url, timeout=args.health_timeout) as response:
             content = response.read()
             ok = response.status == 200 and (name in ['swe5006-web', 'swe5001-web'] or json.loads(content)['status'] == 'UP')
         return name, {'ok': ok, 'seconds': round(time.monotonic() - started, 3)}
@@ -65,7 +71,8 @@ while True:
         conditions = {'lowMemory': sample['availableMemoryMiB'] < 384,
                       'hostOverload': args.load1_limit > 0 and sample['load1'] > args.load1_limit,
                       'containerMemory': any(float(c['MemPerc'].rstrip('%')) > 95 for c in sample['containers'])}
-        conditions.update({name: not value['ok'] or value['seconds'] > 2 for name, value in sample['health'].items()})
+        conditions.update({name: not value['ok'] or value['seconds'] > args.health_latency_limit
+                           for name, value in sample['health'].items()})
         for name, value in conditions.items():
             bad[name] = bad.get(name, 0) + 1 if value else 0
         reasons = [name for name, count in bad.items() if count >= 3]
