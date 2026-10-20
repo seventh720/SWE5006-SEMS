@@ -1,0 +1,44 @@
+{
+  "applicationCommit": "037720bf57031063ea30ee2a55827d8f8d67b03b",
+  "allPlannedStagesExecuted": true,
+  "allThresholdsPassed": false,
+  "read500Passed": true,
+  "mixed500Passed": true,
+  "read1000": {
+    "passed": true,
+    "holdSeconds": 180,
+    "requests": 95360,
+    "errors": 0,
+    "holdP95Ms": 2937.7527307499995
+  },
+  "mixed1000": {
+    "passed": false,
+    "holdSeconds": 180,
+    "requests": 83164,
+    "errors": 0,
+    "holdP95Ms": 3508.9287636999984,
+    "reason": "Overall and endpoint p95 exceed 3 seconds"
+  },
+  "contention1000": {
+    "passed": false,
+    "configuredVUs": 1000,
+    "observedPeakVUs": 983,
+    "attempts": 1000,
+    "successfulBookings": 100,
+    "expectedSoldOut": 899,
+    "connectionFailures": 1,
+    "p95Ms": 4099.7734722,
+    "reason": "One refused TCP connection and p95 exceeds 3 seconds"
+  },
+  "inventory": {
+    "quota": 100,
+    "confirmedQuantity": 100,
+    "validTickets": 100,
+    "duplicateTicketOrdinals": 0,
+    "oversold": false
+  },
+  "healthGuardTriggered": false,
+  "containerRestartOrOOMObserved": false,
+  "serverUpgraded": false,
+  "cleanupAndRecoveryPassed": true
+}

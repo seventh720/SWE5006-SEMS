@@ -1,0 +1,1 @@
+k6 contention-1000vu exited 99; no further load.

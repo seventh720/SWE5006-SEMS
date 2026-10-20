@@ -1,0 +1,5 @@
+037720bf57031063ea30ee2a55827d8f8d67b03b
+/swe5001-caddy-1 ghcr.io/seventh720/swe5001-sems/caddy@sha256:de2150615e45544dffc86eaeacacab298d5526cb40ce5f06cf0af5408d0f6fc0 268435456 0 restart=0
+/swe5006-backend-1 ghcr.io/seventh720/swe5006-sems/backend@sha256:bdae33f6c18b93f6bb67aabdd1a184e724f4954bf38d300bf80f1b9d85b60a03 805306368 0 restart=0
+/swe5006-frontend-1 ghcr.io/seventh720/swe5006-sems/frontend@sha256:47ff9704f40585519d62f9a0f5c20fa1b8a55632ffbf9a4950fb1fadfa4a2fc2 100663296 0 restart=0
+/swe5006-postgres-1 ghcr.io/seventh720/swe5006-sems/postgres@sha256:b0c3271063e93c781a2e3bf69c803ae3e14707ab124b73062087a2a5ce5c82cc 536870912 0 restart=0
