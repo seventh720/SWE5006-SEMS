@@ -1,0 +1,13 @@
+{
+  "caddyHttp502Count": 41,
+  "upstreamEOFCount": 23,
+  "upstreamConnectionResetCount": 18,
+  "upstreamAddressMatchesSemsFrontend": true,
+  "nginxWorkerConnectionWarnings": 12,
+  "cloudWorkerConnections": 1024,
+  "cloudSoftOpenFileLimit": 1024,
+  "cloudHardOpenFileLimit": 524288,
+  "backendWarnOrErrorLines": 0,
+  "hypothesis": "Frontend connection-slot exhaustion closes pooled connections; local old/new configuration test reproduces and removes the same failure class",
+  "all41RequestsIndividuallyTracedToNginxWarning": false
+}

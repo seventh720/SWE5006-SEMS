@@ -2,59 +2,59 @@
   "health": {
     "swe5006-api": {
       "status": 200,
-      "seconds": 0.068,
+      "seconds": 0.046,
       "UP": true
     },
     "swe5006-web": {
       "status": 200,
-      "seconds": 0.067,
+      "seconds": 0.04,
       "UP": null
     },
     "swe5001-web": {
       "status": 200,
-      "seconds": 0.094,
+      "seconds": 0.037,
       "UP": null
     },
     "swe5001-identity": {
       "status": 200,
-      "seconds": 0.093,
+      "seconds": 0.047,
       "UP": true
     },
     "swe5001-event-catalog": {
       "status": 200,
-      "seconds": 0.093,
+      "seconds": 0.047,
       "UP": true
     },
     "swe5001-admission": {
       "status": 200,
-      "seconds": 0.093,
+      "seconds": 0.046,
       "UP": true
     }
   },
   "oldTokensAfterCleanup": [
     {
       "accountIndex": 0,
-      "remainingTokenLifetimeSeconds": 3561,
+      "remainingTokenLifetimeSeconds": 3566,
       "status": 401,
-      "seconds": 0.039
+      "seconds": 0.032
     },
     {
       "accountIndex": 1,
-      "remainingTokenLifetimeSeconds": 2213,
+      "remainingTokenLifetimeSeconds": 2631,
       "status": 401,
-      "seconds": 0.041
+      "seconds": 0.037
     },
     {
       "accountIndex": 500,
-      "remainingTokenLifetimeSeconds": 2422,
+      "remainingTokenLifetimeSeconds": 2839,
       "status": 401,
-      "seconds": 0.039
+      "seconds": 0.031
     },
     {
       "accountIndex": 1000,
-      "remainingTokenLifetimeSeconds": 2628,
+      "remainingTokenLifetimeSeconds": 3038,
       "status": 401,
-      "seconds": 0.057
+      "seconds": 0.062
     }
   ],
   "originalDataUnchanged": {
@@ -65,18 +65,18 @@
     "roles": true
   },
   "databaseCountsAfterCleanup": {
-    "users": 6,
-    "events": 3,
-    "bookings": 2,
-    "tickets": 3,
-    "roles": 8
+    "users": 2,
+    "events": 2,
+    "bookings": 0,
+    "tickets": 0,
+    "roles": 4
   },
   "cleanup": {
     "remainingFixtureUsers": 0,
     "remainingFixtureEvents": 0,
     "remainingFixtureRoles": 0
   },
-  "serverResourceSettingsChanged": true,
+  "serverResourceSettingsChanged": false,
   "serverUpgraded": false,
-  "resourceChange": "Shared Caddy memory limit 128 -> 256 MiB only"
+  "priorResourceAdjustment": "Shared Caddy memory limit 128 -> 256 MiB only"
 }
