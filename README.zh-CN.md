@@ -10,7 +10,7 @@ SWE5006 第 10 组课程项目，使用 React、TypeScript、Spring Boot 和 Pos
 
 当前保持**功能冻结**。云端多角色流程、DAST、隔离数据库恢复与小规模读取性能基线均已完成，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余为演示/敏捷材料、备份录屏、彩排与最终演示版本。手机扫码已由维护者于10月20日确认通过，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余项目详见[交付清单](docs/remaining-work.zh-CN.md)。正式 presentation：**2026年10月27日 10:30 SGT**。
 
-原1000并发性能目标仍未达成。[云端分级测试](docs/acceptance/capacity-2026-10-20/README.md)中50/100 VU短时读取通过，250 VU活动列表延迟超标，500 VU出现169次请求超时后停止；1000 VU未执行。最终验收需说明此差距，或定位性能问题后复测。
+维护者已将当前容量验证目标定为 **500 VU**，proposal中的1000并发作为参考。优化后的[云端复测](docs/acceptance/capacity-500-2026-10-20/README.md)通过50/100 VU短时读取，250 VU出现34次请求超时后停止，500 VU未执行，当前目标尚未验证通过。[优化前记录](docs/acceptance/capacity-2026-10-20/README.md)单独保留。
 
 ## 功能与角色
 

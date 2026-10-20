@@ -16,6 +16,7 @@ const vus = Number(__ENV.CAPACITY_VUS || 50);
 const hold = __ENV.CAPACITY_HOLD || '30s';
 const mode = __ENV.CAPACITY_MODE || 'read';
 const latencyAbort = __ENV.CAPACITY_LATENCY_ABORT !== 'false';
+const runId = __ENV.CAPACITY_RUN_ID ? `-${__ENV.CAPACITY_RUN_ID}` : '';
 const failures = new Rate('unexpected_failure');
 const successfulBookings = new Counter('bookings_created');
 const soldOut = new Counter('sold_out');
@@ -80,7 +81,7 @@ export default function () {
     const booking = request('POST', '/api/v1/bookings', 'create-booking', account,
       { eventId: event.id, ticketTypeId: event.ticketTypeId, quantity: 1 },
       mode === 'contention' ? [201, 409] : [201],
-      { 'Idempotency-Key': `${fixture.marker}-${mode}-${vus}-${__VU}-${__ITER}` });
+      { 'Idempotency-Key': `${fixture.marker}${runId}-${mode}-${vus}-${__VU}-${__ITER}` });
     if (booking.response.status === 409 && mode === 'contention') {
       const rejected = body(booking, x => typeof x.detail === 'string' && /not enough|insufficient|sold out/i.test(x.detail));
       if (rejected) soldOut.add(1);

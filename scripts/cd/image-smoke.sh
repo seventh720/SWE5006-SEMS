@@ -39,3 +39,5 @@ PY
 "${compose[@]}" up --no-build -d --wait --wait-timeout 180
 endpoint=$("${compose[@]}" port frontend 80)
 python3 scripts/cd/smoke.py "http://$endpoint" | tee image-reports/smoke.txt
+frontend_image=$(python3 -c 'import json; print(json.load(open("image-reports/compose.images.json"))["services"]["frontend"]["image"])')
+python3 scripts/cd/test-proxy-keepalive.py "$frontend_image" | tee image-reports/proxy-keepalive.txt
