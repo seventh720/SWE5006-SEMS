@@ -1,0 +1,32 @@
+{
+  "samples": 27,
+  "startedAt": "2026-10-20T13:00:15.494065+00:00",
+  "endedAt": "2026-10-20T13:02:29.070383+00:00",
+  "minimumAvailableMemoryMiB": 1460.66,
+  "peakLoad1": 14.43,
+  "peakCpuPercent": {
+    "swe5001-web-1": 0.0,
+    "swe5001-identity-1": 0.34,
+    "swe5001-caddy-1": 41.76,
+    "swe5001-gateway-1": 0.02,
+    "swe5001-postgres-1": 4.88,
+    "swe5001-event-catalog-1": 0.68,
+    "swe5001-admission-1": 0.14,
+    "swe5006-postgres-1": 31.24,
+    "swe5006-frontend-1": 114.85,
+    "swe5006-backend-1": 99.75
+  },
+  "peakHealthSeconds": {
+    "swe5006-api": 4.646,
+    "swe5006-web": 4.538,
+    "swe5001-web": 1.543,
+    "swe5001-identity": 1.582,
+    "swe5001-event-catalog": 1.534,
+    "swe5001-admission": 1.654
+  },
+  "allSampledHealthSuccessful": false,
+  "peakDatabaseConnections": 11,
+  "peakDatabaseLockWaiters": 0,
+  "generatorPeakCpuPercent": 55.88,
+  "generatorPeakMemoryPercentOf2GiB": 6.38
+}

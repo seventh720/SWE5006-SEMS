@@ -10,6 +10,8 @@ Verified on **20 October 2026 (SGT)**: business baseline [`270c2b8`](https://git
 
 The application is ready for **feature freeze**. Cloud multi-role acceptance, DAST, an isolated database restore and a small read-performance baseline are complete; see the [acceptance evidence](docs/acceptance/sprint4-2026-10-20/README.md). Presentation/Agile materials, backup recordings, rehearsals and the final presentation tag remain. Real-device QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](docs/acceptance/sprint4-2026-10-20/README.md). These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
 
+Capacity remains unverified at the original 1000-user target. The [graded cloud test](docs/acceptance/capacity-2026-10-20/README.md) passed short 50/100-VU reads, exceeded the event-list latency goal at 250 VU, then stopped at 500 VU after 169 request timeouts. No 1000-VU run was executed; resolving or documenting this performance gap is part of final acceptance.
+
 ## Features and roles
 
 | Role | Implemented workflow |

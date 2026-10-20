@@ -32,6 +32,7 @@ shell_syntax() {
 check shell-syntax shell_syntax
 check release-validation python3 scripts/cd/test-release.py
 check dast-gate python3 -B scripts/security/test-dast-summary.py
+check capacity-watch python3 -B scripts/acceptance/test-capacity-watch.py
 cat "$summary"
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
     cat "$summary" >> "$GITHUB_STEP_SUMMARY"
