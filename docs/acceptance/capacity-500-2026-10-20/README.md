@@ -47,6 +47,33 @@
 
 正式复测从23:01 SGT开始，使用同一组仍有效的测试账号与活动，并重新执行读写预检；只有这一轮计入上表容量结果。
 
+## 后续优化：代理上游连接复用
+
+维护者要求继续优化250 VU并推进500目标。读取上述超时窗口日志，前端观察到31条HTTP 499，后端没有WARN/ERROR日志；这表明部分请求已到达代理后被客户端取消，但不足以确定全部34次超时的根因。
+
+在本机使用与云端相同版本的nginx 1.30.6镜像和隔离模拟上游，连续发送20个请求：
+
+| 配置 | 实际上游TCP连接数 |
+|---|---:|
+| 原`proxy_pass http://backend:8080` | 20 |
+| 原配置仅显式设置HTTP/1.1并清除Connection头 | 20 |
+| 命名upstream及`keepalive 32` | 1 |
+
+因此，不能仅凭新nginx版本的默认值推断当前直连写法已经复用。修正采用[显式upstream连接池](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#keepalive)，API与健康接口共享该池；32是每个worker可保留的空闲连接数，不是32个请求的并发上限。没有增加服务器资源，也没有引入响应或权限缓存。
+
+[真实代理回归](../../../scripts/cd/test-proxy-keepalive.py)交替请求API和健康路径，核对20个请求共用一条上游连接，同时逐请求改变Authorization并验证完整路径/查询串、Host、Origin、转发协议和HSTS不变。已接入镜像冒烟步骤，与实际Spring后端的注册/登录及安全头冒烟一起执行。
+
+这项修正减少了可复现的连接开销，**尚未部署到本次云端实测版本，也尚未证明250/500 VU通过**。合并部署后需先复测250 VU，通过原错误与健康门槛后再推进500；上面的历史结果保持不变。
+
+本地复现（使用nginx 1.30.6前端镜像，不访问云端）：
+
+```bash
+git show 3960e3b:frontend/nginx.conf > /tmp/sems5006-nginx-before-pool.conf
+python3 scripts/cd/test-proxy-keepalive.py <frontend-image> \
+  --configuration /tmp/sems5006-nginx-before-pool.conf --expected-connections 20
+python3 scripts/cd/test-proxy-keepalive.py <frontend-image>
+```
+
 ## 复现与证据
 
 配置、k6汇总和资源序列来自本轮实际运行。原始日志、SQL和完整资源序列保留于本机忽略目录`performance-reports/cloud-2026-10-20-optimized-500*`，私有凭据位于`.secrets`，均不提交Git。首次准备到最后清理使用同一组501个虚构账号和11个活动。
