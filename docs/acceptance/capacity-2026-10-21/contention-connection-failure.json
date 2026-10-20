@@ -1,0 +1,15 @@
+{
+  "scene": "contention-1000vu",
+  "count": 1,
+  "phase": "TCP connect to public HTTPS port 443",
+  "error": "connect: connection refused",
+  "httpResponseReceived": false,
+  "noRetryPerformed": true,
+  "frontendHttp201": 100,
+  "frontendHttp409": 899,
+  "frontendWorkerConnectionWarningsInContentionWindow": 0,
+  "backendWarnOrErrorLinesInContentionWindow": 0,
+  "caddyErrorLogsInContentionWindow": 0,
+  "rootCauseConfirmed": false,
+  "note": "Client logged refused connection before an HTTP response; no matching frontend/backend HTTP error was recorded"
+}

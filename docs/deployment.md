@@ -71,7 +71,7 @@ On 21 October 2026 (SGT), the shared Caddy memory limit was raised from 128 to 2
 
 Repository [proxy examples](../deployment/proxy/) are references for initial setup, not instructions to overwrite the live Caddy configuration. Do not start a second proxy on 80/443. Retain the trusted proxy boundary when using forwarded HTTPS headers.
 
-The frontend image uses `frontend/nginx-main.conf` to set 4096 connections and 8192 open files per Nginx worker. The current host hard file limit is 524288, so the worker limit can rise above the inherited soft limit of 1024. Client and upstream sockets both consume connection slots. The isolated image smoke test keeps and reuses 1200 frontend connections under the inherited 1024 soft limit; cloud capacity still requires a post-deployment run.
+The frontend image uses `frontend/nginx-main.conf` to set 4096 connections and 8192 open files per Nginx worker. The current host hard file limit is 524288, so the worker limit can rise above the inherited soft limit of 1024. Client and upstream sockets both consume connection slots. The isolated image smoke test keeps and reuses 1200 frontend connections under the inherited 1024 soft limit; deployment and runtime worker limits have been verified. The [latest cloud run](acceptance/capacity-2026-10-21/README.md) passes 1000-VU reads; mixed traffic and inventory contention retain latency and connection reliability limits.
 
 ### Runtime changes and initial setup
 

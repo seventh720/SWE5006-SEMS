@@ -1,2 +1,0 @@
-PASS 20 API/health requests, 1 upstream connection(s); URI, per-request authorization and origin preserved
-PASS 1200 held frontend connections reused without replacement; one worker, 1024 inherited soft file limit, 96 MiB container
