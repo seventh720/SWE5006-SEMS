@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-21 SGT",
+  "fixturePrefix": "accept20261020082212",
+  "authorizedByMaintainer": true,
+  "removed": {
+    "checkIns": 1,
+    "tickets": 3,
+    "preRegistrations": 0,
+    "bookings": 2,
+    "staffAssignments": 1,
+    "notifications": 17,
+    "events": 1,
+    "roles": 4,
+    "users": 4
+  },
+  "remainingTargetUsers": 0,
+  "unrelatedDataUnchanged": true,
+  "databaseCounts": {
+    "users": 2,
+    "events": 2,
+    "bookings": 0,
+    "tickets": 0
+  },
+  "health": {
+    "swe5006-api": {
+      "status": 200,
+      "seconds": 0.098,
+      "UP": true
+    },
+    "swe5006-web": {
+      "status": 200,
+      "seconds": 0.1
+    },
+    "swe5001-web": {
+      "status": 200,
+      "seconds": 0.1
+    },
+    "swe5001-identity": {
+      "status": 200,
+      "seconds": 0.104,
+      "UP": true
+    },
+    "swe5001-event-catalog": {
+      "status": 200,
+      "seconds": 0.098,
+      "UP": true
+    },
+    "swe5001-admission": {
+      "status": 200,
+      "seconds": 0.104,
+      "UP": true
+    }
+  },
+  "privatePreCleanupBackupValidated": true,
+  "privateBackupBytes": 45235,
+  "originalAcceptanceEvidencePreserved": true
+}

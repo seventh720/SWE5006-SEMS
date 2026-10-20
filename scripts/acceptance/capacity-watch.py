@@ -8,12 +8,19 @@ parser.add_argument('--identity-file',type=pathlib.Path,required=True)
 parser.add_argument('--known-hosts',type=pathlib.Path,required=True)
 parser.add_argument('--host',default='ubuntu@18.139.212.35')
 parser.add_argument('--load1-limit',type=float,default=8)
+parser.add_argument('--health-latency-limit',type=float,default=5,
+                    help='Remote health latency stop threshold in seconds')
+parser.add_argument('--health-timeout',type=float,default=6,
+                    help='Remote health probe timeout in seconds')
 args=parser.parse_args()
 assert args.load1_limit >= 0
+if not 0 < args.health_latency_limit < args.health_timeout < float('inf'):
+    parser.error('Require 0 < --health-latency-limit < --health-timeout < infinity')
 root=args.reports.resolve()
 root.mkdir(parents=True,exist_ok=True)
 stop=root/'STOP'
-ssh=['ssh','-i',str(args.identity_file),'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ServerAliveInterval=5','-o','ServerAliveCountMax=2','-o','UserKnownHostsFile='+str(args.known_hosts),args.host,f'python3 -u /tmp/sems5006-capacity-guard.py --load1-limit {args.load1_limit}']
+ssh=['ssh','-i',str(args.identity_file),'-o','BatchMode=yes','-o','StrictHostKeyChecking=yes','-o','ServerAliveInterval=5','-o','ServerAliveCountMax=2','-o','UserKnownHostsFile='+str(args.known_hosts),args.host,
+     f'python3 -u /tmp/sems5006-capacity-guard.py --load1-limit {args.load1_limit} --health-latency-limit {args.health_latency_limit} --health-timeout {args.health_timeout}']
 p=subprocess.Popen(ssh,stdout=subprocess.PIPE,text=True)
 count=0
 try:

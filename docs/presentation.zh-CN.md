@@ -16,7 +16,7 @@
 | DevSecOps | PR检查→受测镜像→digest发布→数据库备份→部署→HTTPS检查→DAST；保存一次历史失败与成功记录 |
 | Demo与备份 | 多角色操作脚本、专用演示账号/活动、两份独立备份录屏（CI/CD与系统Demo） |
 
-课程要求映射沿用已完成的2026-10-19原始评审：Briefing、`SWE5006 - Practice Project Presentation Guidelines.docx`及`Team10_SWE5006_Assignment_Proposal.pdf`。原proposal为4轮迭代/50人日，并提出1000并发、95%常见请求3秒内的参考目标；团队目前按五个Sprint交付，需说明范围与排期调整。维护者指定的500 VU目标已通过，1000 VU因共享代理128 MiB内存上限触发OOM而中断，两套系统已恢复；实际成绩以[最新容量报告](acceptance/capacity-2026-10-21/README.md)为准；保留原proposal，演示按实际负载模型、时间和成绩说明。
+课程要求映射沿用已完成的2026-10-19原始评审：Briefing、`SWE5006 - Practice Project Presentation Guidelines.docx`及`Team10_SWE5006_Assignment_Proposal.pdf`。原proposal为4轮迭代/50人日，并提出1000并发、95%常见请求3秒内的参考目标；团队目前按五个Sprint交付，需说明范围与排期调整。维护者指定的500 VU目标已通过，Caddy调为256 MiB后的最新尝试未再OOM，但1000目标爬升期间因健康响应时间保护中断，尚未完成稳态；实际成绩以[最新容量报告](acceptance/capacity-2026-10-21/README.md)为准；保留原proposal，演示按实际负载模型、时间和成绩说明。
 
 ## 需求与实现映射
 

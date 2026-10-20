@@ -1,4 +1,0 @@
-/swe5001-caddy-1 memory=134217728 restart=1 status=running started=2026-10-20T16:17:23.694811015Z
-/swe5006-backend-1 memory=805306368 restart=0 status=running started=2026-10-20T15:43:50.909879257Z
-/swe5006-frontend-1 memory=100663296 restart=0 status=running started=2026-10-20T15:44:23.11366939Z
-/swe5006-postgres-1 memory=536870912 restart=0 status=running started=2026-10-20T15:43:45.217453351Z

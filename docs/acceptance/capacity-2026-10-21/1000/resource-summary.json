@@ -1,32 +1,44 @@
 {
-  "samples": 21,
-  "startedAt": "2026-10-20T16:15:39.729848+00:00",
-  "endedAt": "2026-10-20T16:17:21.276798+00:00",
-  "minimumAvailableMemoryMiB": 1308.1,
-  "peakLoad1": 10.6,
+  "samples": 49,
+  "startedAt": "2026-10-20T16:57:34.216265+00:00",
+  "endedAt": "2026-10-20T17:01:35.273482+00:00",
+  "minimumAvailableMemoryMiB": 1340.31,
+  "peakLoad1": 21.8,
   "peakCpuPercent": {
-    "swe5001-admission-1": 0.14,
-    "swe5006-postgres-1": 25.08,
-    "swe5001-event-catalog-1": 0.19,
+    "swe5001-event-catalog-1": 0.85,
+    "swe5001-caddy-1": 44.24,
+    "swe5006-frontend-1": 10.25,
+    "swe5001-postgres-1": 5.38,
+    "swe5001-gateway-1": 0.02,
+    "swe5006-backend-1": 131.7,
     "swe5001-web-1": 0.0,
-    "swe5006-backend-1": 105.85,
-    "swe5001-postgres-1": 4.93,
-    "swe5006-frontend-1": 13.44,
-    "swe5001-caddy-1": 84.07,
-    "swe5001-identity-1": 0.16,
-    "swe5001-gateway-1": 0.02
+    "swe5001-admission-1": 0.18,
+    "swe5006-postgres-1": 26.78,
+    "swe5001-identity-1": 0.14
+  },
+  "peakMemoryPercent": {
+    "swe5001-event-catalog-1": 47.82,
+    "swe5001-caddy-1": 56.24,
+    "swe5006-frontend-1": 19.12,
+    "swe5001-postgres-1": 13.89,
+    "swe5001-gateway-1": 3.4,
+    "swe5006-backend-1": 67.02,
+    "swe5001-web-1": 3.64,
+    "swe5001-admission-1": 36.34,
+    "swe5006-postgres-1": 9.87,
+    "swe5001-identity-1": 42.63
   },
   "peakHealthSeconds": {
-    "swe5006-api": 3.007,
-    "swe5006-web": 3.011,
-    "swe5001-web": 3.016,
-    "swe5001-identity": 3.01,
-    "swe5001-event-catalog": 3.015,
-    "swe5001-admission": 3.015
+    "swe5006-api": 2.298,
+    "swe5006-web": 1.335,
+    "swe5001-web": 0.951,
+    "swe5001-identity": 1.333,
+    "swe5001-event-catalog": 1.331,
+    "swe5001-admission": 1.333
   },
-  "allSampledHealthSuccessful": false,
+  "allSampledHealthSuccessful": true,
   "peakDatabaseConnections": 11,
   "peakDatabaseLockWaiters": 0,
-  "generatorPeakCpuPercent": 48.59,
-  "generatorPeakMemoryPercentOf2GiB": 18.62
+  "generatorPeakCpuPercent": 48.47,
+  "generatorPeakMemoryPercentOf2GiB": 17.53
 }
