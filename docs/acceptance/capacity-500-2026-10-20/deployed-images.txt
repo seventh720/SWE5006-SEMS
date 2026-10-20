@@ -1,3 +1,0 @@
-/swe5006-backend-1 ghcr.io/seventh720/swe5006-sems/backend@sha256:7ddb01f4903f9a7803617232138d59800b9578e0cd9a194469cff1fbe27fdc1a 805306368 0
-/swe5006-frontend-1 ghcr.io/seventh720/swe5006-sems/frontend@sha256:e32b57c2b696beccf3b5dd4ae3e74bcd36997fed275f43c83fd3bb81f7175c8a 100663296 0
-/swe5006-postgres-1 ghcr.io/seventh720/swe5006-sems/postgres@sha256:ef7502462cf07039ef67091dec99b60fbda22390daa20de5278e27f0693b6eea 536870912 0

@@ -1,0 +1,80 @@
+{
+  "health": {
+    "swe5006-api": {
+      "status": 200,
+      "seconds": 0.046,
+      "UP": true
+    },
+    "swe5006-web": {
+      "status": 200,
+      "seconds": 0.033,
+      "UP": null
+    },
+    "swe5001-web": {
+      "status": 200,
+      "seconds": 0.062,
+      "UP": null
+    },
+    "swe5001-identity": {
+      "status": 200,
+      "seconds": 0.066,
+      "UP": true
+    },
+    "swe5001-event-catalog": {
+      "status": 200,
+      "seconds": 0.062,
+      "UP": true
+    },
+    "swe5001-admission": {
+      "status": 200,
+      "seconds": 0.062,
+      "UP": true
+    }
+  },
+  "oldTokensAfterCleanup": [
+    {
+      "accountIndex": 0,
+      "remainingTokenLifetimeSeconds": 3571,
+      "status": 401,
+      "seconds": 0.029
+    },
+    {
+      "accountIndex": 1,
+      "remainingTokenLifetimeSeconds": 2995,
+      "status": 401,
+      "seconds": 0.036
+    },
+    {
+      "accountIndex": 500,
+      "remainingTokenLifetimeSeconds": 3192,
+      "status": 401,
+      "seconds": 0.034
+    },
+    {
+      "accountIndex": 1000,
+      "remainingTokenLifetimeSeconds": 3393,
+      "status": 401,
+      "seconds": 0.032
+    }
+  ],
+  "originalDataUnchanged": {
+    "users": true,
+    "events": true,
+    "bookings": true,
+    "tickets": true,
+    "roles": true
+  },
+  "databaseCountsAfterCleanup": {
+    "users": 6,
+    "events": 3,
+    "bookings": 2,
+    "tickets": 3,
+    "roles": 8
+  },
+  "cleanup": {
+    "remainingFixtureUsers": 0,
+    "remainingFixtureEvents": 0,
+    "remainingFixtureRoles": 0
+  },
+  "serverResourceSettingsChanged": false
+}
