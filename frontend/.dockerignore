@@ -9,5 +9,6 @@
 !tsconfig*.json
 !vite.config.ts
 !nginx.conf
+!nginx-main.conf
 !dist/
 !dist/**
