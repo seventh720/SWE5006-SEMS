@@ -10,7 +10,7 @@ Verified on **20 October 2026 (SGT)**: business baseline [`270c2b8`](https://git
 
 The application is ready for **feature freeze**. Cloud multi-role acceptance, DAST, an isolated database restore and a small read-performance baseline are complete; see the [acceptance evidence](docs/acceptance/sprint4-2026-10-20/README.md). Presentation/Agile materials, backup recordings, rehearsals and the final presentation tag remain. Real-device QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](docs/acceptance/sprint4-2026-10-20/README.md). These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
 
-The maintainer has set **500 VU** as the current capacity validation target; the proposal's 1000-user figure is a reference. The [cloud retest after optimization](docs/acceptance/capacity-500-2026-10-20/README.md) passed short 50/100-VU reads, then stopped after 34 request timeouts at 250 VU. The 500-VU stage was not executed, so the current target remains unverified. [Earlier results](docs/acceptance/capacity-2026-10-20/README.md) are preserved separately.
+The current **500 VU** capacity target passed cloud reads, mixed booking/ticket/cancellation traffic and inventory contention after the proxy connection pool was deployed. Steady-state p95 was 1.94 s for reads and 1.96 s for mixed traffic, with zero request errors. The 1000-VU attempt stopped after the shared HTTPS proxy hit its 128 MiB memory limit and restarted; both systems recovered and fixtures were removed. See the [latest capacity report](docs/acceptance/capacity-2026-10-21/README.md).
 
 ## Features and roles
 

@@ -1,0 +1,43 @@
+{
+  "sharedProxyMemoryLimitMiB": 128,
+  "events": [
+    {
+      "at": "2026-10-20T16:17:23.270950+00:00",
+      "action": "oom",
+      "container": "swe5001-caddy-1",
+      "exitCode": null
+    },
+    {
+      "at": "2026-10-20T16:17:23.628398+00:00",
+      "action": "die",
+      "container": "swe5001-caddy-1",
+      "exitCode": "137"
+    },
+    {
+      "at": "2026-10-20T16:17:24.083781+00:00",
+      "action": "start",
+      "container": "swe5001-caddy-1",
+      "exitCode": null
+    }
+  ],
+  "k6WarningCounts": {
+    "requestTimeout": 213,
+    "connectionRefused": 1528,
+    "unexpectedEOF": 837,
+    "connectionReset": 0,
+    "canceled": 0,
+    "EOF": 118
+  },
+  "requestCount": 12526,
+  "failedRequestCount": 2696,
+  "httpErrorRate": 0.21523231678109533,
+  "runSeconds": 34.275,
+  "configuredHoldSeconds": 180,
+  "completedHold": false,
+  "observedPeakVUs": 1000,
+  "k6ExitCode": 105,
+  "reason": "Health guard terminated load; shared Caddy container OOM-killed and automatically restarted",
+  "swe5006ContainerRestarts": 0,
+  "resourcesChanged": false,
+  "recoveryHealthAndCleanupPassed": true
+}

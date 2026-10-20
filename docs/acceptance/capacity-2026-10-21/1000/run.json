@@ -1,0 +1,419 @@
+{
+  "applicationCommit": "2bfab3a9ba95110e24e02e9ac0313aa31d67100f",
+  "maxVUs": 1000,
+  "readStartLevel": 1000,
+  "targetHoldSeconds": 180,
+  "readLowerLevels": [],
+  "mixedLowerLevels": [
+    50,
+    100,
+    250,
+    500
+  ],
+  "lowerHoldSeconds": 30,
+  "rampSeconds": 30,
+  "readAndMixed": true,
+  "contentionVUs": 1000,
+  "attendeeAccounts": 1000,
+  "syntheticOrganizerAccounts": 1,
+  "syntheticEvents": 11,
+  "latencyAbort": false,
+  "load1StopsRun": false,
+  "genuineErrorsAndHealthGuardsRetained": true,
+  "serverResourceSettingsChanged": false,
+  "proxyNamedKeepalivePool": 32,
+  "cloud": {
+    "cpus": 2,
+    "memoryMiB": 3832,
+    "sharedWith": "SWE5001"
+  },
+  "model": {
+    "authenticated": true,
+    "thinkTimeSeconds": 1,
+    "loginMeasured": false,
+    "sequentialReadRequestsPerIteration": 4
+  },
+  "status": "STOPPED",
+  "suite": [
+    {
+      "name": "read-1vu",
+      "mode": "read",
+      "runId": "914a2c4c2078",
+      "targetVUs": 1,
+      "rampSeconds": 30,
+      "plannedHold": "5s",
+      "startedAt": "2026-10-20T16:15:37.975948+00:00",
+      "exitCode": 0,
+      "endedAt": "2026-10-20T16:16:14.020392+00:00",
+      "requests": 20,
+      "p95Ms": 27.565866999999994,
+      "httpErrorRate": 0,
+      "unexpectedErrorRate": 0,
+      "thresholds": {
+        "http_req_duration{phase:hold}": {
+          "p(95)<3000": false
+        },
+        "unexpected_failure": {
+          "rate<0.01": false
+        },
+        "http_req_duration": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:me,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "checks": {
+          "rate==1": false
+        },
+        "http_req_duration{name:event-detail,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:events,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:orders,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "unexpected_failure{phase:hold}": {
+          "rate<0.01": false
+        }
+      },
+      "http_req_duration{phase:hold}": {
+        "avg": 15.520729099999997,
+        "min": 9.137166,
+        "med": 12.923604000000001,
+        "max": 33.813542,
+        "p(90)": 22.731417000000004,
+        "p(95)": 27.565866999999994,
+        "thresholds": {
+          "p(95)<3000": false
+        }
+      },
+      "unexpected_failure{phase:hold}": {
+        "passes": 0,
+        "fails": 20,
+        "thresholds": {
+          "rate<0.01": false
+        },
+        "value": 0
+      },
+      "vus": {
+        "value": 1,
+        "min": 0,
+        "max": 1
+      },
+      "vus_max": {
+        "min": 1,
+        "max": 1,
+        "value": 1
+      },
+      "continuedAfterLatencyFailure": false,
+      "actualRunSeconds": 35.374269488,
+      "observedPeakVUs": 1
+    },
+    {
+      "name": "mixed-1vu",
+      "mode": "mixed",
+      "runId": "914a2c4c2078",
+      "targetVUs": 1,
+      "rampSeconds": 30,
+      "plannedHold": "5s",
+      "startedAt": "2026-10-20T16:16:14.021294+00:00",
+      "exitCode": 0,
+      "endedAt": "2026-10-20T16:16:50.154090+00:00",
+      "requests": 23,
+      "p95Ms": 27.5568544,
+      "httpErrorRate": 0,
+      "unexpectedErrorRate": 0,
+      "thresholds": {
+        "unexpected_failure": {
+          "rate<0.01": false
+        },
+        "http_req_duration{name:me,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:orders,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:tickets,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:create-booking,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "unexpected_failure{phase:hold}": {
+          "rate<0.01": false
+        },
+        "http_req_duration{name:cancel-booking,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:events,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:event-detail,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "checks": {
+          "rate==1": false
+        }
+      },
+      "http_req_duration{phase:hold}": {
+        "p(95)": 27.5568544,
+        "avg": 19.894686695652172,
+        "min": 11.234625,
+        "med": 20.606042,
+        "max": 34.67525,
+        "p(90)": 27.169816200000003,
+        "thresholds": {
+          "p(95)<3000": false
+        }
+      },
+      "unexpected_failure{phase:hold}": {
+        "passes": 0,
+        "fails": 23,
+        "thresholds": {
+          "rate<0.01": false
+        },
+        "value": 0
+      },
+      "vus": {
+        "value": 1,
+        "min": 0,
+        "max": 1
+      },
+      "vus_max": {
+        "min": 1,
+        "max": 1,
+        "value": 1
+      },
+      "bookings_created": {
+        "count": 1,
+        "rate": 0.028147791869703533
+      },
+      "continuedAfterLatencyFailure": false,
+      "actualRunSeconds": 35.526765461,
+      "observedPeakVUs": 1
+    },
+    {
+      "name": "read-1000vu",
+      "mode": "read",
+      "runId": "914a2c4c2078",
+      "targetVUs": 1000,
+      "rampSeconds": 30,
+      "plannedHold": "180s",
+      "startedAt": "2026-10-20T16:16:50.155021+00:00",
+      "exitCode": 105,
+      "endedAt": "2026-10-20T16:17:24.430279+00:00",
+      "requests": 12526,
+      "p95Ms": 6789.270732499998,
+      "httpErrorRate": 0.21523231678109533,
+      "unexpectedErrorRate": 0.21523231678109533,
+      "thresholds": {
+        "unexpected_failure": {
+          "rate<0.01": true
+        },
+        "http_req_duration": {
+          "p(95)<3000": true
+        },
+        "http_req_duration{name:event-detail,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{phase:hold}": {
+          "p(95)<3000": false
+        },
+        "unexpected_failure{phase:hold}": {
+          "rate<0.01": true
+        },
+        "http_req_duration{name:orders,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "http_req_duration{name:me,phase:hold}": {
+          "p(95)<3000": false
+        },
+        "checks": {
+          "rate==1": true
+        },
+        "http_req_duration{name:events,phase:hold}": {
+          "p(95)<3000": false
+        }
+      },
+      "http_req_duration{phase:hold}": {
+        "avg": 59.36767279340791,
+        "min": 0,
+        "med": 0,
+        "max": 2660.761918,
+        "p(90)": 0,
+        "p(95)": 411.0439037999984,
+        "thresholds": {
+          "p(95)<3000": false
+        }
+      },
+      "unexpected_failure{phase:hold}": {
+        "passes": 1699,
+        "fails": 0,
+        "thresholds": {
+          "rate<0.01": true
+        },
+        "value": 1
+      },
+      "vus": {
+        "value": 1000,
+        "min": 30,
+        "max": 1000
+      },
+      "vus_max": {
+        "value": 1000,
+        "min": 1000,
+        "max": 1000
+      },
+      "continuedAfterLatencyFailure": false,
+      "actualRunSeconds": 33.611199001,
+      "observedPeakVUs": 1000
+    }
+  ],
+  "stop": {
+    "at": "2026-10-20T16:17:21.276798+00:00",
+    "availableMemoryMiB": 1308.1,
+    "load1": 10.45,
+    "containers": [
+      {
+        "Name": "swe5006-frontend-1",
+        "CPUPerc": "2.08%",
+        "MemUsage": "4.047MiB / 96MiB",
+        "MemPerc": "4.22%",
+        "PIDs": "3"
+      },
+      {
+        "Name": "swe5006-backend-1",
+        "CPUPerc": "0.13%",
+        "MemUsage": "515MiB / 768MiB",
+        "MemPerc": "67.06%",
+        "PIDs": "223"
+      },
+      {
+        "Name": "swe5006-postgres-1",
+        "CPUPerc": "0.02%",
+        "MemUsage": "65.83MiB / 512MiB",
+        "MemPerc": "12.86%",
+        "PIDs": "16"
+      },
+      {
+        "Name": "swe5001-gateway-1",
+        "CPUPerc": "0.01%",
+        "MemUsage": "3MiB / 96MiB",
+        "MemPerc": "3.12%",
+        "PIDs": "2"
+      },
+      {
+        "Name": "swe5001-identity-1",
+        "CPUPerc": "0.13%",
+        "MemUsage": "326.9MiB / 768MiB",
+        "MemPerc": "42.56%",
+        "PIDs": "32"
+      },
+      {
+        "Name": "swe5001-event-catalog-1",
+        "CPUPerc": "0.09%",
+        "MemUsage": "366.5MiB / 768MiB",
+        "MemPerc": "47.73%",
+        "PIDs": "32"
+      },
+      {
+        "Name": "swe5001-admission-1",
+        "CPUPerc": "0.09%",
+        "MemUsage": "278.3MiB / 768MiB",
+        "MemPerc": "36.24%",
+        "PIDs": "32"
+      },
+      {
+        "Name": "swe5001-postgres-1",
+        "CPUPerc": "3.59%",
+        "MemUsage": "69.34MiB / 512MiB",
+        "MemPerc": "13.54%",
+        "PIDs": "36"
+      },
+      {
+        "Name": "swe5001-web-1",
+        "CPUPerc": "0.00%",
+        "MemUsage": "3.496MiB / 96MiB",
+        "MemPerc": "3.64%",
+        "PIDs": "3"
+      }
+    ],
+    "states": [
+      "/swe5006-backend-1|true|false|0",
+      "/swe5006-postgres-1|true|false|0",
+      "/swe5006-frontend-1|true|false|0"
+    ],
+    "database": "{\"connections\" : 11, \"active\" : 1, \"lockWaiters\" : 0, \"longestActiveSeconds\" : 0.000000}",
+    "health": {
+      "swe5006-api": {
+        "ok": false,
+        "seconds": 0.004
+      },
+      "swe5006-web": {
+        "ok": false,
+        "seconds": 0.003
+      },
+      "swe5001-web": {
+        "ok": false,
+        "seconds": 0.003
+      },
+      "swe5001-identity": {
+        "ok": false,
+        "seconds": 0.003
+      },
+      "swe5001-event-catalog": {
+        "ok": false,
+        "seconds": 0.003
+      },
+      "swe5001-admission": {
+        "ok": false,
+        "seconds": 0.002
+      }
+    },
+    "stopReasons": [
+      "swe5006-api"
+    ]
+  },
+  "read1000Passed": false,
+  "mixed1000Passed": false,
+  "contention1000Passed": false,
+  "notExecuted": [
+    "read-50vu",
+    "read-100vu",
+    "read-250vu",
+    "read-500vu",
+    "mixed-50vu",
+    "mixed-100vu",
+    "mixed-250vu",
+    "mixed-500vu",
+    "mixed-1000vu",
+    "contention-1000vu"
+  ],
+  "proposal1000IsReference": true,
+  "maximumCapacityDetermined": false,
+  "guard": {
+    "load1Limit": 0,
+    "consecutiveSamples": 3,
+    "availableMemoryMiBBelow": 384,
+    "containerMemoryPercentAbove": 95,
+    "healthProbeSecondsAbove": 2,
+    "requestTimeoutSeconds": 8,
+    "unexpectedErrorRateLessThan": 0.01,
+    "p95MsGoal": 3000,
+    "latencyStopsRun": false
+  },
+  "loadGenerator": {
+    "k6": "1.3.0",
+    "cpuLimit": 4,
+    "memoryGiB": 2,
+    "localIdleSleepInhibited": true
+  }
+}

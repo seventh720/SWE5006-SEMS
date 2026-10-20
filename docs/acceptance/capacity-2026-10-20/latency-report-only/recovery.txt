@@ -1,8 +1,0 @@
-60c9430da89b960df59805afd65e76478e052884
-               total        used        free      shared  buff/cache   available
-Mem:            3832        2416         122          39        1635        1415
-Swap:              0           0           0
-1.73 2.05 1.75 2/581 2484167
-swe5006-frontend-1 Up 4 hours (healthy)
-swe5006-backend-1 Up 4 hours (healthy)
-swe5006-postgres-1 Up 4 hours (healthy)
