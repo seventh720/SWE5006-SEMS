@@ -4,6 +4,8 @@
 
 Verified business baseline on 20 October 2026 (SGT): `270c2b8`, deployed successfully by [run 39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552). Public URL: <https://swe5006.seventh720.com>. The running backend uses `SEMS_JWT_TTL=PT1H`.
 
+Latest verified main release, 21 October 2026: `565f08b` (PR #48), with [run 39566477705](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705) passing quality checks, image publication, backup/deployment, public HTTPS and DAST. The system demo v3 uses this release. Business acceptance, recovery and capacity reports retain their own original commits and dates; see the [testing record](testing.zh-CN.md).
+
 ## Release flow
 
 1. PR and main builds run lint, unit/integration tests, frontend build and static security checks.

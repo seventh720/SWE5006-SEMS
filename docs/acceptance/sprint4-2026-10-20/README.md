@@ -64,8 +64,8 @@ API准备组织者、Staff、活动、免费票种、分配及2张票订单。Ch
 
 各阶段均使用`python3 scripts/acceptance/cloud-flow.py <phase> --state .secrets/cloud-acceptance/accounts.json --report /tmp/cloud-acceptance-report.json`，复测须使用全新的state/report路径。state包含随机口令及token，仅保存在私有目录；报告只记录状态及断言。本次临时授权不延伸到未来运行。`prepare`创建的活动12分钟后开始，核销与取消步骤应在允许窗口内完成。
 
-## 当前仍需做
+## 后续交付
 
-演示与敏捷材料、两份备份录屏、全组彩排、演示数据/时间准备和最终版本tag尚未完成，统一见[交付清单](../../remaining-work.zh-CN.md)。
+当前剩余工作与完成状态统一见[交付清单](../../remaining-work.zh-CN.md)，不在历史验收记录重复维护。
 
 后续同一云主机的容量结果见[最新云端容量验证](../capacity-2026-10-21/README.md)，与本文业务验收、恢复和小规模基线分别记录。

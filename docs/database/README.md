@@ -2,6 +2,8 @@
 
 PostgreSQL is the system database. Flyway SQL files under `backend/src/main/resources/db/migration` are the source of truth for its schema. Navicat is a supported local client for viewing data and testing queries.
 
+Reviewed on 21 October 2026 against all **14 migrations**: **11 application tables**, plus Flyway's history table. The sections below retain the schema's evolution; the [current core ERD](#current-core-erd) includes tickets, staff assignments, check-in audit and notifications for presentation use.
+
 ## Rules
 
 1. Create a new timestamped Flyway migration for every schema change.
@@ -201,3 +203,64 @@ Publication requires an unexpired deadline. New reservations check it under the 
 `V202610072200__event_illustrations_and_avatars.sql` adds `events.illustration` with default `GENERAL` and a database allowlist (`GENERAL`, `TECH`, `MUSIC`, `SPORT`, `ART`, `SOCIAL`). Existing events receive the general illustration. Draft editing and copying preserve the selected value.
 
 `users.avatar_data` is nullable TEXT containing a server-decoded and re-encoded PNG data URL. The own-profile avatar endpoint stores and reads it separately from user lists and booking details. Null means the default avatar. No filesystem upload directory or new environment variable is needed; database backup includes saved avatars. This bounded small-image storage suits the current project scope.
+
+## Electronic tickets, staff and check-in audit
+
+Sources: [issued-ticket migration](../../backend/src/main/resources/db/migration/V202610160100__create_issued_tickets.sql) and [staff/check-in migration](../../backend/src/main/resources/db/migration/V202610190100__staff_check_in.sql).
+
+| Table / columns | Type and constraints | Purpose |
+|---|---|---|
+| `issued_tickets.id` | UUID PK | One admission credential per ticket, encoded in the QR |
+| `booking_id`, `event_id` | UUID NOT NULL; composite FK to `bookings(id, event_id)` | Prevent a ticket referencing a booking from another event |
+| `ordinal` | INTEGER 1–10; unique `(booking_id, ordinal)` | Stable ticket number within an order; prevents duplicate issuance |
+| `status` | VARCHAR(20): VALID / CHECKED_IN / VOID | Lifecycle state |
+| `checked_in_at`, `voided_at` | TIMESTAMPTZ, nullable | VALID has neither timestamp; CHECKED_IN requires check-in time only; VOID requires void time and may retain check-in time |
+| `event_staff_assignments.event_id`, `staff_id` | Composite PK; FKs to events/users with ON DELETE CASCADE | Per-event assignment; global STAFF role and current account validity are also checked by the application |
+| `ticket_check_in_records.id` | UUID PK | Permanent audit entry for a successful check-in |
+| `ticket_id` | UUID NOT NULL UNIQUE FK to issued_tickets | At most one audit record per ticket |
+| `event_id`, `booking_id`, `operator_id` | UUID NOT NULL FKs to events/bookings/users | Event, booking and the staff member who performed the operation |
+| `checked_in_at` | TIMESTAMPTZ NOT NULL | Audit time |
+
+Indexes support ticket lookup by event, staff assignment lookup by staff and audit lookup by event/time descending. Ticket issuance, check-in and cancellation share the event lock and transaction contract described in [cancellation integration](../sprint-4-cancellation.zh-CN.md). Event cancellation voids tickets while retaining check-in audit; reports count currently valid check-ins separately from historical admissions. The time window and authorization are application rules, not SQL CHECK constraints.
+
+## Notifications
+
+Sources: [notification migration](../../backend/src/main/resources/db/migration/V202610160200__create_notifications.sql) and [role-change extension](../../backend/src/main/resources/db/migration/V202610200100__role_change_notifications.sql).
+
+| Columns | Type and constraints | Purpose |
+|---|---|---|
+| `id`, `user_id` | UUID PK; required recipient FK to users | Private recipient inbox |
+| `type` | VARCHAR(40), database allowlist | STAFF_ASSIGNED, STAFF_REVOKED, BOOKING_CONFIRMED, BOOKING_CANCELLED, REGISTRATION_OPENING_SOON, EVENT_UPDATED, EVENT_CANCELLED, ROLES_CHANGED |
+| `title`, `message` | VARCHAR(250) NOT NULL / TEXT NOT NULL | Message snapshot |
+| `event_id`, `booking_id`, `ticket_type_id` | Nullable UUIDs, **no foreign-key constraints** | Optional navigation/context identifiers; target APIs still enforce access |
+| `source_key` | VARCHAR(250) NOT NULL; unique `(user_id, type, source_key)` | Database protection against duplicate delivery for a business operation/reminder |
+| `created_at`, `read_at` | Required creation timestamp / nullable read timestamp | Inbox sorting and read state |
+
+Indexes cover recipient/creation-time/ID and unread recipients. Business notifications participate in the originating transaction; reminder timing, deduplication and polling are documented in [notification integration](../notification-integration.zh-CN.md). Reports use queries over existing tables; there is no separate reporting table.
+
+## Current core ERD
+
+All 11 application tables are included. Flyway's technical history table is omitted. Edges represent declared foreign keys; notification event/booking/ticket-type identifiers are contextual references without FK edges. Columns and composite constraints are detailed above and in the migration files.
+
+```mermaid
+erDiagram
+    users ||--o{ user_roles : holds
+    roles ||--o{ user_roles : grants
+    users ||--o{ events : organizes
+    events ||--o{ ticket_types : offers
+    users ||--o{ bookings : places
+    events ||--o{ bookings : receives
+    ticket_types ||--o{ bookings : selected
+    users ||--o{ pre_registrations : saves
+    events ||--o{ pre_registrations : accepts
+    ticket_types ||--o{ pre_registrations : selected
+    bookings o|--o{ pre_registrations : linked_after_booking
+    bookings ||--o{ issued_tickets : issues_with_event_key
+    events ||--o{ event_staff_assignments : authorizes
+    users ||--o{ event_staff_assignments : assigned
+    issued_tickets ||--o| ticket_check_in_records : audited_once
+    events ||--o{ ticket_check_in_records : records
+    bookings ||--o{ ticket_check_in_records : traces
+    users ||--o{ ticket_check_in_records : operates
+    users ||--o{ notifications : receives
+```

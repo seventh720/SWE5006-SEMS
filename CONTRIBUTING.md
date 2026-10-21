@@ -97,7 +97,7 @@ Telegram notification is not a required quality check for merging.
 
 ## Changes during feature freeze
 
-The current application is a feature-freeze candidate. Until presentation acceptance is complete,
+The application is in feature freeze. Until presentation acceptance is complete,
 keep changes focused on reproducible defects, security findings, deployment reliability, tests and
 accurate documentation. Defer new business features and broad refactors. A final presentation tag
 should identify the exact tested commit after cloud walkthroughs, DAST, recovery and device checks.
