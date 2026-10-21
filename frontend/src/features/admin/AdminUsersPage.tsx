@@ -84,10 +84,12 @@ export function AdminUsersPage() {
         </div>
       </header>
 
-      <form className="card filter-form" role="search" onSubmit={submit}>
+      <form className="card filter-form user-search-form" role="search" onSubmit={submit}>
         <label>Search username or email<input type="search" value={search} onChange={e => setSearch(e.target.value)} /></label>
-        <button className="primary-button compact" disabled={savingId != null}>Search users</button>
-        {keyword && <button type="button" className="secondary-button" disabled={savingId != null} onClick={() => move(0, "")}>Clear search</button>}
+        <div className="filter-actions">
+          <button className="primary-button compact" disabled={savingId != null}>Search users</button>
+          {keyword && <button type="button" className="secondary-button" disabled={savingId != null} onClick={() => move(0, "")}>Clear search</button>}
+        </div>
       </form>
       {error && <p role="alert" className="error-message">{error}</p>}
       {expired ? <button className="secondary-button" onClick={() => { logout(); navigate("/login"); }}>Sign in again</button>

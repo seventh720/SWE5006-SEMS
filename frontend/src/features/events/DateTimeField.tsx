@@ -68,10 +68,11 @@ export function DateTimeField({ name, label, value: inputValue, onChange, error,
         aria-invalid={!!fieldError} aria-describedby={[!dateOnly && "event-time-zone", fieldError && `${name}-error`].filter(Boolean).join(" ") || undefined} />
       <button ref={trigger} type="button" className="secondary-button" aria-label={`Choose ${label.toLowerCase()}`}
         aria-expanded={open} aria-controls={`${name}-calendar`} onClick={() => open ? close() : show()}>
-        {dateOnly ? <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="5" width="18" height="16" rx="2" />
           <path d="M16 3v4M8 3v4M3 11h18" />
-        </svg> : "Calendar"}
+        </svg>
+        {!dateOnly && <span>Calendar</span>}
       </button>
     </div>
     {open && <section id={`${name}-calendar`} className="english-calendar" aria-label={`${label} calendar`} lang="en"

@@ -33,22 +33,24 @@ export function MyTicketsPage() {
   const event = booking?.currentEvent ?? (booking && {title:booking.eventTitle,location:booking.eventLocation,startsAt:booking.eventStartsAt,endsAt:booking.eventEndsAt});
   return <main className="app-shell">
     <Link className="text-link" to={`/bookings/${id}`}>← Order details</Link>
-    <header className="app-header"><div><p className="eyebrow">My tickets</p><h1>Electronic tickets</h1>
+    <header className="app-header organizer-header"><div><p className="eyebrow">My tickets</p><h1>Electronic tickets</h1>
       <p>Show one QR code per attendee. Each ticket can be checked in once.</p></div></header>
-    <button className="secondary-button" onClick={()=>setAttempt(value=>value+1)}>Refresh tickets</button>
-    {!current && <p role="status">Loading tickets…</p>}
-    {current?.error != null && <BookingError error={current.error}/>}
-    {event && <section className="card"><h2>{event.title}</h2><p>{event.location}</p>
-      <p>{formatEventTime(event.startsAt)} – {formatEventTime(event.endsAt)}</p>
-      <p>Check-in opens 15 minutes before the start and closes 15 minutes after the start, or at the event end if earlier.</p>
-      <p className="muted">Keep your ticket private. Staff confirm its current status at the door.</p></section>}
-    {current?.tickets?.length === 0 && <p>No tickets are available for this order.</p>}
-    <div className="event-grid">{current?.tickets?.map(ticket=><article className="card" key={ticket.id}>
-      <h2>Ticket {ticket.ordinal}</h2><p>{ticket.status === "VALID" ? "Valid" : ticket.status === "CHECKED_IN" ? "Checked in" : "Voided"}</p>
-      {ticket.status === "VALID" && booking?.status === "CONFIRMED" ? <TicketQr code={`sems:ticket:${ticket.id}`}/> : <p>This ticket cannot be used for admission.</p>}
-      <p className="ticket-code">{ticket.id}</p>
-      {ticket.checkedInAt && <p>Checked in: {formatEventTime(ticket.checkedInAt)}</p>}
-    </article>)}</div>
+    <div className="ticket-page-content">
+      <button className="secondary-button" onClick={()=>setAttempt(value=>value+1)}>Refresh tickets</button>
+      {!current && <p role="status">Loading tickets…</p>}
+      {current?.error != null && <BookingError error={current.error}/>}
+      {event && <section className="card"><h2>{event.title}</h2><p>{event.location}</p>
+        <p>{formatEventTime(event.startsAt)} – {formatEventTime(event.endsAt)}</p>
+        <p>Check-in opens 15 minutes before the start and closes 15 minutes after the start, or at the event end if earlier.</p>
+        <p className="muted">Keep your ticket private. Staff confirm its current status at the door.</p></section>}
+      {current?.tickets?.length === 0 && <p>No tickets are available for this order.</p>}
+      <div className="event-grid">{current?.tickets?.map(ticket=><article className="card" key={ticket.id}>
+        <h2>Ticket {ticket.ordinal}</h2><p>{ticket.status === "VALID" ? "Valid" : ticket.status === "CHECKED_IN" ? "Checked in" : "Voided"}</p>
+        {ticket.status === "VALID" && booking?.status === "CONFIRMED" ? <TicketQr code={`sems:ticket:${ticket.id}`}/> : <p>This ticket cannot be used for admission.</p>}
+        <p className="ticket-code">{ticket.id}</p>
+        {ticket.checkedInAt && <p>Checked in: {formatEventTime(ticket.checkedInAt)}</p>}
+      </article>)}</div>
+    </div>
   </main>;
 }
 function TicketQr({code}:{code:string}) {
