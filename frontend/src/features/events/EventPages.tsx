@@ -64,9 +64,11 @@ export function EventListPage() {
       <DateTimeField dateOnly required={false} name="event-filter-to" label="To date (SGT)" value={draftFilters.to} onChange={to => setDraftFilters({ ...draftFilters, to })} />
       <Select label="Event status" value={draftFilters.status} onChange={status => setDraftFilters({ ...draftFilters, status })}
         options={[{ value: "ALL", label: "All published events" }, { value: "UPCOMING", label: "Upcoming" }, { value: "ONGOING", label: "Ongoing" }, { value: "ENDED", label: "Ended" }]} />
-      <button className="primary-button compact" type="submit">Search events</button>
-      {filterError && <p role="alert">{filterError}</p>}
-      {hasFilters && <button className="secondary-button" type="button" onClick={() => { setSearch(""); setFilterError(""); navigate(0, "", { location: "", from: "", to: "", status: "ALL" }); }}>Clear search</button>}
+      <div className="filter-actions">
+        <button className="primary-button compact" type="submit">Search events</button>
+        {hasFilters && <button className="secondary-button" type="button" onClick={() => { setSearch(""); setFilterError(""); navigate(0, "", { location: "", from: "", to: "", status: "ALL" }); }}>Clear search</button>}
+      </div>
+      {filterError && <p className="filter-error" role="alert">{filterError}</p>}
     </form>
     <section aria-label="Published events" aria-busy={request.loading}>
       <div className="event-results-heading"><h2>{keyword ? `Results for “${keyword}”` : "Published events"}</h2>
