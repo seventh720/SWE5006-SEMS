@@ -1,8 +1,10 @@
 # DAST Baseline
 
-2026-10-20核验业务基线`270c2b8`：[main运行39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552)的部署与DAST均成功。
+以下统计对应2026-10-20保存的业务基线`270c2b8`及[main运行39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552)，部署与DAST均成功。后续已核验部署的扫描状态见[测试说明](testing.zh-CN.md)；此处保留原报告范围与执行方法。
 
-## 当前云端结果
+2026-10-21补充核验：最新`565f08b`的[main运行39566477705](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705)中，DAST作业成功；日志记录High=0、Medium=0、Low=0、Informational=4、PASS=66。它是最新扫描状态，下表仍是已保存的原基线报告。
+
+## 已保存的扫描基线
 
 | 目标 | URL数 | 规则通过 | 高危 | 中危 | 低危 | 信息 |
 |---|---:|---:|---:|---:|---:|---:|
@@ -11,8 +13,6 @@
 无失败、警告或IGNORE规则。信息项为SPA识别及缓存策略；此结果不代表完成主动攻击或全站渗透测试。
 
 此前发现的CSP、防嵌入及其他安全头已修复；COOP/COEP也已补齐。CSP保留同源脚本、React样式属性、data/blob头像及二维码，`camera=(self)`允许本站相机。后续跨源资源须满足CSP及CORP/CORS要求。
-
-PR #38的首次云端扫描已经零高/中/低危，但容器用户生成的Python缓存导致runner清理失败；PR #39通过`PYTHONDONTWRITEBYTECODE=1`修复。最新main已验证报告保存、清理及作业整体退出成功，不再将该问题列为待办。
 
 ## 扫描范围与门槛
 

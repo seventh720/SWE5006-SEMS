@@ -6,11 +6,24 @@ SWE5006 Team 10's event management and free-ticketing application, built with Re
 
 ## Delivery status
 
-Verified on **20 October 2026 (SGT)**: business baseline [`270c2b8`](https://github.com/seventh720/SWE5006-SEMS/commit/270c2b87322f89555d54222b825da82e0694fa54) passed [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552) and is deployed over HTTPS. The backend's runtime JWT lifetime is `PT1H`.
+Verified on **21 October 2026 (SGT)**. The application is in **feature freeze**. Cloud multi-role acceptance, DAST, phone QR scanning, an isolated database restore and the agreed **500 VU** capacity target are complete. The latest verified main release is `565f08b` (PR #48); [CI, deployment and DAST all passed](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705). Business acceptance and capacity measurements retain their original version/date in the [testing notes](docs/testing.zh-CN.md). Runtime JWT lifetime is `PT1H`.
 
-The application is ready for **feature freeze**. Cloud multi-role acceptance, DAST, an isolated database restore and a small read-performance baseline are complete; see the [acceptance evidence](docs/acceptance/sprint4-2026-10-20/README.md). Presentation/Agile materials, backup recordings, rehearsals and the final presentation tag remain. Real-device QR scanning was confirmed working by the maintainer on 20 October; see the [acceptance record](docs/acceptance/sprint4-2026-10-20/README.md). These are tracked in the [delivery checklist](docs/remaining-work.zh-CN.md). Presentation: **27 October 2026, 10:30 SGT**.
+At 1000 VU, reads pass, while mixed traffic and inventory contention retain latency and connection reliability limits. This additional exploration is documented in the [latest capacity report](docs/acceptance/capacity-2026-10-21/README.md); passing every 1000-VU scenario is outside the agreed delivery goal.
 
-The agreed **500 VU** delivery capacity target is complete. In the latest deployment, the 500-VU read/mixed 30-second holds pass with p95 2.06/1.92 s and zero errors. At 1000 VU, reads pass a 180-second hold with p95 2.94 s and zero errors; mixed traffic completes the same hold with p95 3.51 s and zero errors, exceeding the 3-second target. Inventory contention has p95 4.10 s and one refused TCP connection, with no overselling. Test data is removed; no health guard stop, OOM or container restart occurred. See the [latest capacity report](docs/acceptance/capacity-2026-10-21/README.md).
+The **CI/CD walkthrough (11:09)** and **system demo v3 (9:19)** are complete and accepted, with English narration and bilingual subtitles. Local files are under `presentation-recordings/2026-10-21/` (ignored by Git). The system demo uses release `565f08b`; the CI/CD video explains a labelled historical run.
+
+The maintainer confirmed the team's presentation for **27 October 2026, 10:30 SGT**. Follow the lecturer announcement's format: **40 minutes of presentation followed by 5 minutes of Q&A**; the November dates in its screenshot title do not set this team's schedule. Differences from the generic Word guide are recorded in the [source review](docs/presentation.zh-CN.md#2026年10月21日原文核对). **Full final-report writing follows the presentation.** Remaining preparation:
+
+| Item | Status / completion needed |
+|---|---|
+| Slides | Not yet made; update historical material and explain scope, analysis-to-design transitions, patterns, ERD, testing and DevSecOps |
+| Agile and individual contributions | Gather actual five-sprint dates, backlog, reviews, retrospectives, contributions and effort |
+| Quality-attribute demonstration | Prepare the performance script, actual output and 500/1000-VU limits; reserve time beyond the business video |
+| Live demo and rehearsals | Accounts retained; prepare a new event covering the live check-in window, assign speakers and rehearse twice |
+| Offline and submission package | Package accepted videos, slides and test/scan evidence; plan 40 minutes plus 5 minutes Q&A, with live demos and backup videos; confirm submission arrangements, final commit/tag, CI run and backup |
+| On-site checks | Re-login and verify HTTPS, camera, tickets, playback and fallback material before the session |
+
+Dates, completion criteria and retained demo data are maintained in the [delivery checklist](docs/remaining-work.zh-CN.md). Use the [presentation guide](docs/presentation.zh-CN.md) for the talk and the [demo walkthrough](docs/sprint-4-demo.zh-CN.md) for operations.
 
 ## Features and roles
 

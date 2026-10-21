@@ -47,3 +47,6 @@ dast-reports/
 
 # Raw capacity-test logs and resource samples
 performance-reports/
+
+# Local presentation video, audio and editing sources
+presentation-recordings/

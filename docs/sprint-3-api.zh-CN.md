@@ -1,5 +1,7 @@
 # 接口、权限与事务约定
 
+当前实现参考；文件名沿用Sprint 3，内容已扩展到免费票完整业务闭环。最新交付状态见[交付清单](remaining-work.zh-CN.md)，数据库结构见[数据库说明](database/README.md)。
+
 ## 修改用户名
 
 登录用户可在个人资料页的Username区域修改用户名。`PUT /api/v1/profile/username` 接收 `{"username":"new.name"}`，成功返回 `{"username":"new.name"}`。用户ID从JWT读取，只能修改本人；登录邮箱、密码、角色及订单归属不变。
@@ -126,7 +128,7 @@ Dashboard的“Saved booking details”用于提前保存。预订页点击“Ap
 | ticketing | `TicketReservationService`、`TicketTypeView` | 库存占用、返还及票种快照 |
 | booking | Web API、`BookingView`、`OrganizerBookingView` | 请求幂等、订单持久化、查询和取消 |
 
-不访问其他模块内部Entity或Repository。同步事件由各模块内部监听器处理；不使用异步监听或提交后监听来执行本轮核心写操作。
+上述预订链路通过公开服务和事件协作，不访问其他模块内部Entity或Repository。同步事件由各模块内部监听器处理；不使用异步监听或提交后监听来执行本轮核心写操作。当前checkin与reporting另有跨模块JDBC查询例外，见[ADR](adr/0001-modular-monolith.md#implementation-review-2026-10-19)，不将本表描述为所有模块均已完全隔离。
 
 1. 下单先取得用户与请求键对应的PostgreSQL事务咨询锁，读取已有订单，再取得活动行锁。
 2. 票种配置、活动编辑/发布/取消、库存占用/返还、用户取消订单均先取得活动行锁。活动锁保留至整个事务结束。
@@ -167,7 +169,7 @@ sequenceDiagram
 
 响应状态为 `WAITING`（未开售）、`OPEN`（可正式报名）、`CLOSED`（已截止）、`EVENT_CANCELLED`（活动取消）或 `BOOKED`（已创建订单，同时返回 bookingId）。BOOKED 仅表示曾创建关联订单，订单当前有效性以 My orders 为准。个人 Dashboard 展示最近三条，完整页面提供分页和删除；倒计时归零自动显示 Review and book，不自动发请求下单。正式订单依旧使用库存事务和幂等键，用户确认后才消耗名额。
 
-建议普通活动直接开放，名额紧张的活动按需定时开放。当前没有排队、抽签、候补递补或开售通知；并发安全测试不等于大规模抢票压力验收。
+建议普通活动直接开放，名额紧张的活动按需定时开放。当前已提供开售前5分钟的站内提醒，规则见[通知说明](notification-integration.zh-CN.md)；没有排队、抽签或候补递补，也不自动下单。并发安全测试不等于大规模抢票压力验收。
 
 ## 活动插图与头像
 

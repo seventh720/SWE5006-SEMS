@@ -6,11 +6,24 @@ SWE5006 第 10 组课程项目，使用 React、TypeScript、Spring Boot 和 Pos
 
 ## 当前交付状态
 
-**2026年10月20日（SGT）已核验**：业务基线 [`270c2b8`](https://github.com/seventh720/SWE5006-SEMS/commit/270c2b87322f89555d54222b825da82e0694fa54) 的 [CI/CD](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552) 全部通过，已部署到 HTTPS 云端，后端实际 JWT 配置为 `PT1H`。
+状态核验于**2026年10月21日（SGT）**。当前保持**功能冻结**。云端多角色流程、DAST、手机扫码、隔离数据库恢复及**500 VU容量目标已完成**。最新已核验main版本为`565f08b`（PR #48），[CI、部署和DAST全部成功](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705)。业务验收和容量实测保留各自原始版本及日期，详见[测试说明](docs/testing.zh-CN.md)；后端实际JWT配置为`PT1H`。
 
-当前保持**功能冻结**。云端多角色流程、DAST、隔离数据库恢复与小规模读取性能基线均已完成，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余为演示/敏捷材料、备份录屏、彩排与最终演示版本。手机扫码已由维护者于10月20日确认通过，见[验收记录](docs/acceptance/sprint4-2026-10-20/README.md)。剩余项目详见[交付清单](docs/remaining-work.zh-CN.md)。正式 presentation：**2026年10月27日 10:30 SGT**。
+1000 VU为额外容量探索：读取通过，混合业务与库存竞争仍有延迟及连接可靠性限制，详见[最新容量报告](docs/acceptance/capacity-2026-10-21/README.md)。维护者已确认不将1000 VU全场景达标作为本轮交付条件。
 
-500 VU交付目标已完成；本轮500读取/混合保持30秒，p95为2.06/1.92秒、错误0。1000读取保持180秒，p95为2.94秒、错误0，通过；混合保持180秒，p95为3.51秒、错误0，延迟未通过；库存竞争p95为4.10秒，另有1次连接失败，无超卖。测试数据已清理，无健康保护中断、OOM或容器重启。详情见[最新容量报告](docs/acceptance/capacity-2026-10-21/README.md)。
+**CI/CD讲解视频（11分09秒）和系统Demo v3（9分19秒）均已完成并获认可**，含英文配音及中英字幕。本地文件位于`presentation-recordings/2026-10-21/`，被Git忽略。系统Demo使用`565f08b`；CI/CD视频讲解已标明版本的历史运行。
+
+维护者已确认本组正式presentation为**2026年10月27日10:30 SGT**。编排按教师通知：**展示40分钟，之后另5分钟Q&A**；截图标题中的11月日期不用于本组排期。通知与通用Word指南的差异见[原文核对](docs/presentation.zh-CN.md#2026年10月21日原文核对)。**完整final report在pre后补齐。** 当前准备缺口：
+
+| 项目 | 状态与完成要求 |
+|---|---|
+| Slides | 尚未制作；更新历史素材，讲清范围、分析→设计、三种模式、ERD、测试及DevSecOps证据 |
+| 敏捷与成员贡献 | 整理真实五Sprint日期、backlog、Review/Retro、贡献与实际工时 |
+| 质量属性展示 | 准备性能脚本、实际输出及500/1000 VU边界说明；业务成片之外预留展示时间 |
+| 现场Demo与彩排 | 账号已保留；另建覆盖现场签到窗口的活动，确认分工并完成两轮彩排 |
+| 离线与提交包 | 整理已认可视频、slides和测试/扫描证据；按40分钟展示加5分钟Q&A编排；现场Demo为主、视频备用；核对提交安排及最终commit/tag、CI和备份 |
+| 当天预检 | 重新登录，检查HTTPS、相机、票额、视频播放及备用材料 |
+
+日期、完成标准和保留数据统一维护在[交付清单](docs/remaining-work.zh-CN.md)。讲解结构见[演示指南](docs/presentation.zh-CN.md)，操作顺序见[业务演示脚本](docs/sprint-4-demo.zh-CN.md)。
 
 ## 功能与角色
 
