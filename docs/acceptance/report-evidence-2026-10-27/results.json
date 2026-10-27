@@ -1,0 +1,236 @@
+{
+  "run_id": 40445034465,
+  "date_sgt": "2026-10-27",
+  "branch_head": "8cfc17d157c493a1c1bc0fff423a097a278a8e7f",
+  "checkout_merge_commit": "82060f508b98b86b6e4804e98d01e46701591b76",
+  "run_url": "https://github.com/seventh720/SWE5006-SEMS/actions/runs/40445034465",
+  "pr_url": "https://github.com/seventh720/SWE5006-SEMS/pull/50",
+  "jobs": [
+    {
+      "name": "Backend \u00b7 Unit Tests",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Backend \u00b7 Integration Tests",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Frontend \u00b7 Tests & Build",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Security \u00b7 SAST, Dependencies & Secrets",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Images \u00b7 Scan & Smoke Test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Notify \u00b7 Telegram",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Deploy \u00b7 Staging",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Security \u00b7 DAST Baseline",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ],
+  "backend_unit": {
+    "tests": 202,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 140,
+    "passed": 62
+  },
+  "backend_combined": {
+    "tests": 216,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "passed": 215
+  },
+  "backend_combined_coverage": {
+    "line": {
+      "covered": 1330,
+      "total": 1406,
+      "percent": 94.59
+    },
+    "branch": {
+      "covered": 429,
+      "total": 526,
+      "percent": 81.56
+    }
+  },
+  "frontend": {
+    "tests_passed": 244,
+    "files_passed": 32,
+    "coverage": {
+      "lines": {
+        "total": 1436,
+        "covered": 1332,
+        "skipped": 0,
+        "pct": 92.75
+      },
+      "branches": {
+        "total": 2063,
+        "covered": 1723,
+        "skipped": 0,
+        "pct": 83.51
+      },
+      "statements": {
+        "total": 1913,
+        "covered": 1698,
+        "skipped": 0,
+        "pct": 88.76
+      },
+      "functions": {
+        "total": 525,
+        "covered": 469,
+        "skipped": 0,
+        "pct": 89.33
+      }
+    }
+  },
+  "sast": {
+    "findings": 0,
+    "errors": 0,
+    "files_scanned": 207
+  },
+  "trivy": {
+    "severity_filter": [
+      "HIGH",
+      "CRITICAL"
+    ],
+    "unsuppressed_vulnerabilities": 0,
+    "secrets": 0,
+    "java_exceptions": [
+      "CVE-2026-47884",
+      "CVE-2026-47890"
+    ],
+    "exception_expiry": "2026-11-17"
+  },
+  "dast": {
+    "application_commit": "270c2b87322f89555d54222b825da82e0694fa54",
+    "date_sgt": "2026-10-20",
+    "run_id": 39311200552,
+    "count_unit": "alert types",
+    "high": 0,
+    "medium": 0,
+    "low": 0,
+    "informational": 4,
+    "informational_instances": 17,
+    "scope": "Unauthenticated passive public HTTPS baseline; not rerun by PR #50"
+  },
+  "performance": {
+    "applicationCommit": "037720bf57031063ea30ee2a55827d8f8d67b03b",
+    "allPlannedStagesExecuted": true,
+    "allThresholdsPassed": false,
+    "read500Passed": true,
+    "mixed500Passed": true,
+    "read1000": {
+      "passed": true,
+      "holdSeconds": 180,
+      "requests": 95360,
+      "errors": 0,
+      "holdP95Ms": 2937.7527307499995
+    },
+    "mixed1000": {
+      "passed": false,
+      "holdSeconds": 180,
+      "requests": 83164,
+      "errors": 0,
+      "holdP95Ms": 3508.9287636999984,
+      "reason": "Overall and endpoint p95 exceed 3 seconds"
+    },
+    "contention1000": {
+      "passed": false,
+      "configuredVUs": 1000,
+      "observedPeakVUs": 983,
+      "attempts": 1000,
+      "successfulBookings": 100,
+      "expectedSoldOut": 899,
+      "connectionFailures": 1,
+      "p95Ms": 4099.7734722,
+      "reason": "One refused TCP connection and p95 exceeds 3 seconds"
+    },
+    "inventory": {
+      "quota": 100,
+      "confirmedQuantity": 100,
+      "validTickets": 100,
+      "duplicateTicketOrdinals": 0,
+      "oversold": false
+    },
+    "healthGuardTriggered": false,
+    "containerRestartOrOOMObserved": false,
+    "serverUpgraded": false,
+    "cleanupAndRecoveryPassed": true
+  },
+  "original_ci_archives": [
+    {
+      "id": 12708141237,
+      "name": "image-security-reports",
+      "digest": "sha256:02aaff9023a6bc7c38de0b33c614d362610f3109370d615e1c67c51a7e210c94",
+      "created_at": "2026-10-27T03:39:14Z",
+      "expires_at": "2026-11-03T03:39:13Z"
+    },
+    {
+      "id": 12708066044,
+      "name": "backend-combined-coverage",
+      "digest": "sha256:b3441fa6e055a90360807f2b599a76340b83a9e2593fee829c2298d5bb87af31",
+      "created_at": "2026-10-27T03:37:06Z",
+      "expires_at": "2027-01-25T03:35:40Z"
+    },
+    {
+      "id": 12707713005,
+      "name": "frontend-coverage",
+      "digest": "sha256:cc0af389e3f5967cd4fe1c71260b17a35ea28deb94ba9a3f8e312bd840110b73",
+      "created_at": "2026-10-27T03:36:20Z",
+      "expires_at": "2027-01-25T03:35:40Z"
+    },
+    {
+      "id": 12707692983,
+      "name": "backend-unit-coverage",
+      "digest": "sha256:0753a5063c36fa32d81759e312c8bdd89f06c4852277a38cc45b384b8799c324",
+      "created_at": "2026-10-27T03:36:18Z",
+      "expires_at": "2027-01-25T03:35:40Z"
+    },
+    {
+      "id": 12707194415,
+      "name": "lint-report",
+      "digest": "sha256:c7d08462b9323004559449f90faefa9377c9bbb33f1c0717113bb7bec452ae7d",
+      "created_at": "2026-10-27T03:36:18Z",
+      "expires_at": "2026-11-03T03:36:17Z"
+    },
+    {
+      "id": 12706929812,
+      "name": "dependency-secret-reports",
+      "digest": "sha256:94603a8d0a0544c4108075416d74b8f4b306acc628b44356abddc881b36c8901",
+      "created_at": "2026-10-27T03:37:22Z",
+      "expires_at": "2026-11-03T03:37:21Z"
+    },
+    {
+      "id": 12706824905,
+      "name": "sast-report",
+      "digest": "sha256:1ba3128e23ace166ee98012fa6065e931738c7ea50d0b10944c9a8aba65e6c06",
+      "created_at": "2026-10-27T03:37:21Z",
+      "expires_at": "2026-11-03T03:37:20Z"
+    }
+  ]
+}

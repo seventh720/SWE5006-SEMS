@@ -1,0 +1,55 @@
+{
+  "run_id": 40445034465,
+  "archives": [
+    {
+      "id": 12708141237,
+      "name": "image-security-reports",
+      "digest": "sha256:02aaff9023a6bc7c38de0b33c614d362610f3109370d615e1c67c51a7e210c94",
+      "created_at": "2026-10-27T03:39:14Z",
+      "expires_at": "2026-11-03T03:39:13Z"
+    },
+    {
+      "id": 12708066044,
+      "name": "backend-combined-coverage",
+      "digest": "sha256:b3441fa6e055a90360807f2b599a76340b83a9e2593fee829c2298d5bb87af31",
+      "created_at": "2026-10-27T03:37:06Z",
+      "expires_at": "2027-01-25T03:35:40Z"
+    },
+    {
+      "id": 12707713005,
+      "name": "frontend-coverage",
+      "digest": "sha256:cc0af389e3f5967cd4fe1c71260b17a35ea28deb94ba9a3f8e312bd840110b73",
+      "created_at": "2026-10-27T03:36:20Z",
+      "expires_at": "2027-01-25T03:35:40Z"
+    },
+    {
+      "id": 12707692983,
+      "name": "backend-unit-coverage",
+      "digest": "sha256:0753a5063c36fa32d81759e312c8bdd89f06c4852277a38cc45b384b8799c324",
+      "created_at": "2026-10-27T03:36:18Z",
+      "expires_at": "2027-01-25T03:35:40Z"
+    },
+    {
+      "id": 12707194415,
+      "name": "lint-report",
+      "digest": "sha256:c7d08462b9323004559449f90faefa9377c9bbb33f1c0717113bb7bec452ae7d",
+      "created_at": "2026-10-27T03:36:18Z",
+      "expires_at": "2026-11-03T03:36:17Z"
+    },
+    {
+      "id": 12706929812,
+      "name": "dependency-secret-reports",
+      "digest": "sha256:94603a8d0a0544c4108075416d74b8f4b306acc628b44356abddc881b36c8901",
+      "created_at": "2026-10-27T03:37:22Z",
+      "expires_at": "2026-11-03T03:37:21Z"
+    },
+    {
+      "id": 12706824905,
+      "name": "sast-report",
+      "digest": "sha256:1ba3128e23ace166ee98012fa6065e931738c7ea50d0b10944c9a8aba65e6c06",
+      "created_at": "2026-10-27T03:37:21Z",
+      "expires_at": "2026-11-03T03:37:20Z"
+    }
+  ],
+  "offline_bundle_sha256": "b9035894fa0596b155c35f70615145fcd823c4707373d8d820224f97f9ceb505"
+}

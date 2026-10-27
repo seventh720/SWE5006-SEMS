@@ -50,3 +50,9 @@ performance-reports/
 
 # Local presentation video, audio and editing sources
 presentation-recordings/
+
+# Local document build intermediates and raw report evidence
+.report-build/
+outputs/final-report/evidence/
+outputs/final-report/SEMS_Verification_Evidence_*.zip
+~$*

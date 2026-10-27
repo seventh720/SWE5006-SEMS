@@ -4,26 +4,11 @@
 
 SWE5006 第 10 组课程项目，使用 React、TypeScript、Spring Boot 和 PostgreSQL，实现活动发布、免费预订、电子票、工作人员签到、取消联动、通知和报表。
 
-## 当前交付状态
+## 验证基线
 
-状态核验于**2026年10月21日（SGT）**。当前保持**功能冻结**。云端多角色流程、DAST、手机扫码、隔离数据库恢复及**500 VU容量目标已完成**。最新已核验main版本为`565f08b`（PR #48），[CI、部署和DAST全部成功](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705)。业务验收和容量实测保留各自原始版本及日期，详见[测试说明](docs/testing.zh-CN.md)；后端实际JWT配置为`PT1H`。
+仓库已记录的应用部署基线为 `565f08b`（2026-10-21）。[10月27日PR验证](docs/acceptance/report-evidence-2026-10-27/README.md)的六项CI检查已通过，原始产物已保存供Final report核验；该PR没有部署。业务验收、DAST和容量实测分别保留原始日期及版本，见[测试说明](docs/testing.zh-CN.md)和[验收证据](docs/acceptance/README.md)。
 
-1000 VU为额外容量探索：读取通过，混合业务与库存竞争仍有延迟及连接可靠性限制，详见[最新容量报告](docs/acceptance/capacity-2026-10-21/README.md)。维护者已确认不将1000 VU全场景达标作为本轮交付条件。
-
-**CI/CD讲解视频（11分09秒）和系统Demo v3（9分19秒）均已完成并获认可**，含英文配音及中英字幕。本地文件位于`presentation-recordings/2026-10-21/`，被Git忽略。系统Demo使用`565f08b`；CI/CD视频讲解已标明版本的历史运行。
-
-维护者已确认本组正式presentation为**2026年10月27日10:30 SGT**。编排按教师通知：**展示40分钟，之后另5分钟Q&A**；截图标题中的11月日期不用于本组排期。通知与通用Word指南的差异见[原文核对](docs/presentation.zh-CN.md#2026年10月21日原文核对)。**完整final report在pre后补齐。** 当前准备缺口：
-
-| 项目 | 状态与完成要求 |
-|---|---|
-| Slides | 尚未制作；更新历史素材，讲清范围、分析→设计、三种模式、ERD、测试及DevSecOps证据 |
-| 敏捷与成员贡献 | 整理真实五Sprint日期、backlog、Review/Retro、贡献与实际工时 |
-| 质量属性展示 | 准备性能脚本、实际输出及500/1000 VU边界说明；业务成片之外预留展示时间 |
-| 现场Demo与彩排 | 账号已保留；另建覆盖现场签到窗口的活动，确认分工并完成两轮彩排 |
-| 离线与提交包 | 整理已认可视频、slides和测试/扫描证据；按40分钟展示加5分钟Q&A编排；现场Demo为主、视频备用；核对提交安排及最终commit/tag、CI和备份 |
-| 当天预检 | 重新登录，检查HTTPS、相机、票额、视频播放及备用材料 |
-
-日期、完成标准和保留数据统一维护在[交付清单](docs/remaining-work.zh-CN.md)。讲解结构见[演示指南](docs/presentation.zh-CN.md)，操作顺序见[业务演示脚本](docs/sprint-4-demo.zh-CN.md)。
+已记录的500 VU读取及混合模型通过；1000 VU读取通过，混合与库存竞争延迟超标，库存竞争另有1次连接失败。保持时长、负载模型和结论边界见[容量报告](docs/acceptance/capacity-2026-10-21/README.md)。
 
 ## 功能与角色
 
@@ -62,7 +47,7 @@ docs/                设计决策、接口约定、测试与演示证据
 
 后端采用模块化单体，包括 `identity`、`event`、`ticketing`、`booking`、`checkin`、`notification`、`reporting`。签到和报表通过 JDBC 读取共享表的边界例外记录在[架构决策](docs/adr/0001-modular-monolith.md)中。
 
-设计模式已有具体对应：**Observer** 用于同步事务事件及通知，**State** 用于票券生命周期，**Strategy** 用于报名资料校验。定价 Strategy 随收费票范围延期，演示使用资料校验策略。业务时间边界、JWT、通知和 JPA 审计统一使用注入的 `Clock`。模式图与演示路线见[演示指南](docs/presentation.zh-CN.md)。
+设计模式已有具体对应：**Observer** 用于同步事务事件及通知，**State** 用于票券生命周期，**Strategy** 用于报名资料校验。定价 Strategy 随收费票范围延期，演示使用资料校验策略。业务时间边界、JWT、通知和 JPA 审计统一使用注入的 `Clock`。模式图与实现依据见[报告素材](docs/final-report.zh-CN.md)。
 
 ## 快速启动
 
@@ -155,7 +140,7 @@ Lint 中的 actionlint 容器和 PostgreSQL 集成测试需要 Docker 运行。�
 | Security · DAST Baseline | 仅main部署后：公开HTTPS被动扫描；中高危或扫描错误使流水线失败 |
 | Notify · Telegram | 汇总结果；通知失败不改变质量检查结论 |
 
-PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部署。检查报告保存为 Actions artifacts。受控安全例外记录在 [trivyignore.yaml](scripts/security/trivyignore.yaml)；ZAP DAST Baseline及部署后任务已加入，见[扫描结果与范围](docs/dast.zh-CN.md)。最新main部署与云端扫描均成功，高/中/低危均为0。凭据配置、服务器目录和恢复边界见[部署维护说明](docs/deployment.md)。
+PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部署。检查报告保存为 Actions artifacts。受控安全例外记录在 [trivyignore.yaml](scripts/security/trivyignore.yaml)；ZAP DAST Baseline及部署后任务已加入，见[扫描结果与范围](docs/dast.zh-CN.md)。已记录的main部署与云端扫描均成功，高/中/低危均为0。凭据配置、服务器目录和恢复边界见[部署维护说明](docs/deployment.md)。
 
 ## 数据库查看与变更
 
@@ -163,12 +148,10 @@ PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部
 
 数据库结构变更必须新增 `backend/src/main/resources/db/migration/VyyyyMMddHHmm__description.sql`，不要修改已执行迁移。Flyway 在启动时迁移，Hibernate 仅校验结构。字段与关系见[数据库说明](docs/database/README.md)。
 
-## 团队协作与文档
+## 文档
 
-从最新 main 创建任务分支，完成相关验证后提交 PR 并由组员审查。合并使用 **Create a merge commit**，保留原提交；不使用 squash。main 合并会触发 CD。完整步骤见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-- [文档导航](docs/README.md)：接口、架构和数据库资料。
-- [部署维护](docs/deployment.md)：CI/CD、共享代理、数据库访问与恢复。
-- [测试记录](docs/testing.zh-CN.md)：当前结果、命令及验证边界。
-- [交付清单](docs/remaining-work.zh-CN.md)：功能冻结和最终封板前的验收工作。
-- [系统演示脚本](docs/sprint-4-demo.zh-CN.md)及[演示指南](docs/presentation.zh-CN.md)：多角色演示和课程要求映射。
+- [文档导航](docs/README.md)：实现、部署及数据库参考。
+- [测试与证据](docs/testing.zh-CN.md)：已有结果及验证边界。
+- [Final report素材](docs/final-report.zh-CN.md)：当前设计、历史材料修订及证据映射。
+- [Presentation准备](docs/presentation.zh-CN.md)：逐页大纲及演示素材。
+- [贡献指南](CONTRIBUTING.md)：开发检查与PR约定。
