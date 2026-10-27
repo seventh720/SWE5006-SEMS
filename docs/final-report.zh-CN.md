@@ -76,6 +76,8 @@ Under the recorded short-duration API workload, 500 virtual users passed the rea
 
 课程报告模板要求在2.1明确每人的用例及设计问题，在2.3记录实际里程碑和逐人工时，并保留第5章个人贡献总结；未要求在报告中记录每人讲哪些幻灯片或负责哪段串场。正式报告已移除这些演讲分工，相关编排只保留在[PPT与排练材料](presentation.zh-CN.md)中。另保留[10月25日更新素材](../outputs/final-report/Materials_for_Final_Report_Updated_20261025.docx)供追溯，提交时以完整Final Report为准。
 
+3.2的每条转换策略均说明影响的分析对象与用例、类图结构变化及理由、时序行为变化及理由，以及新设计者的应用和验证步骤，并对应具体分析/设计图。授权入口另补类依赖与时序图，区分JWT及当前角色检查、方法权限与活动分配；图中省略的持久化对象和合并的调用参与者在正文注明。
+
 ## 需求与实现映射
 
 | 要求 | 已实现证据 | 展示边界 |
