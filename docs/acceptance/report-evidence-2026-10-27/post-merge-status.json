@@ -1,0 +1,67 @@
+{
+  "date_sgt": "2026-10-27",
+  "merged_pr": 50,
+  "merge_commit": "2583b595b67d0bae579e6f0f653087a31e1bfe96",
+  "run_id": 40448082772,
+  "run_url": "https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772",
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "id": 122004018075,
+      "name": "Backend · Unit Tests",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122004018219,
+      "name": "Backend · Integration Tests",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122004018280,
+      "name": "Frontend · Tests & Build",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122004018340,
+      "name": "Lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122004175996,
+      "name": "Security · SAST, Dependencies & Secrets",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122004548319,
+      "name": "Images · Scan & Smoke Test",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122005208595,
+      "name": "Deploy · Staging",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122005671215,
+      "name": "Security · DAST Baseline",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 122006003149,
+      "name": "Notify · Telegram",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "scope": "Post-merge workflow and deployment status. The report's numerical excerpts and offline evidence ZIP retain their individually identified PR, historical DAST and capacity baselines."
+}

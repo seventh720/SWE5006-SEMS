@@ -4,26 +4,11 @@
 
 SWE5006 Team 10's event management and free-ticketing application, built with React, TypeScript, Spring Boot and PostgreSQL. It covers event publication, registration, electronic tickets, staff check-in, cancellation, notifications and reporting.
 
-## Delivery status
+## Verification baseline
 
-Verified on **21 October 2026 (SGT)**. The application is in **feature freeze**. Cloud multi-role acceptance, DAST, phone QR scanning, an isolated database restore and the agreed **500 VU** capacity target are complete. The latest verified main release is `565f08b` (PR #48); [CI, deployment and DAST all passed](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705). Business acceptance and capacity measurements retain their original version/date in the [testing notes](docs/testing.zh-CN.md). Runtime JWT lifetime is `PT1H`.
+PR #50 was merged as `2583b59` on 27 October 2026. Its [main workflow](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772) passed verification, staging deployment/HTTPS checks and passive DAST. The report's [original PR artifacts](docs/acceptance/report-evidence-2026-10-27/README.md), business acceptance and capacity measurements retain their own run IDs, dates and commits. See the [testing record](docs/testing.zh-CN.md) and [acceptance evidence](docs/acceptance/README.md).
 
-At 1000 VU, reads pass, while mixed traffic and inventory contention retain latency and connection reliability limits. This additional exploration is documented in the [latest capacity report](docs/acceptance/capacity-2026-10-21/README.md); passing every 1000-VU scenario is outside the agreed delivery goal.
-
-The **CI/CD walkthrough (11:09)** and **system demo v3 (9:19)** are complete and accepted, with English narration and bilingual subtitles. Local files are under `presentation-recordings/2026-10-21/` (ignored by Git). The system demo uses release `565f08b`; the CI/CD video explains a labelled historical run.
-
-The maintainer confirmed the team's presentation for **27 October 2026, 10:30 SGT**. Follow the lecturer announcement's format: **40 minutes of presentation followed by 5 minutes of Q&A**; the November dates in its screenshot title do not set this team's schedule. Differences from the generic Word guide are recorded in the [source review](docs/presentation.zh-CN.md#2026年10月21日原文核对). **Full final-report writing follows the presentation.** Remaining preparation:
-
-| Item | Status / completion needed |
-|---|---|
-| Slides | Not yet made; update historical material and explain scope, analysis-to-design transitions, patterns, ERD, testing and DevSecOps |
-| Agile and individual contributions | Gather actual five-sprint dates, backlog, reviews, retrospectives, contributions and effort |
-| Quality-attribute demonstration | Prepare the performance script, actual output and 500/1000-VU limits; reserve time beyond the business video |
-| Live demo and rehearsals | Accounts retained; prepare a new event covering the live check-in window, assign speakers and rehearse twice |
-| Offline and submission package | Package accepted videos, slides and test/scan evidence; plan 40 minutes plus 5 minutes Q&A, with live demos and backup videos; confirm submission arrangements, final commit/tag, CI run and backup |
-| On-site checks | Re-login and verify HTTPS, camera, tickets, playback and fallback material before the session |
-
-Dates, completion criteria and retained demo data are maintained in the [delivery checklist](docs/remaining-work.zh-CN.md). Use the [presentation guide](docs/presentation.zh-CN.md) for the talk and the [demo walkthrough](docs/sprint-4-demo.zh-CN.md) for operations.
+The recorded 500 VU read and mixed workloads passed. At 1000 VU, reads passed while mixed traffic and inventory contention exceeded the latency threshold; contention also recorded one connection failure. See the [capacity report](docs/acceptance/capacity-2026-10-21/README.md) for workload duration and limits.
 
 ## Features and roles
 
@@ -62,7 +47,7 @@ docs/                Design decisions, API contracts, testing and presentation e
 
 The backend is a modular monolith with `identity`, `event`, `ticketing`, `booking`, `checkin`, `notification` and `reporting`. Check-in and reporting have documented JDBC access to shared tables. See the [architecture decision](docs/adr/0001-modular-monolith.md).
 
-Design patterns map to concrete code: **Observer** for synchronous transactional business events, **State** for ticket lifecycle transitions, and **Strategy** for booking-information validation. Pricing Strategy is deferred with paid tickets; booking-information validation provides the current Strategy demonstration. A shared injected `Clock` supplies business boundaries, JWT validation, notifications and JPA audit timestamps. See the [pattern and presentation evidence](docs/presentation.zh-CN.md).
+Design patterns map to concrete code: **Observer** for synchronous transactional business events, **State** for ticket lifecycle transitions, and **Strategy** for booking-information validation. Pricing Strategy is deferred with paid tickets; booking-information validation provides the current Strategy demonstration. A shared injected `Clock` supplies business boundaries, JWT validation, notifications and JPA audit timestamps. See the [design-pattern evidence](docs/final-report.zh-CN.md).
 
 ## Quick start
 
@@ -145,7 +130,7 @@ Docker must be running for the lint script's actionlint container and PostgreSQL
 | Security · DAST Baseline | Main only, after deployment: passive public HTTPS scan; High/Medium or scan errors fail the workflow |
 | Notify · Telegram | Report results; notification failure does not invalidate the quality checks |
 
-PRs run checks without deployment. Main publishes tested images and deploys through the GitHub `staging` environment. Reports are uploaded as Actions artifacts. Scoped security exceptions are tracked in [trivyignore.yaml](scripts/security/trivyignore.yaml); ZAP DAST baseline scripts and post-deployment workflow are included; see the [scan results and scope](docs/dast.zh-CN.md). The latest main deployment and cloud scan passed, with zero High/Medium/Low findings. See the [deployment and recovery guide](docs/deployment.md) for secrets, server layout and rollback limitations.
+PRs run checks without deployment. Main publishes tested images and deploys through the GitHub `staging` environment. Reports are uploaded as Actions artifacts. Scoped security exceptions are tracked in [trivyignore.yaml](scripts/security/trivyignore.yaml); ZAP DAST baseline scripts and post-deployment workflow are included; see the [scan results and scope](docs/dast.zh-CN.md). The recorded main deployment and cloud scan passed, with zero High/Medium/Low findings. See the [deployment and recovery guide](docs/deployment.md) for secrets, server layout and rollback limitations.
 
 ## Database access
 
@@ -153,12 +138,10 @@ For local Navicat/DBeaver connections, use `localhost:5432` and the `POSTGRES_*`
 
 All schema changes use a new `VyyyyMMddHHmm__description.sql` file in `backend/src/main/resources/db/migration`. Never edit an applied migration. Flyway migrates on startup; Hibernate validates the schema. See the [database reference](docs/database/README.md).
 
-## Team workflow and documentation
+## Documentation
 
-Create a task branch from updated `main`, run relevant checks, open a PR and obtain team review. Use **Create a merge commit**, not squash. Main merges trigger CD. Full instructions: [CONTRIBUTING.md](CONTRIBUTING.md).
-
-- [Documentation index](docs/README.md): API, architecture and database references.
-- [Deployment guide](docs/deployment.md): CI/CD, shared proxy, database access and recovery.
-- [Testing record](docs/testing.zh-CN.md): current results, commands and verification limits.
-- [Delivery checklist](docs/remaining-work.zh-CN.md): feature-freeze and final acceptance work.
-- [Demo walkthrough](docs/sprint-4-demo.zh-CN.md) and [presentation guide](docs/presentation.zh-CN.md): the multi-role demo and course evidence.
+- [Documentation index](docs/README.md): implementation, deployment and database references.
+- [Testing and evidence](docs/testing.zh-CN.md): recorded results and verification limits.
+- [Final-report material](docs/final-report.zh-CN.md): current design, corrections to historical material and evidence mapping.
+- [Presentation preparation](docs/presentation.zh-CN.md): slide outline and demo sources.
+- [Contributing](CONTRIBUTING.md): development checks and PR conventions.
