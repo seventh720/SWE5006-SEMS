@@ -6,7 +6,7 @@ SWE5006 Team 10's event management and free-ticketing application, built with Re
 
 ## Verification baseline
 
-The latest application deployment baseline recorded here is `565f08b` (21 October 2026). Fresh [PR verification on 27 October](docs/acceptance/report-evidence-2026-10-27/README.md) passed all six CI checks and preserved their original artifacts for the final report. That PR did not deploy; business acceptance, DAST and capacity retain their separately dated baselines. See the [testing record](docs/testing.zh-CN.md) and [acceptance evidence](docs/acceptance/README.md).
+PR #50 was merged as `2583b59` on 27 October 2026. Its [main workflow](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772) passed verification, staging deployment/HTTPS checks and passive DAST. The report's [original PR artifacts](docs/acceptance/report-evidence-2026-10-27/README.md), business acceptance and capacity measurements retain their own run IDs, dates and commits. See the [testing record](docs/testing.zh-CN.md) and [acceptance evidence](docs/acceptance/README.md).
 
 The recorded 500 VU read and mixed workloads passed. At 1000 VU, reads passed while mixed traffic and inventory contention exceeded the latency threshold; contention also recorded one connection failure. See the [capacity report](docs/acceptance/capacity-2026-10-21/README.md) for workload duration and limits.
 

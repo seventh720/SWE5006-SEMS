@@ -6,7 +6,7 @@ SWE5006 第 10 组课程项目，使用 React、TypeScript、Spring Boot 和 Pos
 
 ## 验证基线
 
-仓库已记录的应用部署基线为 `565f08b`（2026-10-21）。[10月27日PR验证](docs/acceptance/report-evidence-2026-10-27/README.md)的六项CI检查已通过，原始产物已保存供Final report核验；该PR没有部署。业务验收、DAST和容量实测分别保留原始日期及版本，见[测试说明](docs/testing.zh-CN.md)和[验收证据](docs/acceptance/README.md)。
+PR #50已于2026-10-27合并为 `2583b59`，[main流水线](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772)的验证、staging部署/HTTPS及被动DAST均通过。报告引用的[原始PR产物](docs/acceptance/report-evidence-2026-10-27/README.md)、业务验收和容量实测仍各自保留运行编号、日期与版本，见[测试说明](docs/testing.zh-CN.md)和[验收证据](docs/acceptance/README.md)。
 
 已记录的500 VU读取及混合模型通过；1000 VU读取通过，混合与库存竞争延迟超标，库存竞争另有1次连接失败。保持时长、负载模型和结论边界见[容量报告](docs/acceptance/capacity-2026-10-21/README.md)。
 

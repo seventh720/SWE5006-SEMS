@@ -2,7 +2,7 @@
 
 核验日期：2026-10-27（SGT）。[PR #50运行40445034465](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40445034465)已通过lint、后端单元、PostgreSQL集成、前端测试构建、静态安全及容器扫描/冒烟六项验证；原始ZIP已下载并核对GitHub SHA-256。实际checkout为临时合并提交`82060f5`，分支head为`8cfc17d`。该PR没有部署，DAST按工作流跳过。[产物索引](acceptance/report-evidence-2026-10-27/README.md)记录完整版本、结果与附件。
 
-系统Demo的应用部署基线仍为`565f08b`（2026-10-21）；业务、DAST和性能实测分别保留自己的版本和日期。历史`270c2b8`覆盖率为1326/1402行（94.58%）、428/524分支（81.68%），不与下表新计数混用。原始验收保留在[验收目录](acceptance/README.md)。
+PR #50已合并为`2583b59`；[main运行40448082772](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772)的验证、staging部署/HTTPS及被动DAST全部通过，作业状态见[记录](acceptance/report-evidence-2026-10-27/post-merge-status.json)。下表测试计数和离线证据仍来自前述PR运行。系统Demo素材为`565f08b`（2026-10-21）；业务、DAST和性能实测分别保留自己的版本和日期。历史`270c2b8`覆盖率为1326/1402行（94.58%）、428/524分支（81.68%），不与下表新计数混用。原始验收保留在[验收目录](acceptance/README.md)。
 
 ## 当前结果
 
@@ -14,7 +14,7 @@
 | 前端行/分支覆盖率 | 新CI `coverage-summary.json`：1332/1436行（92.75%）、1723/2063分支（83.51%）；旧83.47%保留为历史成绩 |
 | Lint | 新CI八项检查PASS：ESLint、Checkstyle、actionlint、shell语法、release-validation、dast-gate、capacity-watch、capacity-run |
 | 静态安全 | 新CI Semgrep为0 finding、0 error、207文件；Trivy依赖/密钥及三镜像无未豁免HIGH/CRITICAL或secret发现，保留下述两项Spring适用性例外 |
-| 部署与DAST | 新PR没有部署或运行DAST；已保存270c2b8原始ZAP产物为高/中/低0、信息4，历史565f08b部署日志亦记录通过 |
+| 部署与DAST | PR运行跳过部署/DAST；合并后main运行40448082772部署及DAST通过。附录原始ZAP产物仍来自270c2b8：高/中/低告警类型0、信息类型4（17实例） |
 | 云端业务/恢复/性能 | 多角色闭环、非空业务备份隔离恢复、1/5/10 VU读取基线完成；见[10月20日实测](acceptance/sprint4-2026-10-20/README.md) |
 | 云端容量验证 | 500 VU目标完成；1000 VU读取通过，混合/库存存在延迟超标及1次连接失败，无超卖；本轮测试数据已清理，无健康保护中断、OOM或重启。数值、保持时长、门槛及模型见[最新报告](acceptance/capacity-2026-10-21/README.md) |
 | 手机扫码 | 维护者确认通过；设备/浏览器未提供，未扩大为全移动端兼容性结论 |

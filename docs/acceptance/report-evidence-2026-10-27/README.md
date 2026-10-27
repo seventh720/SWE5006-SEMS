@@ -22,6 +22,8 @@ Unit-only and PostgreSQL-enabled totals are separate executions and must not be 
 
 ## Separately dated deployed results
 
+PR #50 was subsequently merged as **2583b595b67d0bae579e6f0f653087a31e1bfe96**. Its [main run 40448082772](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772) passed all verification jobs, image publication, staging deployment/HTTPS and passive DAST. See the [post-merge job status](post-merge-status.json). The numerical excerpts and original ZIPs below retain their own measurement baselines; this later status does not replace their contents.
+
 - **DAST:** the original ZAP HTML/JSON, summary and run/coverage metadata from **270c2b8**, [run 39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552), 20 October SGT. High/Medium/Low alert types 0; four informational alert types covering 17 instances. Passive unauthenticated public pages/GET APIs only.
 - **Performance:** the original [21 October capacity evidence](../capacity-2026-10-21/README.md) from **037720b**. 500 VU read/mixed passed; 1000 VU read passed, mixed and contention failed their full criteria. Contention retained stock correctness but recorded one connection refusal. These workloads were not rerun for the new CI.
 
@@ -30,3 +32,7 @@ Unit-only and PostgreSQL-enabled totals are separate executions and must not be 
 The accompanying `SEMS_Verification_Evidence_20261027.zip` contains the original downloaded CI archives, frontend job log, saved DAST and performance files, reproduction scripts and an SHA-256 manifest. Original CI archive hashes were verified against GitHub's artifact digest records. See [artifact digests](artifact-digests.json) and [derived result index](results.json).
 
 The report is [SEMS_Final_Report.docx](../../../outputs/final-report/SEMS_Final_Report.docx). The report, source index and measured result/digest metadata are committed. Raw scan/test archives remain local under `outputs/final-report/evidence/` and in the separately delivered companion ZIP, following the repository convention to exclude raw generated reports from Git.
+
+## Retained project materials
+
+The [updated source material](../../../outputs/final-report/Materials_for_Final_Report_Updated_20261025.docx), [presentation](../../../outputs/presentation/SEMS_Presentation_Unified_20261025.pptx) and [bilingual rehearsal script](../../../outputs/presentation/SEMS_Presentation_Unified_Bilingual_Script_20261025.docx) are retained for team access. They describe their original preparation dates and are not substitutes for the final report. Speaker assignments belong to those presentation materials; the final report records project contributions and actual effort.

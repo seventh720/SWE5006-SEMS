@@ -2,6 +2,8 @@
 
 2026-10-27补充：已纳入Presentation反馈，增加核心用例的分析/设计对照、连接全部11张应用表的ERD、验证产物索引及原始输出附录。新的[CI证据](acceptance/report-evidence-2026-10-27/README.md)来自PR #50运行40445034465；DAST与性能继续使用各自已记录的部署基线。完整Word与独立证据包位于`outputs/final-report/`。
 
+PR #50随后合并为`2583b59`，[main运行40448082772](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772)验证、staging部署/HTTPS及被动DAST通过。报告中新增该部署状态；附录内的原始输出及数值仍保留各自的运行与日期。
+
 整理日期：2026-10-27（SGT）。本文供报告取材，按现有源码和已保存验收记录更新10月12日的consolidated材料，并纳入本次PR验证；未重新运行云端业务验收、DAST或压测。附件原件保留不改，报告章节责任分配不等同于独占代码作者。
 
 ## 个人用例对应
@@ -57,6 +59,7 @@ Under the recorded short-duration API workload, 500 virtual users passed the rea
 | 报告主题 | 保留的证据 | 可支持的结论与限制 |
 |---|---|---|
 | 本次自动验证 | PR #50，2026-10-27，[CI 40445034465](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40445034465)；[产物索引](acceptance/report-evidence-2026-10-27/README.md) | 六项验证作业通过；实际checkout `82060f5`，分支head `8cfc17d`；未部署、未重跑DAST |
+| 合并后部署 | `2583b59`，2026-10-27，[main运行40448082772](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772) | 验证、staging部署/HTTPS和被动DAST通过；[作业状态](acceptance/report-evidence-2026-10-27/post-merge-status.json)不替换附录的原始产物及计数 |
 | 历史部署记录 | `565f08b`，2026-10-21，[CI 39566477705](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705)；[测试说明](testing.zh-CN.md) | 保存的质量检查、部署、HTTPS和DAST成功记录；不能代替本次PR的部署结果 |
 | 业务闭环与恢复 | `270c2b8`，[10月20日验收](acceptance/sprint4-2026-10-20/README.md)、[API结果](acceptance/sprint4-2026-10-20/cloud-api-results.json)、[恢复结果](acceptance/sprint4-2026-10-20/restore-results.json) | 多角色、取消/审计及非空数据库隔离恢复；12张表含Flyway历史表、14条迁移，不是整机灾备或生产RTO |
 | 并发与性能 | `037720b`，2026-10-21，[容量报告](acceptance/capacity-2026-10-21/README.md)、[库存审计](acceptance/capacity-2026-10-21/fixture-audit.json) | 500读取p95 2.056s、混合1.923s，均保持30s；1000读取2.938s、混合3.509s，均保持180s；竞争4.100s、1连接失败、无超卖 |
@@ -70,6 +73,8 @@ Under the recorded short-duration API workload, 500 virtual users passed the rea
 ## 完整报告
 
 已按课程模板完成[英文 Final Report](../outputs/final-report/SEMS_Final_Report.docx)，包含五章正文、七个用例的分析与设计模型、五位成员各自的主要用例及设计问题、数据库关系和测试／交付证据。Sprint 1–4 实际投入合计 476 小时，沿用团队确认的数据。1000 VU 目标的实际结果与限制在性能评估章节分别说明。
+
+课程报告模板要求在2.1明确每人的用例及设计问题，在2.3记录实际里程碑和逐人工时，并保留第5章个人贡献总结；未要求在报告中记录每人讲哪些幻灯片或负责哪段串场。正式报告已移除这些演讲分工，相关编排只保留在[PPT与排练材料](presentation.zh-CN.md)中。另保留[10月25日更新素材](../outputs/final-report/Materials_for_Final_Report_Updated_20261025.docx)供追溯，提交时以完整Final Report为准。
 
 ## 需求与实现映射
 
