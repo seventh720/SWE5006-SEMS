@@ -26,7 +26,7 @@
 
 `UserAdministrationService` 校验最后一位有效管理员保护，并比较角色集合；只有实际变化才发布 `UserRolesChanged`。`UserRolesChangedListener` 创建通知，写入失败会使角色修改回滚，无变化不会重复通知。后续请求使用 JWT 角色与数据库当前角色的交集执行授权。
 
-实现见 [identity](../backend/src/main/java/com/team10/sems/identity/) 和 [notification](../backend/src/main/java/com/team10/sems/notification/)。`UserAccessIntegrationTest` 覆盖并发管理员保护、撤权与通知回滚。
+实现见 [identity](../backend/src/main/java/com/team10/sems/identity/) 和 [notification](../backend/src/main/java/com/team10/sems/notification/)。`AuthenticationFlowIntegrationTest` 覆盖并发管理员保护、撤权与通知回滚。
 
 ## 报名资料校验
 
