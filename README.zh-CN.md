@@ -6,11 +6,15 @@ SWE5006 第 10 组课程项目，使用 React、TypeScript、Spring Boot 和 Pos
 
 ## 验证基线
 
+最终文档清理已于2026-10-29（SGT）通过 PR #52 合并；`4349cc9` 的[验证流水线](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40736349269)通过。该 PR 未部署或重跑 DAST；以下部署与归档实测保留各自的原始基线。
+
 PR #50已于2026-10-27合并为 `2583b59`，[main流水线](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772)的验证、staging部署/HTTPS及被动DAST均通过。报告引用的[原始PR产物](docs/acceptance/report-evidence-2026-10-27/README.md)、业务验收和容量实测仍各自保留运行编号、日期与版本，见[测试说明](docs/testing.zh-CN.md)和[验收证据](docs/acceptance/README.md)。
 
 已记录的500 VU读取及混合模型通过；1000 VU读取通过，混合与库存竞争延迟超标，库存竞争另有1次连接失败。保持时长、负载模型和结论边界见[容量报告](docs/acceptance/capacity-2026-10-21/README.md)。
 
 ## 功能与角色
+
+核心业务是 **发布活动 → 预订库存并出票 → 验票与单次入场**。取消操作联动订单、库存和票券，同时保留签到历史。
 
 | 身份 | 已实现流程 |
 |---|---|
@@ -154,6 +158,6 @@ PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部
 - [测试与证据](docs/testing.zh-CN.md)：已有结果及验证边界。
 - [设计模式](docs/design-patterns.zh-CN.md)：已实现模式、代码及回归测试依据。
 - [验证产物](docs/acceptance/report-evidence-2026-10-27/README.md)：实测结果、运行编号及完整性记录。
-
-正式报告和原始证据包在本地 `outputs/final-report/` 保存，该目录被 Git 忽略。
 - [贡献指南](CONTRIBUTING.md)：开发检查与PR约定。
+
+正式报告、原始证据包和演示录像已在本工作目录之外另行归档。仓库保留脱敏验收证据及完整性元数据；本地导出的 `outputs/` 目录被 Git 忽略。

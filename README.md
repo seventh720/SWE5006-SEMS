@@ -6,11 +6,15 @@ SWE5006 Team 10's event management and free-ticketing application, built with Re
 
 ## Verification baseline
 
+The final documentation cleanup was merged in PR #52 on 29 October 2026 (SGT). Its [verification run](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40736349269) passed at `4349cc9`; this PR run did not deploy or rerun DAST. The dated deployment and archived measurements below retain their original baselines.
+
 PR #50 was merged as `2583b59` on 27 October 2026. Its [main workflow](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772) passed verification, staging deployment/HTTPS checks and passive DAST. The report's [original PR artifacts](docs/acceptance/report-evidence-2026-10-27/README.md), business acceptance and capacity measurements retain their own run IDs, dates and commits. See the [testing record](docs/testing.zh-CN.md) and [acceptance evidence](docs/acceptance/README.md).
 
 The recorded 500 VU read and mixed workloads passed. At 1000 VU, reads passed while mixed traffic and inventory contention exceeded the latency threshold; contention also recorded one connection failure. See the [capacity report](docs/acceptance/capacity-2026-10-21/README.md) for workload duration and limits.
 
 ## Features and roles
+
+The core workflow is **publish an event → reserve capacity and issue tickets → verify and admit once**. Cancellation reconciles bookings, inventory and tickets while retaining check-in history.
 
 | Role | Implemented workflow |
 |---|---|
@@ -144,6 +148,6 @@ All schema changes use a new `VyyyyMMddHHmm__description.sql` file in `backend/s
 - [Testing and evidence](docs/testing.zh-CN.md): recorded results and verification limits.
 - [Design patterns](docs/design-patterns.zh-CN.md): implemented patterns, code and regression-test references.
 - [Verification artifacts](docs/acceptance/report-evidence-2026-10-27/README.md): measured results, run IDs and integrity metadata.
-
-The final report and raw companion evidence package are maintained locally under the Git-ignored `outputs/final-report/` directory.
 - [Contributing](CONTRIBUTING.md): development checks and PR conventions.
+
+The final report, companion evidence package and presentation recordings are archived separately from this checkout. The repository retains sanitized acceptance evidence and integrity metadata; local exports under `outputs/` are Git-ignored.
