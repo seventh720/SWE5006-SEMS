@@ -31,4 +31,4 @@ PR #50 was subsequently merged as **2583b595b67d0bae579e6f0f653087a31e1bfe96**. 
 
 The accompanying `SEMS_Verification_Evidence_20261027.zip` contains the original downloaded CI archives, frontend job log, saved DAST and performance files, reproduction scripts and an SHA-256 manifest. Original CI archive hashes were verified against GitHub's artifact digest records. See [artifact digests](artifact-digests.json) and [derived result index](results.json).
 
-The final Word report, original scan/test archives and companion ZIP are maintained locally under the Git-ignored `outputs/final-report/` directory. This repository retains the measured result index, artifact digests and post-merge job status so the recorded results remain traceable without committing the report or raw archives.
+The final Word report, original scan/test archives and companion ZIP are archived separately from this checkout. This repository retains the measured result index, artifact digests and post-merge job status so the recorded results remain traceable without committing the report or raw archives. Local exports under `outputs/` are Git-ignored.

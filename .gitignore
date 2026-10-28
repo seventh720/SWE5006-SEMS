@@ -53,6 +53,6 @@ presentation-recordings/
 
 # Local document build intermediates and raw report evidence
 .report-build/
-# Final report and companion evidence are delivered locally
-outputs/final-report/
+# Local report, presentation and evidence exports are archived separately
+outputs/
 ~$*

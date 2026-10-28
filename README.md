@@ -144,6 +144,6 @@ All schema changes use a new `VyyyyMMddHHmm__description.sql` file in `backend/s
 - [Testing and evidence](docs/testing.zh-CN.md): recorded results and verification limits.
 - [Design patterns](docs/design-patterns.zh-CN.md): implemented patterns, code and regression-test references.
 - [Verification artifacts](docs/acceptance/report-evidence-2026-10-27/README.md): measured results, run IDs and integrity metadata.
-
-The final report and raw companion evidence package are maintained locally under the Git-ignored `outputs/final-report/` directory.
 - [Contributing](CONTRIBUTING.md): development checks and PR conventions.
+
+The final report, companion evidence package and presentation recordings are archived separately from this checkout. The repository retains sanitized acceptance evidence and integrity metadata; local exports under `outputs/` are Git-ignored.

@@ -154,6 +154,6 @@ PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部
 - [测试与证据](docs/testing.zh-CN.md)：已有结果及验证边界。
 - [设计模式](docs/design-patterns.zh-CN.md)：已实现模式、代码及回归测试依据。
 - [验证产物](docs/acceptance/report-evidence-2026-10-27/README.md)：实测结果、运行编号及完整性记录。
-
-正式报告和原始证据包在本地 `outputs/final-report/` 保存，该目录被 Git 忽略。
 - [贡献指南](CONTRIBUTING.md)：开发检查与PR约定。
+
+正式报告、原始证据包和演示录像已在本工作目录之外另行归档。仓库保留脱敏验收证据及完整性元数据；本地导出的 `outputs/` 目录被 Git 忽略。
