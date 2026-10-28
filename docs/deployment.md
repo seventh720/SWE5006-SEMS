@@ -1,10 +1,10 @@
 # Staging deployment and maintenance
 
-[English README](../README.md) | [中文 README](../README.zh-CN.md) | [Delivery checklist](remaining-work.zh-CN.md)
+[English README](../README.md) | [中文 README](../README.zh-CN.md) | [Verification evidence](acceptance/README.md)
 
 Verified business baseline on 20 October 2026 (SGT): `270c2b8`, deployed successfully by [run 39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552). Public URL: <https://swe5006.seventh720.com>. The running backend uses `SEMS_JWT_TTL=PT1H`.
 
-Latest verified main release, 21 October 2026: `565f08b` (PR #48), with [run 39566477705](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705) passing quality checks, image publication, backup/deployment, public HTTPS and DAST. The system demo v3 uses this release. Business acceptance, recovery and capacity reports retain their own original commits and dates; see the [testing record](testing.zh-CN.md).
+Verified main release on 27 October 2026: `2583b59` (PR #50), with [run 40448082772](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40448082772) passing quality checks, image publication, staging deployment, public HTTPS and passive DAST. Business acceptance, recovery and capacity reports retain their own original commits and dates; see the [testing record](testing.zh-CN.md).
 
 ## Release flow
 
@@ -13,7 +13,7 @@ Latest verified main release, 21 October 2026: `565f08b` (PR #48), with [run 395
 3. Main publishes SHA-tagged GHCR images and the digest-pinned `release-images/compose.release.json` artifact. PRs do not publish or deploy.
 4. `Deploy · Staging` consumes the same run's manifest, verifies the commit and image names, and sends committed deployment files to the host over SSH.
 5. The host serializes deployments, pulls images, creates and checks a PostgreSQL backup, runs Compose health checks, restarts frontend Nginx to refresh backend DNS, and checks public HTTPS endpoints.
-6. Only a successful deployment updates `current` and `deployed-sha`. Superseded main runs are skipped before deployment begins.
+6. After service health and public HTTPS checks pass, deployment updates `current`, `previous` and `deployed-sha`. Superseded main runs are skipped before deployment begins.
 7. After deployment, `Security · DAST Baseline` passively scans public HTTPS pages/APIs and uploads `dast-report`. High/Medium findings or scanner errors fail the workflow; Low/Informational findings remain visible. This post-deployment check does not automatically roll back containers or data. See the [DAST scope and results](dast.zh-CN.md).
 
 Implementation: [workflow](../.github/workflows/ci.yml), [runner script](../scripts/cd/remote-deploy.sh), [host script](../scripts/cd/deploy.sh), [manifest validation](../scripts/cd/validate-release.py).
@@ -36,7 +36,7 @@ Images currently allow anonymous pull from GHCR. If package visibility becomes p
 
 ### Reports and image verification
 
-Actions uploads lint, coverage, SAST, dependency/secret, image scan/smoke, and post-deployment DAST reports. Release manifests are retained for 30 days; image security and DAST reports for 7 days. Preserve evidence needed for the presentation before artifacts expire.
+Actions uploads lint, coverage, SAST, dependency/secret, image scan/smoke, and post-deployment DAST reports. Release manifests are retained for 30 days; image security and DAST reports for 7 days. Download evidence needed for verification before artifacts expire; retain the run ID, commit and integrity metadata.
 
 [Scoped Trivy exceptions](../scripts/security/trivyignore.yaml) have documented applicability checks and expiry dates. A passing scan does not mean every finding was absent. Image smoke tests verify registration, login, `expiresIn=3600`, public APIs and proxy headers; they are not DAST or a full browser acceptance test.
 

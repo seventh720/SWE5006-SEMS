@@ -1,6 +1,6 @@
 # Sprint 4 当前改动验证
 
-以下“当前/尚未完成”均指2026-10-16当时版本，保留原始验收事实。后续完整业务已接入，见[10月20日云端验收](../sprint4-2026-10-20/README.md)；最新状态见[交付清单](../../remaining-work.zh-CN.md)。
+以下“当前/尚未完成”均指2026-10-16当时版本，保留原始验收事实。后续完整业务已接入，见[10月20日云端验收](../sprint4-2026-10-20/README.md)；最新状态见[测试记录](../../testing.zh-CN.md)。
 
 - 后端：`RUN_CONTAINER_TESTS=true mvn -f backend/pom.xml verify -q`，144项通过，无失败、错误或跳过。
 - 前端：`npm --prefix frontend run build`、`npm --prefix frontend test`，类型检查及构建通过，181项测试通过。
