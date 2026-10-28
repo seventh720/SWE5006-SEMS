@@ -42,12 +42,12 @@ frontend/            React/TypeScript application and component tests
 deployment/          Local/cloud Compose, PostgreSQL image and proxy examples
 scripts/             Lint, security, image verification and deployment automation
 .github/workflows/   CI quality checks and staging CD
-docs/                Design decisions, API contracts, testing and presentation evidence
+docs/                Design decisions, API contracts, testing and acceptance evidence
 ```
 
 The backend is a modular monolith with `identity`, `event`, `ticketing`, `booking`, `checkin`, `notification` and `reporting`. Check-in and reporting have documented JDBC access to shared tables. See the [architecture decision](docs/adr/0001-modular-monolith.md).
 
-Design patterns map to concrete code: **Observer** for synchronous transactional business events, **State** for ticket lifecycle transitions, and **Strategy** for booking-information validation. Pricing Strategy is deferred with paid tickets; booking-information validation provides the current Strategy demonstration. A shared injected `Clock` supplies business boundaries, JWT validation, notifications and JPA audit timestamps. See the [design-pattern evidence](docs/final-report.zh-CN.md).
+Design patterns map to concrete code: **Observer** for synchronous transactional business events, **State** for ticket lifecycle transitions, and **Strategy** for booking-information validation. Pricing Strategy is deferred with paid tickets; booking-information validation provides the current Strategy demonstration. A shared injected `Clock` supplies business boundaries, JWT validation, notifications and JPA audit timestamps. See the [design-pattern evidence](docs/design-patterns.zh-CN.md).
 
 ## Quick start
 
@@ -142,6 +142,8 @@ All schema changes use a new `VyyyyMMddHHmm__description.sql` file in `backend/s
 
 - [Documentation index](docs/README.md): implementation, deployment and database references.
 - [Testing and evidence](docs/testing.zh-CN.md): recorded results and verification limits.
-- [Final-report material](docs/final-report.zh-CN.md): current design, corrections to historical material and evidence mapping.
-- [Presentation preparation](docs/presentation.zh-CN.md): slide outline and demo sources.
+- [Design patterns](docs/design-patterns.zh-CN.md): implemented patterns, code and regression-test references.
+- [Verification artifacts](docs/acceptance/report-evidence-2026-10-27/README.md): measured results, run IDs and integrity metadata.
+
+The final report and raw companion evidence package are maintained locally under the Git-ignored `outputs/final-report/` directory.
 - [Contributing](CONTRIBUTING.md): development checks and PR conventions.

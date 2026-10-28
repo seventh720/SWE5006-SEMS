@@ -38,7 +38,7 @@ PR #50已合并为`2583b59`；[main运行40448082772](https://github.com/seventh
 | 通知与报表 | 本人隔离/已读、提醒窗口和去重、授权通知事务、票数去重、跨页总计、组织者/管理员范围 | 上述集成测试、`ReportingIntegrationTest`、前端Notifications/Reports |
 | QR与相机 | 真实qrcode→jsQR往返、取消/已核销隐藏QR、权限与播放错误、相机切换/释放资源、旧验票响应隔离 | `ticketQr.test.ts`、`MyTicketsPage.test.tsx`、`TicketCamera.test.tsx`、StaffPage交互测试 |
 
-组件测试通常模拟API；真实PostgreSQL测试与云端验收分别记录，不将mock等同于完整浏览器E2E。三种模式的代码与测试关系见[报告素材](final-report.zh-CN.md)。
+组件测试通常模拟API；真实PostgreSQL测试与云端验收分别记录，不将mock等同于完整浏览器E2E。模式的代码与测试关系见[设计模式依据](design-patterns.zh-CN.md)。
 
 ## 执行方法
 
@@ -64,7 +64,7 @@ npm --prefix frontend run build
 - 静态扫描仅复制Git范围源码和明确构建物，不挂载本机`.env`、私钥或node_modules；不扫描Git历史。
 - 本地构建JAR后可运行`bash scripts/security/scan.sh`；镜像/冒烟步骤见[部署维护](deployment.md)。ZAP执行与基线限制见[DAST](dast.zh-CN.md)。
 
-Actions报告包括`lint-report`、`sast-report`、`dependency-secret-reports`、`image-security-reports`和`dast-report`。安全报告保留7天；演示所需原报告已下载在本机忽略目录，仍需随离线演示材料妥善备份。
+Actions报告包括`lint-report`、`sast-report`、`dependency-secret-reports`、`image-security-reports`和`dast-report`。安全报告保留7天；所需原始报告已下载在本机忽略目录，离线保存并保留哈希及版本。
 
 Spring MVC的两条限时例外不代表依赖已修复：
 
@@ -79,4 +79,4 @@ Spring MVC的两条限时例外不代表依赖已修复：
 
 容量报告分别判断读取、混合写入和库存竞争，记录整体及逐接口p95和真实错误。VU表示带思考时间的活跃虚拟用户；结果不代表等量RPS、真实浏览器或长稳态，也未测出最大容量。恢复验证到隔离数据库级，不包含整机重建、异地灾备或自动回滚。完整浏览器E2E尚未进入CI，多浏览器/设备兼容性也未穷尽；演示应如实说明这些限制。
 
-报告取材见[证据与版本索引](final-report.zh-CN.md#证据与版本索引)，演示取材见[逐页准备](presentation.zh-CN.md)。
+原始产物、运行编号和完整性元数据见[验证证据索引](acceptance/report-evidence-2026-10-27/README.md)。

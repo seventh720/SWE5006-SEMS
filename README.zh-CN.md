@@ -47,7 +47,7 @@ docs/                设计决策、接口约定、测试与演示证据
 
 后端采用模块化单体，包括 `identity`、`event`、`ticketing`、`booking`、`checkin`、`notification`、`reporting`。签到和报表通过 JDBC 读取共享表的边界例外记录在[架构决策](docs/adr/0001-modular-monolith.md)中。
 
-设计模式已有具体对应：**Observer** 用于同步事务事件及通知，**State** 用于票券生命周期，**Strategy** 用于报名资料校验。定价 Strategy 随收费票范围延期，演示使用资料校验策略。业务时间边界、JWT、通知和 JPA 审计统一使用注入的 `Clock`。模式图与实现依据见[报告素材](docs/final-report.zh-CN.md)。
+设计模式已有具体对应：**Observer** 用于同步事务事件及通知，**State** 用于票券生命周期，**Strategy** 用于报名资料校验。定价 Strategy 随收费票范围延期，演示使用资料校验策略。业务时间边界、JWT、通知和 JPA 审计统一使用注入的 `Clock`。模式图与实现依据见[设计模式依据](docs/design-patterns.zh-CN.md)。
 
 ## 快速启动
 
@@ -152,6 +152,8 @@ PR 仅检查，不部署；main 发布镜像并通过 GitHub `staging` 环境部
 
 - [文档导航](docs/README.md)：实现、部署及数据库参考。
 - [测试与证据](docs/testing.zh-CN.md)：已有结果及验证边界。
-- [Final report素材](docs/final-report.zh-CN.md)：当前设计、历史材料修订及证据映射。
-- [Presentation准备](docs/presentation.zh-CN.md)：逐页大纲及演示素材。
+- [设计模式](docs/design-patterns.zh-CN.md)：已实现模式、代码及回归测试依据。
+- [验证产物](docs/acceptance/report-evidence-2026-10-27/README.md)：实测结果、运行编号及完整性记录。
+
+正式报告和原始证据包在本地 `outputs/final-report/` 保存，该目录被 Git 忽略。
 - [贡献指南](CONTRIBUTING.md)：开发检查与PR约定。

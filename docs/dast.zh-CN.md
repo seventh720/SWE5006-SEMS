@@ -2,7 +2,7 @@
 
 以下统计对应2026-10-20保存的业务基线`270c2b8`及[main运行39311200552](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39311200552)，部署与DAST均成功。后续已核验部署的扫描状态见[测试说明](testing.zh-CN.md)；此处保留原报告范围与执行方法。
 
-2026-10-21补充核验：最新`565f08b`的[main运行39566477705](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705)中，DAST作业成功；日志记录High=0、Medium=0、Low=0、Informational=4、PASS=66。它是最新扫描状态，下表仍是已保存的原基线报告。
+2026-10-21补充核验：最新`565f08b`的[main运行39566477705](https://github.com/seventh720/SWE5006-SEMS/actions/runs/39566477705)中，DAST作业成功；日志记录High=0、Medium=0、Low=0、Informational=4、PASS=66。27 October 的 main 运行也已通过，见[验证索引](acceptance/report-evidence-2026-10-27/README.md)；下表仍是已保存的原基线报告。
 
 ## 已保存的扫描基线
 

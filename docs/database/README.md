@@ -99,7 +99,7 @@ Migrations: `V202610060400__create_ticket_types.sql` (existing ticket types) and
 | cancellation_reason | VARCHAR(30), nullable | ATTENDEE_CANCELLED or EVENT_CANCELLED; required exactly when cancelled |
 | created_at / updated_at | TIMESTAMPTZ | Audit times |
 
-Indexes support `(user_id, created_at DESC, id DESC)` and `(event_id, created_at DESC, id DESC)`. The idempotency unique constraint is `(user_id, request_key)`. PostgreSQL transaction advisory locks serialize same-key requests before taking the event row lock. All supported inventory writers hold the event row lock; cancellation reads the booking after acquiring it. See the [transaction contract](../sprint-3-api.zh-CN.md).
+Indexes support `(user_id, created_at DESC, id DESC)` and `(event_id, created_at DESC, id DESC)`. The idempotency unique constraint is `(user_id, request_key)`. PostgreSQL transaction advisory locks serialize same-key requests before taking the event row lock. All supported inventory writers hold the event row lock; cancellation reads the booking after acquiring it. See the [transaction contract](../api.zh-CN.md).
 
 ```mermaid
 erDiagram
@@ -221,7 +221,7 @@ Sources: [issued-ticket migration](../../backend/src/main/resources/db/migration
 | `event_id`, `booking_id`, `operator_id` | UUID NOT NULL FKs to events/bookings/users | Event, booking and the staff member who performed the operation |
 | `checked_in_at` | TIMESTAMPTZ NOT NULL | Audit time |
 
-Indexes support ticket lookup by event, staff assignment lookup by staff and audit lookup by event/time descending. Ticket issuance, check-in and cancellation share the event lock and transaction contract described in [cancellation integration](../sprint-4-cancellation.zh-CN.md). Event cancellation voids tickets while retaining check-in audit; reports count currently valid check-ins separately from historical admissions. The time window and authorization are application rules, not SQL CHECK constraints.
+Indexes support ticket lookup by event, staff assignment lookup by staff and audit lookup by event/time descending. Ticket issuance, check-in and cancellation share the event lock and transaction contract described in [cancellation integration](../cancellation.zh-CN.md). Event cancellation voids tickets while retaining check-in audit; reports count currently valid check-ins separately from historical admissions. The time window and authorization are application rules, not SQL CHECK constraints.
 
 ## Notifications
 

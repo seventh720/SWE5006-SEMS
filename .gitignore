@@ -53,6 +53,6 @@ presentation-recordings/
 
 # Local document build intermediates and raw report evidence
 .report-build/
-outputs/final-report/evidence/
-outputs/final-report/SEMS_Verification_Evidence_*.zip
+# Final report and companion evidence are delivered locally
+outputs/final-report/
 ~$*
