@@ -32,3 +32,7 @@ PR #50 was subsequently merged as **2583b595b67d0bae579e6f0f653087a31e1bfe96**. 
 The accompanying `SEMS_Verification_Evidence_20261027.zip` contains the original downloaded CI archives, frontend job log, saved DAST and performance files, reproduction scripts and an SHA-256 manifest. Original CI archive hashes were verified against GitHub's artifact digest records. See [artifact digests](artifact-digests.json) and [derived result index](results.json).
 
 The final Word report, original scan/test archives and companion ZIP are archived separately from this checkout. This repository retains the measured result index, artifact digests and post-merge job status so the recorded results remain traceable without committing the report or raw archives. Local exports under `outputs/` are Git-ignored.
+
+## Final regression reference
+
+The [PR #52 verification run 40736349269](https://github.com/seventh720/SWE5006-SEMS/actions/runs/40736349269) passed on 29 October 2026 (SGT) at `4349cc9`. The final report cites this later functional-test baseline: 215 backend tests passed and 1 optional test skipped; 244 frontend tests passed across 32 files. Frontend branch coverage was 1722/2063 (83.47%). Appendix A and the archives indexed here retain the original 27 October outputs, including 1723/2063 (83.51%). This PR run did not deploy or rerun DAST or capacity workloads.
