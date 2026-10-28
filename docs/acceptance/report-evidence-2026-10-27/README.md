@@ -33,6 +33,3 @@ The accompanying `SEMS_Verification_Evidence_20261027.zip` contains the original
 
 The final Word report, original scan/test archives and companion ZIP are maintained locally under the Git-ignored `outputs/final-report/` directory. This repository retains the measured result index, artifact digests and post-merge job status so the recorded results remain traceable without committing the report or raw archives.
 
-## Retained delivery material
-
-The [final presentation](../../../outputs/presentation/SEMS_Presentation_Unified_20261025.pptx) is retained as the delivered presentation artifact. Its original preparation date and measurement baselines remain applicable.
