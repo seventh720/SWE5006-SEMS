@@ -1,6 +1,6 @@
 # 接口、权限与事务约定
 
-当前实现参考；文件名沿用Sprint 3，内容已扩展到免费票完整业务闭环。最新交付状态见[交付清单](remaining-work.zh-CN.md)，数据库结构见[数据库说明](database/README.md)。
+本文记录免费票业务的接口、权限和事务约定。已执行结果见[测试记录](testing.zh-CN.md)，数据库结构见[数据库说明](database/README.md)。
 
 ## 修改用户名
 
@@ -203,7 +203,7 @@ API 只接受 PNG/JPEG base64 data URL，解码文件最多256 KiB、最大512×
 - Staff 分配入口：活动详情 → Manage staff；候选账号需有效且具备 STAFF 角色。分配/撤权真实变化才发送通知；事务中通知失败会回滚授权。
 - GET /api/v1/staff/events/{eventId}/assignments：活动所有者查询目录及当前分配；PUT/DELETE /api/v1/staff/events/{eventId}/assignments/{staffId} 返回204。
 - 验票与核销窗口：[startsAt−15min, min(startsAt+15min, endsAt))，后端为最终判断依据。
-- 业务验证与演示步骤见 [Sprint 4 演示脚本](sprint-4-demo.zh-CN.md)。
+- 业务验证见[云端验收记录](acceptance/sprint4-2026-10-20/README.md)。
 
 
 ## 权限撤销与活动编辑边界
@@ -243,7 +243,7 @@ Staff `/api/v1/staff/events`新增status字段；已取消活动保留分配和�
 | POST `/staff/events/{eventId}/check-ins` | 同上，原子核销并写操作员/时间；重复核销409 |
 | GET `/staff/events/{eventId}/check-ins` | 已分配STAFF，最近200条审计；取消活动不删除历史 |
 
-核销窗口为`[startsAt−15min, min(startsAt+15min, endsAt))`，活动须PUBLISHED，后端时间为准。核销、活动取消和撤销活动分配均先锁活动，再检查授权及票券，避免竞态；全局角色撤销由身份模块在后续Bearer请求中生效。内部票券事务契约见[取消联动](sprint-4-cancellation.zh-CN.md)。
+核销窗口为`[startsAt−15min, min(startsAt+15min, endsAt))`，活动须PUBLISHED，后端时间为准。核销、活动取消和撤销活动分配均先锁活动，再检查授权及票券，避免竞态；全局角色撤销由身份模块在后续Bearer请求中生效。内部票券事务契约见[取消联动](cancellation.zh-CN.md)。
 
 二维码接受UUID或`sems:ticket:UUID`，不接受任意URL。摄像头要求HTTPS/localhost，默认后置，可切换前置；授权失败可重试，播放受阻可手动Start preview。关闭、切换活动/摄像头、切后台、识别成功及卸载时释放资源。识别只填入票码，仍须Verify ticket→Confirm check-in。
 
